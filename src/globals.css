@@ -1,24 +1,136 @@
-
-/* globals.css */
-body {
-  background: #ffffff;
-  color: #171717;
-  font-family: Arial, Helvetica, sans-serif;
+/* Reset & Base */
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-nav {
-  background-color: #1e3a8a; /* same as Tailwind bg-blue-900 */
+body {
+  background-color: #ffffff;
+  color: #171717;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Layout Regions */
+/* Navbar Styles */
+.navbar {
+  background-color: #1e3a8a;
   color: white;
   padding: 1rem;
 }
 
-header {
-  background-color: #e0f2fe; /* light blue similar to Tailwind bg-blue-100 */
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-menu {
+  list-style: none;
+  display: flex;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem;
+  display: block;
+}
+
+.dropdown-menu,
+.sub-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #3b82f6; /* blue-500 */
+  list-style: none;
+  padding: 0.5rem 0;
+  min-width: 220px;
+  z-index: 1000;
+}
+
+.dropdown-menu li,
+.sub-dropdown-menu li {
+  position: relative;
+}
+
+.dropdown-item > a,
+.sub-dropdown-menu a {
+  display: block;
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover > .sub-dropdown-menu {
+  display: block;
+  top: 0;
+  left: 100%;
+  right: auto;
+}
+
+/* Flip the 3rd-level menu if it's the last one or near edge */
+.dropdown-item:last-child:hover > .sub-dropdown-menu {
+  left: auto;
+  right: 100%;
+}
+
+
+.nav-item:hover > .dropdown-menu {
+  display: block;
+}
+
+.dropdown-item:hover,
+.sub-dropdown-menu a:hover {
+  background-color: #2563eb; /* blue-600 */
+}
+
+
+.site-header {
+  background-color: #e0f2fe;
   color: #1e3a8a;
   padding: 1rem;
-  text-align: Left;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+  display: block;
+}
+
+.header-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+
+main {
+  padding: 2rem;
+  min-height: 60vh;
 }
 
 footer {
@@ -27,3 +139,20 @@ footer {
   padding: 1rem;
   text-align: center;
 }
+
+.hero {
+  background: #222;
+  color: limegreen;
+  padding: 3rem;
+  text-align: center;
+}
+
+.button {
+  background-color: #1e3a8a;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
