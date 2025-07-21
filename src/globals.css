@@ -1,0 +1,29 @@
+
+/* globals.css */
+body {
+  background: #ffffff;
+  color: #171717;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  background-color: #1e3a8a; /* same as Tailwind bg-blue-900 */
+  color: white;
+  padding: 1rem;
+}
+
+header {
+  background-color: #e0f2fe; /* light blue similar to Tailwind bg-blue-100 */
+  color: #1e3a8a;
+  padding: 1rem;
+  text-align: Left;
+}
+
+footer {
+  background-color: #1e3a8a;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
