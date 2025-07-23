@@ -4,6 +4,8 @@ requests>=2.31
 python-dotenv>=1.0
 urllib3>=2.2
 pandas
+python-dotenv
+
 
 # Development tools
 ipython             # Better interactive shell

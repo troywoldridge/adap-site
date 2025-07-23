@@ -1,14 +1,19 @@
+import type { Config } from "drizzle-kit";
 import { defineConfig } from "drizzle-kit";
 
-export default defineConfig({
+const config: Config = {
   schema: "./drizzle/schema",        // your schema path
   out: "./drizzle/migrations",       // output folder for generated migrations
-  driver: "pg",
+    dialect: "postgresql",
+
   dbCredentials: {
     host: "localhost",
     port: 5432,
     user: "troy",
     password: "Elizabeth71676",
     database: "adap",
+    ssl: false,
   },
-});
+};
+
+export default defineConfig(config);
