@@ -1,0 +1,18 @@
+# Core dependencies
+psycopg2-binary>=2.9
+requests>=2.31
+python-dotenv>=1.0
+urllib3>=2.2
+pandas
+
+# Development tools
+ipython             # Better interactive shell
+rich                # Pretty logging/output (optional, but amazing)
+tqdm                # Progress bars if you loop through 1000+ products
+pandas              # Easier CSV/export work
+mypy                # Static type checker
+ruff                # Fast Python linter/formatter
+types-requests      # Typing stubs for requests
+
+# Optional but good
+certifi             # Better cert handling (sometimes fixes SSL issues)

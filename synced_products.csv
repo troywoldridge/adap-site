@@ -1,0 +1,175 @@
+id,name,sku,category
+1,Business cards 14pt (Profit Maximizer),businesscard_14pt_profit_maximizer,Business Cards
+2,Business Cards 14pt + AQ ,businesscard_14pt_aq,Business Cards
+7,Business Cards 14pt + UV (High Gloss),businesscard_14pt_uv_high_gloss,Business Cards
+8,Business cards 14pt + Matte Finish,businesscard_14pt_matte_satin_aq,Business Cards
+9,Business cards 18pt Matte / Silk Lamination,businesscard_16pt_matte_silk_lamination,Business Cards
+10,Business cards 18pt Gloss Lamination,businesscard_16pt_gloss_lamination,Business Cards
+11,Business cards 14pt Writable + AQ (C1S),businesscard_14pt_writable _aq_c1s,Business Cards
+12,Business cards 14pt Writable + UV (C1S),businesscard_14pt_writable_uv_c1s,Business Cards
+13,Business cards 13pt Enviro Uncoated,businesscard_13pt_enviro_uncoated,Business Cards
+15,Business cards 16pt + AQ,businesscard_16pt_aq,Business Cards
+16,Business cards 16pt + UV,businesscard_16pt_uv,Business Cards
+17,Business cards 16pt + Matte Finish,businesscard_16pt_matte_satin_aq,Business Cards
+18,Postcards 14PT + AQ,postcards14pt_aq,Postcards
+20,Postcards 14PT + UV,postcards14pt_uv,Postcards
+23,Postcards 14PT + Matte Finish,postcards_14pt_matteaq,Postcards
+24,Postcards 18PT Matte / Silk Lamination,postcards_16pt_mattelam,Postcards
+25,Postcards 18PT Gloss Lamination,postcards_16pt_glosslam,Postcards
+26,Postcards 10PT + AQ,postcards_10pt_aq,Postcards
+27,Postcards 14pt Writable + AQ (C1S),postcards_14ptc1s_aq,Postcards
+28,Postcards 14pt Writable + UV (C1S),postcards_14ptc1s_uv,Postcards
+29,Postcards 13pt Enviro Uncoated,postcards_13pt_enviro,Postcards
+30,Business cards 18pt Matte Lam + SPOT UV,businesscard_16pt_matte_lam_spot_uv,Specialty Business Cards
+31,Business cards 13pt Linen Uncoated,businesscard_13pt_linen_uncoated,Business Cards
+32,Postcards 16pt + AQ,postcards_16pt_aq,Postcards
+33,Postcards 16pt + UV,postcards_16pt_uv,Postcards
+34,Postcards 16pt + Matte Finish,postcards_16pt_matteaq,Postcards
+35,Postcards 13pt Linen Uncoated,postcards_13pt_linen,Postcards
+37,Flyers 100lb Gloss Text,flyers_100lb_gloss,Flyers
+38,Flyers 100LB + UV (High Gloss),flyers_100lb_uv,Flyers
+39,Flyers 100lb + Matte Finish,flyers_100lb_matteaq,Flyers
+40,Flyers 80LB Enviro Uncoated,flyers_80lb_enviro,Flyers
+41,Flyers 70LB Linen Uncoated,flyers_70lb_linen,Flyers
+43,Brochures 100LB Gloss Text,brochures_100lb_gloss,Brochures
+44,Brochures 100lb + UV (High Gloss),brochures_100lb_uv,Brochures
+45,Brochures 100lb + Matte Finish,brochures_100lb_matteaq,Brochures
+46,Brochures 80lb Enviro Uncoated,brochures_80lb_enviro,Brochures
+48,Greeting Cards 14pt + AQ,greetingcards_14pt_aq,Greeting Cards
+49,Greeting Cards 14pt + UV (High Gloss),greetingcards_14pt_uv,Greeting Cards
+50,Greeting Cards 14pt + Matte Finish,greetingcards_14pt_matteaq,Greeting Cards
+51,Greeting Cards 14pt Writable + AQ (C1S),greetingcards_14c1s_aq,Greeting Cards
+52,Greeting Cards 14pt Writable + UV (C1S),greetingcards_14ptc1s_uv,Greeting Cards
+53,Greeting Cards 13pt Enviro Uncoated,greetingcards_13pt_enviro,Greeting Cards
+54,Booklets 80lb Gloss Text (8.5 x 5.5),booklets_80lb_85x55,Booklets
+55,Booklets 80lb Gloss Text (8.5 x 11),booklets_80lb_85x11,Booklets
+56,Booklets 100lb Gloss Text (8.5 x 5.5),booklets_100lb_85x55,Booklets
+57,Booklets 100lb Gloss Text (8.5 x 11),booklets_100lb_85x11,Booklets
+58,Presentation Folders 14PT + AQ,presentationfolders_14pt_aq,Presentation Folders
+59,Presentation Folders 14PT + Matte Finish,presentationfolders_14pt_matteaq,Presentation Folders
+60,Presentation Folders 14PT + UV (High Gloss),presentationfolders_14pt_uv,Presentation Folders
+62,Magnets 14PT,magnets_14pt,Magnets
+63,Wall Calendars 80LB Gloss Text,calendars_80lb,Wall Calendars
+64,Wall Calendars 100LB Gloss Text,calendars_100lb,Wall Calendars
+65,Posters 100LB Gloss Text,posters_100lb,Posters
+66,Posters 100LB + Matte Finish,posters_100lb_matteaq,Posters
+67,Posters 100LB + UV (High Gloss),posters_100lb_uv,Posters
+68,Posters 80LB Enviro Uncoated,posters_80lb_enviro,Posters
+69,Door Hangers 14PT + AQ,doorhangers_14pt_aq,Door Hangers
+70,Door Hangers 14PT + UV (High Gloss),doorhangers_14pt_uv,Door Hangers
+71,Door Hangers 14PT + Matte Finish,doorhangers_14pt_matteaq,Door Hangers
+72,Door Hangers 13PT Enviro Uncoated,doorhangers_13pt_enviro,Door Hangers
+75,Plastic 14PT,plastic_14pt,Plastics
+77,Clings Transparent,clings_transparent,Clings
+78,Clings Opaque,clings_opaque,Clings
+80,Letterheads 60LB Uncoated,letterheads_60lb,Letterhead
+81,Envelopes 60LB Uncoated,envelopes_60lb,Envelopes
+82,Notepads 60LB Uncoated (25 pages),notepads_60lb_25pg,Notepads
+83,Notepads 60LB Uncoated (50 pages),notepads_60lb_50pg,Notepads
+96,60lb slit back label / Stickers,labels_60lb,Square Cut Labels / Stickers
+97,4mm Coroplast (Yard Signs),4mm_coroplast,Coroplast Signs & Yard Signs-
+98,6mm Coroplast,6mm_coroplast,Coroplast Signs & Yard Signs
+99,8mm Coroplast,8mm_coroplast,Coroplast Signs & Yard Signs
+100,4mm Foam Board,4mm_foam,Foam Board
+101,Banners 13oz Glossy Vinyl,banners_13oz,Vinyl Banners
+102,Banners 13oz Matte Vinyl,banner_matte_13oz,Vinyl Banners
+103,Pull Up Banners 13oz Matte Vinyl Silverbase,pullupbanner_13oz,Pull Up Banners-
+104,Car Magnets (30mil),carmagnets_30mil,Car Magnets
+105,Large Format Posters 8pt C2S,largeformatposters_8pt,Large Format Posters
+106,20pt Styrene,styrene_20pt,Styrene Signs
+107,Display Board 24PT,displayboard_24pt,Display Board / POP
+108,Display Board 40PT,displayboard_40pt,Display Board / POP
+109,Canvas Roll,canvasroll,Canvas
+110,3mm Sintra,sintra_3mm,Sintra/Rigid Board
+111,X-Frame Banners 13oz Matte Vinyl,xframe_13oz_matte,X-Frame Banners
+112,A-Frame Signs 4mm Coroplast,aframe_4mm,A-Frame Signs
+117,Numbered Tickets 14pt,numberedtickets_14pt,Numbered Tickets
+120,Supply Boxes,supplyboxes_office,Supply Boxes
+121,H Stand ( for signs),hstand_office,H Stands for Signs
+122,A Frame Stands,aframestands_office,A Frame Stands
+123,Profit Pak (Samples),samplekits_office,Sample Kits
+124,Folded Business Card 14pt + UV (High Gloss),foldedbusinesscards_14pt+uv(highgloss),Folded Business Cards
+125,Folded Business Cards 14PT + Matte Finish,foldedbusinesscards-14pt+matte/satin-aq,Folded Business Cards
+126,Folded Business Cards 13PT Enviro Uncoated,foldedbusinesscards-13pt-enviro-uncoated,Folded Business Cards
+127,Variable Printing 14PT,variableprinting_14pt,Variable Printing
+129,Tear Cards 14PT + UV,tearcards-14pt+uv,Tear Cards
+130,Tear Cards 14PT + Matte Finish,tearcards-14pt+matte/satin-aq,Tear Cards
+132,Tear Cards 13PT + Enviro Uncoated,tearcards-13pt+enviro-uncoated,Tear Cards
+137,Digital Sheets 14pt + Matte Finish,digitalsheets-14pt+matte/satin-aq,Digital Sheets
+138,Digital Sheets 13pt Enviro Uncoated,digitalsheets-13pt-enviro-uncoated,Digital Sheets
+139,Digital Sheets 100lb Gloss Text,digitalsheets-100lb-gloss-text,Digital Sheets
+141,Digital Sheets 100lb + Matte Finish,digitalsheets-100lb+matte-aq,Digital Sheets
+142,Digital Sheets 80lb Enviro Uncoated ,digitalsheets-80lb-enviro-uncoated ,Digital Sheets
+147,Unaddressed Postcard,unaddressed-postcard,Unaddressed Admail
+148,Postcard Addressed-Postage Included,postcard-addressed-postage-included,Postcard Addressed
+149,Postcard Addressed-Postage Due,postcard-addressed-postage-due,Postcard Addressed
+150,Postcard Enveloped and Addressed-Postage Included,postcard-enveloped-addressed-postage-included,Postcard Enveloped and Addressed
+151,Postcard Enveloped and Addressed-Postage Due,postcard-enveloped-addressed-postage-due,Postcard Enveloped and Addressed
+163,Postcard 18pt Matte Lam + SPOT UV,postcard_16PT_matte_lam_spot_uv,Postcards
+202,Premium Pull Up Banners 13oz Matte Vinyl,premium_pullupbanner,Pull Up Banners
+206,Window Perforated Vinyl,window_perforated_vinyl,Window Graphics
+4137,Presentation Folders Matte Laminated,presentation_folders_14pt_matte_lam,Presentation Folders
+4139,Glossy Adhesive Vinyl,glossy_adhesive_vinyl,Adhesive Vinyl
+4165,Security Envelopes 60LB Uncoated,security_envelopes,Envelopes
+4902,Tent Cards 14PT + Matte Finish,tentcards_14pt_matte_finish,Tent Cards
+4904,Postcards 10PT + Matte Finish,postcards_10pt_matte_finish,Postcards
+5528,Bookmark 14PT + UV,bookmarks14pt_uv,Bookmarks
+5529,Bookmark 14PT + Matte Finish,bookmarks_14pt_matteaq,Bookmarks
+5530,Bookmark 18PT Matte / Silk Lamination,bookmarks_16pt_mattelam,Bookmarks
+5531,Bookmark 18PT Gloss Lamination,bookmarks_16pt_glosslam,Bookmarks
+5534,Bookmark 14pt Writable + UV (C1S),bookmarks_14ptc1s_uv,Bookmarks
+5535,Bookmark 13pt Enviro Uncoated,bookmarks_13pt_enviro,Bookmarks
+5537,Bookmark 16pt + UV,bookmarks_16pt_uv,Bookmarks
+5538,Bookmark 16pt + Matte Finish,bookmarks_16pt_matteaq,Bookmarks
+5539,Bookmark 13pt Linen Uncoated,bookmarks_13pt_linen,Bookmarks
+5541,Bookmark 10PT + Matte Finish,bookmarks_10pt_matte_finish,Bookmarks
+5546,Bookmark 18pt Matte Lam + SPOT UV,bookmark_16PT_matte_lam_spot_uv,Bookmarks
+5547,NCR Forms 20lb Uncoated,ncrform3part,NCR Forms
+5557,Business Cards 18PT Writable (C1S),businesscards18ptc1s,Business Cards
+5585,Envelopes 60lb (Self-Adhesive),envelopes_60lb_self_adhesive,Envelopes
+7028,BOPP Roll Labels,bopp_labels,Roll Labels / Stickers
+7029,Poly Roll Labels,poly_labels,Roll Labels / Stickers
+7030,Paper Roll Labels,paper_labels,Roll Labels / Stickers
+7324,Metallic Foil Business Cards,foil-gold-silver,Specialty Business Cards
+7326,Durable Business Cards,durable-business-cards,Specialty Business Cards
+7332,Kraft Business Cards,kraft-business-cards,Specialty Business Cards
+7334,Pearl Business Cards,pearl-business-cards,Specialty Business Cards
+7543,Pearl Paper Postcards,pearl_paper_postcards,Specialty Post Cards
+7544,Kraft Paper Postcards,kraft_paper_postcards,Specialty Post Cards
+7545,Metallic Foil Postcards,metallic_foil_postcards,Specialty Post Cards
+7546,Durable Postcards,durable_postcards,Specialty Post Cards
+7547,Table Top Pull Up Banner 13 oz Matte Vinyl,table_top_pull-up_banners,Pull Up Banners
+7548,Premium Wide Pull Up Banners 13 oz Matte Vinyl,premium_wide_pull_up_banners,Pull Up Banners
+7549,Double Sided Pull Up Banners 13 oz Matte Vinyl,double_sided_pull_up_banners,Pull Up Banners
+7550,Metallic Foil Greeting Cards,metallic_foil_greeting_cards,Specialty Greeting Cards
+7551,Spot UV Greeting Cards,spot_uv_greeting_cards,Specialty Greeting Cards
+7552,Pearl Paper Greeting Cards,pearl_paper_greeting_cards,Specialty Greeting Cards
+7553,Kraft Paper Greeting Cards,kraft_paper_greeting_cards,Specialty Greeting Cards
+7554,Mesh Banner 8oz Polyester Mesh,mesh_banners_8oz_polyester,Vinyl Banners
+7555,Removable Wall Decals 7 Mil,removable-wall_decals_7_mil,Wall Decals
+7557,Die Cut Business Cards ,die_cut_business_cards,Specialty Business Cards
+7567,Soft Touch Business Cards,soft_touch_business_cards,Specialty Business Cards
+14672,Social Distancing Floor Stickers,social-distancing-floor-stickers,Covid-19-Decals-
+14676,Floor Graphics,floor-graphics,Floor Graphics
+14678,Booklets 60lb Offset Text (8.5 x 11),booklets_offset_60lb_85x11,Booklets
+14679,Booklets 60lb Offset Text (8.5 x 5.5),booklets_offset_60lb_85x55,Booklets
+14972,Social Distancing Signage,social_distancing_signage,Covid-19-Decals
+14975,10mm Coroplast,10mm_coroplast,Coroplast Signs & Yard Signs-
+14978,3mm Aluminum Signs,3mm-aluminum-signs,Aluminum Signs
+14979,Booklets 80lb Silk Text (8.5 x 5.5),booklets_80lb_silk_text_85x55,Booklets
+14980,Booklets 80lb Silk Text (8.5 x 11),booklets_80lb_silk_text_85x11,Booklets
+14981,Cut to Shape Magnets (30mil),cut-to-shape-magnets-30mil,Magnets
+14982,Booklets 100lb Silk Text (8.5 x 5.5),booklets_100lb_silk_text_85x55,Booklets
+14983,Booklets 100lb Silk Text (8.5 x 11),booklets_100lb_silk_text_85x11,Booklets
+14985,Cut to Shape Magnets (20mil),cut-to-shape-magnets-20mil,Magnets
+14987,Table Covers (6 ft Table),table-covers-6-ft-table,Table Covers
+14988,Table Covers (8 ft Table),table-covers-8-ft-table,Table Covers
+15005,Invitations 14pt + Matte Finish,invitations-14pt-matte-finish,Invitations
+15006,Invitations 14pt Writable + AQ (C1S),invitations-14pt-writable-aq-C1S,Invitations
+15007,Invitations 14pt + AQ,invitations-14pt-aq,Invitations
+15008,Invitations 14pt + UV (High Gloss),invitations-14pt-uv-high-gloss,Invitations
+15010,Pearl Paperl Invitations,pearl-paper-invitations,Invitations
+15011,Metallic Foil Invitations,metallic-foil-invitations,Invitations
+15022,Ultra Smooth Business Cards,ultra-smooth-business-cards,Specialty Business Cards
+15193,Pull Up Banners 13oz Matte Vinyl Blackbase (31.5 x 78.75),pullupbanner_13oz_v2,Pull Up Banners
+16930,Willowpack Roll Labels,willow_labels,Roll Labels / Stickers

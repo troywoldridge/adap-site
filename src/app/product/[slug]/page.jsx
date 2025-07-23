@@ -26,7 +26,9 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null)
 
   useEffect(() => {
-    if (!slug) return
+    if (!slug) {
+      return
+    }
 
     const prod = PRODUCTS[slug]
 

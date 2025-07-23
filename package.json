@@ -4,17 +4,21 @@
   "private": false,
   "type": "module",
   "scripts": {
+    "db:introspect": "drizzle-kit introspect",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sync:sinalite": "ts-node scripts/sync-sinalite-products.ts",
+    "seed:subcategories": "pnpm exec ts-node --esm scripts/seed-subcategories.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.3",
     "next": "15.4.2",
     "pg": "^8.16.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -22,9 +26,11 @@
     "@types/pg": "^8.15.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.4",
+    "dotenv-cli": "^8.0.0",
+    "drizzle-kit": "^0.20.10",
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

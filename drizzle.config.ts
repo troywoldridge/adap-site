@@ -1,11 +1,14 @@
-import type { Config } from 'drizzle-kit';
+import { defineConfig } from "drizzle-kit";
 
-export default {
-  schema: './drizzle/schema.ts',
-  out: './drizzle/migrations',
-  driver: 'pg',
-  // For PG, just provide a connection string here
+export default defineConfig({
+  schema: "./drizzle/schema",        // your schema path
+  out: "./drizzle/migrations",       // output folder for generated migrations
+  driver: "pg",
   dbCredentials: {
-    connectionString: 'postgresql://troy@localhost:5432/adapdb',
+    host: "localhost",
+    port: 5432,
+    user: "troy",
+    password: "Elizabeth71676",
+    database: "adap",
   },
-} satisfies Config;
+});
