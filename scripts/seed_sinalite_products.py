@@ -1,250 +1,186 @@
-import sys
+import os
 import csv
+import json
+import sys
+import psycopg2
+from psycopg2 import sql
+from slugify import slugify
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Fix large CSV fields
 csv.field_size_limit(sys.maxsize)
 
-import os
-import json
-from typing import Dict, List, Optional
-from rapidfuzz import process, fuzz
-import psycopg2
+# Load .env file
+load_dotenv()
 
-# --- HARD-CODED PRODUCT STRUCTURE ---
-PRODUCT_STRUCTURE: Dict[str, Dict[str, List[str]]] = {
-     "Print Products": {
-        "Booklet": [
-            "80lb Gloss Text (8.5 x 5.5)SALE", "80lb Gloss Text (8.5 x 11)SALE",
-            "100lb Gloss Text (8.5 x 5.5)", "100lb Gloss Text (8.5 x 11)",
-            "60lb Offset Text (8.5 x 5.5)", "60lb Offset Text (8.5 x 11)",
-            "80lb Silk Text (8.5 x 5.5)", "80lb Silk Text (8.5 x 11)",
-            "100lb Silk Text (8.5 x 5.5)", "100lb Silk Text (8.5 x 11)"
-        ],
-        "Magnets": [
-            "Magnets (14pt)", "Car Magnets (30mil)",
-            "Cut to Shape Magnets (30mil)", "Cut to Shape Magnets (20Mil)"
-        ],
-        "Greeting Cards": [
-            "14pt + Matte Finish", "14pt + UV (High Gloss)", "14pt Writable + UV (C1S)",
-            "13pt Enviro Uncoated", "14pt + AQ", "14pt Writable + AQ (C1S)",
-            "Specialty", "Metallic Foil", "Kraft Paper", "Spot UV", "Pearl Paper"
-        ],
-        "Invitations / Announcements": [
-            "14pt Matte Finish", "14pt Writable + AQ (C1S)", "14pt AQ", "14pt UV",
-            "Kraft Paper", "Pearl Paper", "Metallic Foil"
-        ],
-        "Numbered Tickets": ["14pt tickets"],
-        "Wall Calendars": ["80lb Gloss TextSALE", "100lb Gloss Text"],
-        "Variable Printing": ["14pt Variable Printing"],
-        "Posters": [
-            "100lb Gloss Text", "100lb + Matte Finish", "100lb + UV (High Gloss)",
-            "80lb Enviro Uncoated", "8pt C2S"
-        ],
-        "Door Hangers": [
-            "14pt + Matte Finish", "14pt + UV (High Gloss)",
-            "13pt Enviro Uncoated", "14pt + AQ"
-        ],
-        "Digital Sheets": [
-            "14pt + Matte Finish", "13pt Enviro Uncoated",
-            "100lb Gloss Text", "100lb + Matte Finish", "80lb Enviro Uncoated"
-        ],
-        "Folded Business Cards": [
-            "14pt + Matte Finish", "14pt + UV (High Gloss)", "13pt Enviro Uncoated"
-        ],
-        "Tent Cards": ["14pt + Matte Finish"],
-        "Plastics": ["14pt Plastic"],
-        "Tear Cards": [
-            "14pt + Matte Finish", "14pt + UV (High Gloss)", "13pt Enviro Uncoated"
-        ],
-        "Clings": ["Transparent Clings", "White Opaque Clings"]
-    },
-    "Stationary": {
-        "Letterhead": ["Letterhead"],
-        "Envelopes": [
-            "60lb Uncoated", "Self-Adhesive 60lb Uncoated", "Security 60lb Uncoated"
-        ],
-        "Notepads": ["60lb Uncoated 25pgs", "60lb Uncoated 50pgs"],
-        "NCR Forms": ["3 Part NCR Forms"],
-        "Supply Boxes": ["Brown Corrugated"]
-    },
-    "Promotional": {
-        "Mugs": [
-            "11oz Ceramic Mug", "15oz Ceramic Mug", "12oz Stainless Steel Mug",
-            "16oz Frosted Beer Mug", "18 oz Clear Beer Mug"
-        ],
-        "Bottles": ["17oz Stainless Steel Bottle"],
-        "Puzzles": ["Puzzles"],
-        "Canvas": ["Stretched Canvas Prints"],
-        "Tumblers": ["20oz Tumbler"],
-        "Mason Jars": ["12oz Clear Mason Jars", "12oz Frosted Mason Jars"],
-        "Keychains": ["Keychains (Pack of 10)"],
-        "Coasters": ["Coasters (Pack of 10)"],
-        "Mouse Pads": ["Mouse Pad"],
-        "Photo Panels": ["HD Photo Panel"]
-    },
-    "Labels and Packaging": {
-        "Labels": [
-            "BOPP Labels (Premium)", "Poly Labels (Durable)",
-            "Paper Labels (Most Cost Effective)", "Square Cut Labels"
-        ],
-        "Product Boxes": [
-            "Straight tuck end product box (STE)", "Reverse tuck end product box (RTE)",
-            "Auto-lock bottom product box", "Product box Sleeves"
-        ],
-        "Corrugated Boxes": ["Mailer Boxes"],
-        "Flexible Packaging": ["Stand Up Pouches", "Lay Flat Pouches", "Roll Stock"],
-        "Cut To Shape Decal": ["White Vinyl (Permanent)", "White Vinyl (Removable)"]
-    },
-    "Apparel": {
-        "Men's Clothing": [
-            "T-Shirts", "Long Sleeve Shirts", "Sweatshirts",
-            "Hoodies", "Tank Tops", "Embroidered Polos"
-        ],
-        "Women's Clothing": [
-            "T-Shirts", "Long Sleeve Shirts", "Tank Tops", "Embroidered Polos"
-        ],
-        "Kids & Youth Clothing": [
-            "T-Shirts", "Long Sleeve Shirts", "Sweatshirts", "Hoodies"
-        ],
-        "Headwear": ["Embroidered Hats", "Embroidered Beanies"],
-        "Accessories": ["Tote Bags"]
-    },
-    "Business Cards": {
-        "Standard": [
-            "Quick Ship Business Cards", "14pt (Profit Maximizer)", "14pt + Matte Finish",
-            "16pt + Matte Finish", "14pt + UV (High Gloss)", "16pt + UV (High Gloss)",
-            "18pt Gloss Lamination", "18pt Matte / Silk Lamination", "14pt + AQ",
-            "16pt + AQ", "18PT Writable (C1S)", "13pt Enviro Uncoated", "13pt Linen Uncoated",
-            "14pt Writable + AQ (C1S)", "14pt Writable + UV (C1S)"
-        ],
-        "Specialty": [
-            "Metallic Foil (Raised)", "Kraft Paper", "Durable", "Spot UV (Raised)",
-            "Pearl Paper", "Die Cut", "Soft Touch (Suede)", "32pt Painted Edge", "Ultra Smooth"
-        ]
-    },
-    "Sample Kits": {
-        "SampleKits": [
-            "Stocks and Finishes", "Standard Sample Kit", "Large Format Sample Kit",
-            "Roll Label Sample Kit", "Specialty Sample Kit"
-        ]
-    },
-    "Large Format": {
-        "Coroplast Signs & Yard Signs": [
-            "4mm Coroplast (Yard signs)", "6mm Coroplast", "8mm Coroplast", "10mm Coroplast"
-        ],
-        "Floor Graphics": [
-            "4mm Foam Board", "Floor Graphics", "Social Distancing Floor Graphics"
-        ],
-        "Foam Board": ["4mm Foam Board"],
-        "Aluminum Signs": ["3mm Aluminum Signs"],
-        "Banners": ["13oz Glossy Vinyl", "13oz Matte Vinyl", "8oz Polyester Mesh"],
-        "Pull Up Banners": [
-            "13oz Matte Vinyl - Silver Base", "13oz Matte Vinyl - Black Base",
-            "Premium Stand 13oz Matte Vinyl", "Table Top 13oz Matte Vinyl",
-            "Premium Wide 13oz Matte Vinyl", "Double Sided 13oz Matte Vinyl"
-        ],
-        "Car Magnets": ["Car Magnets (30mil)"],
-        "Table Covers": ["Table Covers (6 ft Table)", "Table Covers (8 ft Table)"],
-        "Adhesive Vinyl": ["Glossy Adhesive Vinyl"],
-        "Window Graphics": ["Perforated Vinyl"],
-        "Large Format Posters": ["8pt C2S"],
-        "Styrene Signs": ["20pt Styrene"],
-        "Display Board / POP": ["24pt Display Board", "40pt Display Board"],
-        "Canvas": ["Canvas Roll", "Stretched Canvas Prints"],
-        "Sintra / PVC": ["3mm PVC"],
-        "X-Frame Banners": ["13oz Matte Vinyl"],
-        "A-Frame Signs": ["4mm Coroplast"],
-        "Wall Decals": ["7 mil Removable Wall Decal"],
-        "A Frame Stands": ["A Frame stands"],
-        "H Stands for Signs": ["H Stands"]
-    }
+DB_CONFIG = {
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": int(os.getenv("DB_PORT", 5432)),
 }
 
-# --- CONFIG ---
-INPUT_CSV = "table_data/sinalite_api_export/products.csv"
-SKIPPED_CSV = "scripts/skipped_products.csv"
+BASE_DIR = Path("/home/twoldridge/adap-site/table_data/sinalite_categorized_export")
 
-DB_PARAMS = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', 5432),
-    'dbname': os.getenv('DB_NAME', 'adap'),
-    'user': os.getenv('DB_USER', 'troy'),
-    'password': os.getenv('DB_PASS', ''),
-}
+def parse_json_safe(raw_str):
+    if not raw_str or raw_str.strip() in {"", "null", "None"}:
+        return None
+    try:
+        return json.loads(raw_str)
+    except json.JSONDecodeError:
+        return None
 
-# --- HELPERS ---
-def find_best_match(product_name: str) -> Optional[tuple]:
-    for main_cat, subcats in PRODUCT_STRUCTURE.items():
-        for subcat, products in subcats.items():
-            match, score, _ = process.extractOne(
-                product_name, products, scorer=fuzz.ratio
-            )
-            if score >= 80:
-                return (main_cat, subcat, match)
-    return None
+def get_or_create_category(cur, category_name):
+    cur.execute("SELECT id FROM categories WHERE name = %s", (category_name,))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    slug = slugify(category_name)
+    cur.execute("INSERT INTO categories (id, name, slug) VALUES (%s, %s, %s) RETURNING id", (slug, category_name, slug))
+    print(f"🆕 Created category: {category_name}")
+    return slug
 
-def log_skipped(product_name: str, reason: str = "No match"):
-    with open(SKIPPED_CSV, 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow([product_name, reason])
+def get_or_create_subcategory_id(cur, category_id, subcategory_name):
+    slug = slugify(subcategory_name)
+    cur.execute(
+        "SELECT id FROM subcategories WHERE category_id = %s AND slug = %s",
+        (category_id, slug)
+    )
+    result = cur.fetchone()
+    if result:
+        return result[0]
 
-def load_products(filepath: str) -> List[dict]:
-    with open(filepath, newline='', encoding='utf-8') as f:
+    cur.execute(
+        "INSERT INTO subcategories (name, category_id, slug) VALUES (%s, %s, %s) RETURNING id",
+        (subcategory_name, category_id, slug)
+    )
+    subcat_id = cur.fetchone()[0]
+    print(f"🆕 Created subcategory: {subcategory_name} under category: {category_id}")
+    return subcat_id
+
+
+
+def process_csv_file(csv_path, cur, inserted_count, updated_count, log):
+    category_name = csv_path.parent.name
+    subcategory_name = csv_path.stem
+
+    category_id = get_or_create_category(cur, category_name)
+    subcategory_id = get_or_create_subcategory_id(cur, category_id, subcategory_name)
+
+    with open(csv_path, newline='', encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        return [row for row in reader]
+        for row_num, row in enumerate(reader, 2):
+            try:
+                name = row["name"].strip()
+                slug = slugify(name)
+                sku = row["sku"].strip()
+                sinalite_id = row.get("id", "").strip()
+                options_json = parse_json_safe(row.get("options", ""))
+                pricing_json = parse_json_safe(row.get("pricing", ""))
+                metadata_json = parse_json_safe(row.get("metadata", ""))
 
-def insert_product(conn, row, category_id, subcategory_id):
-    with conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO products 
-            (name, slug, category_id, subcategory_id, sinalite_id, sku, options, pricing, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            row.get("name"),
-            row.get("slug"),
-            category_id,
-            subcategory_id,
-            row.get("sinalite_id"),
-            row.get("sku"),
-            json.dumps(row.get("options", {})),
-            json.dumps(row.get("pricing", {})),
-            json.dumps(row.get("metadata", {}))
-        ))
+                cur.execute("SELECT 1 FROM products WHERE sku = %s", (sku,))
+                exists = cur.fetchone()
 
-# --- MAIN ---
+                cur.execute(
+                    """
+                    INSERT INTO products (name, slug, sku, sinalite_id, category, subcategory_id, options, pricing, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (sku) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        slug = EXCLUDED.slug,
+                        sinalite_id = EXCLUDED.sinalite_id,
+                        category = EXCLUDED.category,
+                        subcategory_id = EXCLUDED.subcategory_id,
+                        options = EXCLUDED.options,
+                        pricing = EXCLUDED.pricing,
+                        metadata = EXCLUDED.metadata
+                    """,
+                    (
+                        name,
+                        slug,
+                        sku,
+                        sinalite_id,
+                        category_id,
+                        subcategory_id,
+                        json.dumps(options_json) if options_json else None,
+                        json.dumps(pricing_json) if pricing_json else None,
+                        json.dumps(metadata_json) if metadata_json else None,
+                    )
+                )
+
+                if exists:
+                    updated_count += 1
+                    log["updated"].append(sku)
+                else:
+                    inserted_count += 1
+                    log["inserted"].append(sku)
+
+            except Exception as e:
+                log["skipped"].append((csv_path.name, row_num, str(e)))
+
+    return inserted_count, updated_count
+
+def truncate_tables(cur):
+    cur.execute("TRUNCATE TABLE products CASCADE")
+    cur.execute("TRUNCATE TABLE subcategories CASCADE")
+    cur.execute("TRUNCATE TABLE categories CASCADE")
+    print("🧹 Truncated all product, subcategory, and category tables.")
+
 def main():
-    print("🧠 Loading product CSV...")
-    products = load_products(INPUT_CSV)
+    print(f"📂 Scanning: {BASE_DIR}")
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
 
-    print("📦 Connecting to DB...")
-    conn = psycopg2.connect(**DB_PARAMS)
-    conn.autocommit = True
-
-    print("🚮 Resetting skipped CSV...")
-    with open(SKIPPED_CSV, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(["Product Name", "Reason"])
+    truncate_tables(cur)  # Clear old data before insert
 
     inserted = 0
-    skipped = 0
+    updated = 0
+    file_count = 0
+    log = {
+        "inserted": [],
+        "updated": [],
+        "skipped": []
+    }
 
-    for row in products:
-        match = find_best_match(row["name"])
-        if not match:
-            log_skipped(row["name"], "No match in structure")
-            skipped += 1
-            continue
+    # rest of your loop here...
 
-        main_cat, sub_cat, _ = match
 
-        # For now, simulate category/subcategory IDs with strings
-        try:
-            insert_product(conn, row, main_cat, sub_cat)
-            inserted += 1
-        except Exception as e:
-            log_skipped(row["name"], f"DB error: {str(e)}")
-            skipped += 1
+    for dirpath, _, filenames in os.walk(BASE_DIR):
+        for file in filenames:
+            if file.endswith(".csv"):
+                csv_path = Path(dirpath) / file
+                print(f"📄 Processing: {csv_path}")
+                inserted, updated = process_csv_file(csv_path, cur, inserted, updated, log)
+                file_count += 1
 
+    conn.commit()
+    cur.close()
     conn.close()
-    print(f"✅ Done! Inserted: {inserted}, Skipped: {skipped}")
+
+    print("\n✅ Import Summary")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"📦 Files processed:   {file_count}")
+    print(f"🆕 Products inserted: {len(log['inserted'])}")
+    print(f"🔁 Products updated:  {len(log['updated'])}")
+    print(f"⚠️ Skipped rows:      {len(log['skipped'])}")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+    if log["skipped"]:
+        print("\n⚠️  Skipped Rows:")
+        for file, row, reason in log["skipped"]:
+            print(f"• {file}, row {row}: {reason}")
+
+    if log["inserted"]:
+        print("\n🆕 Inserted SKUs:")
+        print(", ".join(log["inserted"][:10]) + (" ..." if len(log["inserted"]) > 10 else ""))
+
+    if log["updated"]:
+        print("\n🔁 Updated SKUs:")
+        print(", ".join(log["updated"][:10]) + (" ..." if len(log["updated"]) > 10 else ""))
 
 if __name__ == "__main__":
     main()
+

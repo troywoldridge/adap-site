@@ -1,0 +1,20 @@
+[2025-07-24 19:16:00,103] INFO: 🚀 Starting import
+[2025-07-24 19:16:00,105] ERROR: ❌ Product insert failed for Envelopes 60LB Uncoated in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Envelopes.csv: 'product_id'
+[2025-07-24 19:16:00,105] ERROR: ❌ Product insert failed for Security Envelopes 60LB Uncoated in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Envelopes.csv: 'product_id'
+[2025-07-24 19:16:00,105] ERROR: ❌ Product insert failed for Envelopes 60lb (Self-Adhesive) in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Envelopes.csv: 'product_id'
+[2025-07-24 19:16:00,106] INFO: ✅ Processed 0 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Envelopes.csv
+[2025-07-24 19:16:00,106] ERROR: ❌ Product insert failed for Notepads 60LB Uncoated (25 pages) in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Notepads.csv: 'product_id'
+[2025-07-24 19:16:00,106] ERROR: ❌ Product insert failed for Notepads 60LB Uncoated (50 pages) in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Notepads.csv: 'product_id'
+[2025-07-24 19:16:00,107] INFO: ✅ Processed 0 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Notepads.csv
+[2025-07-24 19:16:00,107] ERROR: ❌ Product insert failed for NCR Forms 20lb Uncoated in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/NCR Forms.csv: 'product_id'
+[2025-07-24 19:16:00,107] INFO: ✅ Processed 0 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/NCR Forms.csv
+[2025-07-24 19:16:00,107] ERROR: ❌ Product insert failed for Letterheads 60LB Uncoated in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Letterhead.csv: 'product_id'
+[2025-07-24 19:16:00,107] INFO: ✅ Processed 0 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Letterhead.csv
+[2025-07-24 19:16:00,108] ERROR: ❌ Product insert failed for Presentation Folders 14PT + AQ in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv: 'product_id'
+[2025-07-24 19:16:00,109] ERROR: ❌ Product insert failed for Presentation Folders 14PT + Matte Finish in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv: 'product_id'
+[2025-07-24 19:16:00,111] ERROR: ❌ Product insert failed for Presentation Folders 14PT + UV (High Gloss) in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv: 'product_id'
+[2025-07-24 19:16:00,112] ERROR: ❌ Product insert failed for Presentation Folders Matte Laminated in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv: 'product_id'
+[2025-07-24 19:16:00,112] INFO: ✅ Processed 0 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv
+[2025-07-24 19:16:00,112] ERROR: ❌ Product insert failed for Table Covers (6 ft Table) in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Table Covers.csv: 'product_id'
+[2025-07-24 19:16:00,112] ERROR: ❌ Product insert failed for Table Covers (8 ft Table) in /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Table Covers.csv: 'product_id'
+[2025-07-24 19:16:00,112] INFO: ✅ Processed 0 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Table Covers.csv

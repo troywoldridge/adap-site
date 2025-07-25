@@ -1,0 +1,218 @@
+Product Name,Reason
+Envelopes 60LB Uncoated,Product name 'Envelopes 60LB Uncoated' did not match products in 'Envelopes'
+Security Envelopes 60LB Uncoated,Product name 'Security Envelopes 60LB Uncoated' did not match products in 'Envelopes'
+Envelopes 60lb (Self-Adhesive),Product name 'Envelopes 60lb (Self-Adhesive)' did not match products in 'Envelopes'
+Notepads 60LB Uncoated (25 pages),Product name 'Notepads 60LB Uncoated (25 pages)' did not match products in 'Notepads'
+Notepads 60LB Uncoated (50 pages),Product name 'Notepads 60LB Uncoated (50 pages)' did not match products in 'Notepads'
+NCR Forms 20lb Uncoated,Product name 'NCR Forms 20lb Uncoated' did not match products in 'NCR Forms'
+Letterheads 60LB Uncoated,Product name 'Letterheads 60LB Uncoated' did not match products in 'Letterhead'
+H Stand ( for signs),Product name 'H Stand ( for signs)' did not match products in 'H Stands for Signs'
+Display Board 24PT,Product name 'Display Board 24PT' did not match products in 'Display Board / POP'
+Display Board 40PT,Product name 'Display Board 40PT' did not match products in 'Display Board / POP'
+3mm Aluminum Signs,"DB error: invalid input syntax for type integer: ""Aluminum Signs""
+LINE 4: ...LUES ('3mm Aluminum Signs', NULL, 'Large Format', 'Aluminum ...
+                                                             ^
+"
+20pt Styrene,"DB error: invalid input syntax for type integer: ""Styrene Signs""
+LINE 4: ...    VALUES ('20pt Styrene', NULL, 'Large Format', 'Styrene S...
+                                                             ^
+"
+X-Frame Banners 13oz Matte Vinyl,Product name 'X-Frame Banners 13oz Matte Vinyl' did not match products in 'X-Frame Banners'
+Window Perforated Vinyl,"DB error: invalid input syntax for type integer: ""Window Graphics""
+LINE 4: ...('Window Perforated Vinyl', NULL, 'Large Format', 'Window Gr...
+                                                             ^
+"
+4mm Foam Board,"DB error: invalid input syntax for type integer: ""Foam Board""
+LINE 4: ...  VALUES ('4mm Foam Board', NULL, 'Large Format', 'Foam Boar...
+                                                             ^
+"
+Banners 13oz Glossy Vinyl,Subcategory 'Vinyl Banners' not found
+Banners 13oz Matte Vinyl,Subcategory 'Vinyl Banners' not found
+Mesh Banner 8oz Polyester Mesh,Subcategory 'Vinyl Banners' not found
+Floor Graphics,"DB error: invalid input syntax for type integer: ""Floor Graphics""
+LINE 4: ...  VALUES ('Floor Graphics', NULL, 'Large Format', 'Floor Gra...
+                                                             ^
+"
+Clings Transparent,Product name 'Clings Transparent' did not match products in 'Clings'
+Clings Opaque,Product name 'Clings Opaque' did not match products in 'Clings'
+A-Frame Signs 4mm Coroplast,Product name 'A-Frame Signs 4mm Coroplast' did not match products in 'A-Frame Signs'
+Pull Up Banners 13oz Matte Vinyl Silverbase,Subcategory 'Pull Up Banners-' not found
+Premium Pull Up Banners 13oz Matte Vinyl,Product name 'Premium Pull Up Banners 13oz Matte Vinyl' did not match products in 'Pull Up Banners'
+Table Top Pull Up Banner 13 oz Matte Vinyl,Product name 'Table Top Pull Up Banner 13 oz Matte Vinyl' did not match products in 'Pull Up Banners'
+Premium Wide Pull Up Banners 13 oz Matte Vinyl,Product name 'Premium Wide Pull Up Banners 13 oz Matte Vinyl' did not match products in 'Pull Up Banners'
+Double Sided Pull Up Banners 13 oz Matte Vinyl,Product name 'Double Sided Pull Up Banners 13 oz Matte Vinyl' did not match products in 'Pull Up Banners'
+Pull Up Banners 13oz Matte Vinyl Blackbase (31.5 x 78.75),Product name 'Pull Up Banners 13oz Matte Vinyl Blackbase (31.5 x 78.75)' did not match products in 'Pull Up Banners'
+Removable Wall Decals 7 Mil,Product name 'Removable Wall Decals 7 Mil' did not match products in 'Wall Decals'
+3mm Sintra,Subcategory 'Sintra/Rigid Board' not found
+Canvas Roll,Product name 'Canvas Roll' did not match products in 'Canvas'
+Presentation Folders 14PT + AQ,Subcategory 'Presentation Folders' not found
+Presentation Folders 14PT + Matte Finish,Subcategory 'Presentation Folders' not found
+Presentation Folders 14PT + UV (High Gloss),Subcategory 'Presentation Folders' not found
+Presentation Folders Matte Laminated,Subcategory 'Presentation Folders' not found
+Table Covers (6 ft Table),"DB error: invalid input syntax for type integer: ""Table Covers""
+LINE 4: ...Table Covers (6 ft Table)', NULL, 'Large Format', 'Table Cov...
+                                                             ^
+"
+Table Covers (8 ft Table),"DB error: invalid input syntax for type integer: ""Table Covers""
+LINE 4: ...Table Covers (8 ft Table)', NULL, 'Large Format', 'Table Cov...
+                                                             ^
+"
+Bookmark 14PT + UV,Subcategory 'Bookmarks' not found
+Bookmark 14PT + Matte Finish,Subcategory 'Bookmarks' not found
+Bookmark 18PT Matte / Silk Lamination,Subcategory 'Bookmarks' not found
+Bookmark 18PT Gloss Lamination,Subcategory 'Bookmarks' not found
+Bookmark 14pt Writable + UV (C1S),Subcategory 'Bookmarks' not found
+Bookmark 13pt Enviro Uncoated,Subcategory 'Bookmarks' not found
+Bookmark 16pt + UV,Subcategory 'Bookmarks' not found
+Bookmark 16pt + Matte Finish,Subcategory 'Bookmarks' not found
+Bookmark 13pt Linen Uncoated,Subcategory 'Bookmarks' not found
+Bookmark 10PT + Matte Finish,Subcategory 'Bookmarks' not found
+Bookmark 18pt Matte Lam + SPOT UV,Subcategory 'Bookmarks' not found
+Pearl Paper Postcards,Subcategory 'Specialty Post Cards' not found
+Kraft Paper Postcards,Subcategory 'Specialty Post Cards' not found
+Metallic Foil Postcards,Subcategory 'Specialty Post Cards' not found
+Durable Postcards,Subcategory 'Specialty Post Cards' not found
+Postcards 14PT + AQ,Subcategory 'Postcards' not found
+Postcards 14PT + UV,Subcategory 'Postcards' not found
+Postcards 14PT + Matte Finish,Subcategory 'Postcards' not found
+Postcards 18PT Matte / Silk Lamination,Subcategory 'Postcards' not found
+Postcards 18PT Gloss Lamination,Subcategory 'Postcards' not found
+Postcards 10PT + AQ,Subcategory 'Postcards' not found
+Postcards 14pt Writable + AQ (C1S),Subcategory 'Postcards' not found
+Postcards 14pt Writable + UV (C1S),Subcategory 'Postcards' not found
+Postcards 13pt Enviro Uncoated,Subcategory 'Postcards' not found
+Postcards 16pt + AQ,Subcategory 'Postcards' not found
+Postcards 16pt + UV,Subcategory 'Postcards' not found
+Postcards 16pt + Matte Finish,Subcategory 'Postcards' not found
+Postcards 13pt Linen Uncoated,Subcategory 'Postcards' not found
+Postcard 18pt Matte Lam + SPOT UV,Subcategory 'Postcards' not found
+Postcards 10PT + Matte Finish,Subcategory 'Postcards' not found
+Metallic Foil Greeting Cards,Subcategory 'Specialty Greeting Cards' not found
+Spot UV Greeting Cards,Subcategory 'Specialty Greeting Cards' not found
+Pearl Paper Greeting Cards,Subcategory 'Specialty Greeting Cards' not found
+Kraft Paper Greeting Cards,Subcategory 'Specialty Greeting Cards' not found
+Greeting Cards 14pt + AQ,Product name 'Greeting Cards 14pt + AQ' did not match products in 'Greeting Cards'
+Greeting Cards 14pt + UV (High Gloss),Product name 'Greeting Cards 14pt + UV (High Gloss)' did not match products in 'Greeting Cards'
+Greeting Cards 14pt + Matte Finish,Product name 'Greeting Cards 14pt + Matte Finish' did not match products in 'Greeting Cards'
+Greeting Cards 14pt Writable + AQ (C1S),Product name 'Greeting Cards 14pt Writable + AQ (C1S)' did not match products in 'Greeting Cards'
+Greeting Cards 14pt Writable + UV (C1S),Product name 'Greeting Cards 14pt Writable + UV (C1S)' did not match products in 'Greeting Cards'
+Greeting Cards 13pt Enviro Uncoated,Product name 'Greeting Cards 13pt Enviro Uncoated' did not match products in 'Greeting Cards'
+Invitations 14pt + Matte Finish,Subcategory 'Invitations' not found
+Invitations 14pt Writable + AQ (C1S),Subcategory 'Invitations' not found
+Invitations 14pt + AQ,Subcategory 'Invitations' not found
+Invitations 14pt + UV (High Gloss),Subcategory 'Invitations' not found
+Pearl Paperl Invitations,Subcategory 'Invitations' not found
+Metallic Foil Invitations,Subcategory 'Invitations' not found
+Large Format Posters 8pt C2S,Product name 'Large Format Posters 8pt C2S' did not match products in 'Large Format Posters'
+Posters 100LB Gloss Text,Product name 'Posters 100LB Gloss Text' did not match products in 'Posters'
+Posters 100LB + Matte Finish,Product name 'Posters 100LB + Matte Finish' did not match products in 'Posters'
+Posters 100LB + UV (High Gloss),Product name 'Posters 100LB + UV (High Gloss)' did not match products in 'Posters'
+Posters 80LB Enviro Uncoated,Product name 'Posters 80LB Enviro Uncoated' did not match products in 'Posters'
+Digital Sheets 14pt + Matte Finish,Product name 'Digital Sheets 14pt + Matte Finish' did not match products in 'Digital Sheets'
+Digital Sheets 13pt Enviro Uncoated,Product name 'Digital Sheets 13pt Enviro Uncoated' did not match products in 'Digital Sheets'
+Digital Sheets 100lb Gloss Text,Product name 'Digital Sheets 100lb Gloss Text' did not match products in 'Digital Sheets'
+Digital Sheets 100lb + Matte Finish,Product name 'Digital Sheets 100lb + Matte Finish' did not match products in 'Digital Sheets'
+Digital Sheets 80lb Enviro Uncoated,Product name 'Digital Sheets 80lb Enviro Uncoated' did not match products in 'Digital Sheets'
+Tear Cards 14PT + UV,Product name 'Tear Cards 14PT + UV' did not match products in 'Tear Cards'
+Tear Cards 14PT + Matte Finish,Product name 'Tear Cards 14PT + Matte Finish' did not match products in 'Tear Cards'
+Tear Cards 13PT + Enviro Uncoated,Product name 'Tear Cards 13PT + Enviro Uncoated' did not match products in 'Tear Cards'
+Car Magnets (30mil),"DB error: invalid input syntax for type integer: ""Car Magnets""
+LINE 4: ...UES ('Car Magnets (30mil)', NULL, 'Large Format', 'Car Magne...
+                                                             ^
+"
+Magnets 14PT,Product name 'Magnets 14PT' did not match products in 'Magnets'
+Cut to Shape Magnets (30mil),"DB error: invalid input syntax for type integer: ""Magnets""
+LINE 4: ...o Shape Magnets (30mil)', NULL, 'Print Products', 'Magnets',...
+                                                             ^
+"
+Cut to Shape Magnets (20mil),"DB error: invalid input syntax for type integer: ""Magnets""
+LINE 4: ...o Shape Magnets (20mil)', NULL, 'Print Products', 'Magnets',...
+                                                             ^
+"
+Plastic 14PT,Product name 'Plastic 14PT' did not match products in 'Plastics'
+Tent Cards 14PT + Matte Finish,Product name 'Tent Cards 14PT + Matte Finish' did not match products in 'Tent Cards'
+Booklets 80lb Gloss Text (8.5 x 5.5),Subcategory 'Booklets' not found
+Booklets 80lb Gloss Text (8.5 x 11),Subcategory 'Booklets' not found
+Booklets 100lb Gloss Text (8.5 x 5.5),Subcategory 'Booklets' not found
+Booklets 100lb Gloss Text (8.5 x 11),Subcategory 'Booklets' not found
+Booklets 60lb Offset Text (8.5 x 11),Subcategory 'Booklets' not found
+Booklets 60lb Offset Text (8.5 x 5.5),Subcategory 'Booklets' not found
+Booklets 80lb Silk Text (8.5 x 5.5),Subcategory 'Booklets' not found
+Booklets 80lb Silk Text (8.5 x 11),Subcategory 'Booklets' not found
+Booklets 100lb Silk Text (8.5 x 5.5),Subcategory 'Booklets' not found
+Booklets 100lb Silk Text (8.5 x 11),Subcategory 'Booklets' not found
+Flyers 100lb Gloss Text,Subcategory 'Flyers' not found
+Flyers 100LB + UV (High Gloss),Subcategory 'Flyers' not found
+Flyers 100lb + Matte Finish,Subcategory 'Flyers' not found
+Flyers 80LB Enviro Uncoated,Subcategory 'Flyers' not found
+Flyers 70LB Linen Uncoated,Subcategory 'Flyers' not found
+Door Hangers 14PT + AQ,Product name 'Door Hangers 14PT + AQ' did not match products in 'Door Hangers'
+Door Hangers 14PT + UV (High Gloss),Product name 'Door Hangers 14PT + UV (High Gloss)' did not match products in 'Door Hangers'
+Door Hangers 14PT + Matte Finish,Product name 'Door Hangers 14PT + Matte Finish' did not match products in 'Door Hangers'
+Door Hangers 13PT Enviro Uncoated,Product name 'Door Hangers 13PT Enviro Uncoated' did not match products in 'Door Hangers'
+Numbered Tickets 14pt,Product name 'Numbered Tickets 14pt' did not match products in 'Numbered Tickets'
+Brochures 100LB Gloss Text,Subcategory 'Brochures' not found
+Brochures 100lb + UV (High Gloss),Subcategory 'Brochures' not found
+Brochures 100lb + Matte Finish,Subcategory 'Brochures' not found
+Brochures 80lb Enviro Uncoated,Subcategory 'Brochures' not found
+Variable Printing 14PT,Product name 'Variable Printing 14PT' did not match products in 'Variable Printing'
+Wall Calendars 80LB Gloss Text,Product name 'Wall Calendars 80LB Gloss Text' did not match products in 'Wall Calendars'
+Wall Calendars 100LB Gloss Text,Product name 'Wall Calendars 100LB Gloss Text' did not match products in 'Wall Calendars'
+6mm Coroplast,"DB error: invalid input syntax for type integer: ""Coroplast Signs & Yard Signs""
+LINE 4: ...   VALUES ('6mm Coroplast', NULL, 'Large Format', 'Coroplast...
+                                                             ^
+"
+8mm Coroplast,"DB error: invalid input syntax for type integer: ""Coroplast Signs & Yard Signs""
+LINE 4: ...   VALUES ('8mm Coroplast', NULL, 'Large Format', 'Coroplast...
+                                                             ^
+"
+Unaddressed Postcard,Subcategory 'Unaddressed Admail' not found
+Postcard Enveloped and Addressed-Postage Included,Subcategory 'Postcard Enveloped and Addressed' not found
+Postcard Enveloped and Addressed-Postage Due,Subcategory 'Postcard Enveloped and Addressed' not found
+Social Distancing Floor Stickers,Subcategory 'Covid-19-Decals-' not found
+Postcard Addressed-Postage Included,Subcategory 'Postcard Addressed' not found
+Postcard Addressed-Postage Due,Subcategory 'Postcard Addressed' not found
+A Frame Stands,"DB error: invalid input syntax for type integer: ""A Frame Stands""
+LINE 4: ...  VALUES ('A Frame Stands', NULL, 'Large Format', 'A Frame S...
+                                                             ^
+"
+Glossy Adhesive Vinyl,"DB error: invalid input syntax for type integer: ""Adhesive Vinyl""
+LINE 4: ...S ('Glossy Adhesive Vinyl', NULL, 'Large Format', 'Adhesive ...
+                                                             ^
+"
+4mm Coroplast (Yard Signs),Subcategory 'Coroplast Signs & Yard Signs-' not found
+10mm Coroplast,Subcategory 'Coroplast Signs & Yard Signs-' not found
+Social Distancing Signage,Subcategory 'Covid-19-Decals' not found
+Business cards 14pt (Profit Maximizer),Subcategory 'Business Cards' not found
+Business Cards 14pt + AQ,Subcategory 'Business Cards' not found
+Business Cards 14pt + UV (High Gloss),Subcategory 'Business Cards' not found
+Business cards 14pt + Matte Finish,Subcategory 'Business Cards' not found
+Business cards 18pt Matte / Silk Lamination,Subcategory 'Business Cards' not found
+Business cards 18pt Gloss Lamination,Subcategory 'Business Cards' not found
+Business cards 14pt Writable + AQ (C1S),Subcategory 'Business Cards' not found
+Business cards 14pt Writable + UV (C1S),Subcategory 'Business Cards' not found
+Business cards 13pt Enviro Uncoated,Subcategory 'Business Cards' not found
+Business cards 16pt + AQ,Subcategory 'Business Cards' not found
+Business cards 16pt + UV,Subcategory 'Business Cards' not found
+Business cards 16pt + Matte Finish,Subcategory 'Business Cards' not found
+Business cards 13pt Linen Uncoated,Subcategory 'Business Cards' not found
+Business Cards 18PT Writable (C1S),Subcategory 'Business Cards' not found
+Business cards 18pt Matte Lam + SPOT UV,Subcategory 'Specialty Business Cards' not found
+Metallic Foil Business Cards,Subcategory 'Specialty Business Cards' not found
+Durable Business Cards,Subcategory 'Specialty Business Cards' not found
+Kraft Business Cards,Subcategory 'Specialty Business Cards' not found
+Pearl Business Cards,Subcategory 'Specialty Business Cards' not found
+Die Cut Business Cards,Subcategory 'Specialty Business Cards' not found
+Soft Touch Business Cards,Subcategory 'Specialty Business Cards' not found
+Ultra Smooth Business Cards,Subcategory 'Specialty Business Cards' not found
+Folded Business Card 14pt + UV (High Gloss),Product name 'Folded Business Card 14pt + UV (High Gloss)' did not match products in 'Folded Business Cards'
+Folded Business Cards 14PT + Matte Finish,Product name 'Folded Business Cards 14PT + Matte Finish' did not match products in 'Folded Business Cards'
+Folded Business Cards 13PT Enviro Uncoated,Product name 'Folded Business Cards 13PT Enviro Uncoated' did not match products in 'Folded Business Cards'
+Supply Boxes,Product name 'Supply Boxes' did not match products in 'Supply Boxes'
+Supply Boxes,Product name 'Supply Boxes' did not match products in 'Supply Boxes'
+60lb slit back label / Stickers,Subcategory 'Square Cut Labels / Stickers' not found
+BOPP Roll Labels,Subcategory 'Roll Labels / Stickers' not found
+Poly Roll Labels,Subcategory 'Roll Labels / Stickers' not found
+Paper Roll Labels,Subcategory 'Roll Labels / Stickers' not found
+Willowpack Roll Labels,Subcategory 'Roll Labels / Stickers' not found
+Profit Pak (Samples),Subcategory 'Sample Kits' not found

@@ -1,0 +1,338 @@
+[2025-07-24 19:32:54] 🚀 Starting Stage 1: Basic Product Import
+[2025-07-24 19:32:54] ❌ Insert failed for product 4165: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(security_envelopes) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5585: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(envelopes_60lb_self_adhesive) already exists.
+
+[2025-07-24 19:32:54] ✅ Processed 1/3 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Envelopes.csv
+[2025-07-24 19:32:54] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Notepads.csv
+[2025-07-24 19:32:54] ❌ Insert failed for product 5547: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(ncrform3part) already exists.
+
+[2025-07-24 19:32:54] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/NCR Forms.csv
+[2025-07-24 19:32:54] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Letterhead.csv
+[2025-07-24 19:32:54] ❌ Insert failed for product 4137: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(presentation_folders_14pt_matte_lam) already exists.
+
+[2025-07-24 19:32:54] ✅ Processed 3/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv
+[2025-07-24 19:32:54] ❌ Insert failed for product 14987: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(table-covers-6-ft-table) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 14988: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(table-covers-8-ft-table) already exists.
+
+[2025-07-24 19:32:54] ✅ Processed 0/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Table Covers.csv
+[2025-07-24 19:32:54] ❌ Insert failed for product 5528: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks14pt_uv) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5529: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_14pt_matteaq) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5530: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_16pt_mattelam) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5531: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_16pt_glosslam) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5534: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_14ptc1s_uv) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5535: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_13pt_enviro) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5537: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_16pt_uv) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5538: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_16pt_matteaq) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5539: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_13pt_linen) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5541: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmarks_10pt_matte_finish) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 5546: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bookmark_16PT_matte_lam_spot_uv) already exists.
+
+[2025-07-24 19:32:54] ✅ Processed 0/11 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Bookmarks.csv
+[2025-07-24 19:32:54] ❌ Insert failed for product 7543: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(pearl_paper_postcards) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 7544: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(kraft_paper_postcards) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 7545: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(metallic_foil_postcards) already exists.
+
+[2025-07-24 19:32:54] ❌ Insert failed for product 7546: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(durable_postcards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 4904: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(postcards_10pt_matte_finish) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 14/19 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Postcards.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 7550: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(metallic_foil_greeting_cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7551: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(spot_uv_greeting_cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7552: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(pearl_paper_greeting_cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7553: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(kraft_paper_greeting_cards) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 6/10 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Greeting Cards.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 15005: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(invitations-14pt-matte-finish) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15006: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(invitations-14pt-writable-aq-C1S) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15007: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(invitations-14pt-aq) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15008: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(invitations-14pt-uv-high-gloss) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15010: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(pearl-paper-invitations) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15011: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(metallic-foil-invitations) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/6 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Invitations.csv
+[2025-07-24 19:32:55] ✅ Processed 5/5 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Posters.csv
+[2025-07-24 19:32:55] ✅ Processed 5/5 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Digital Sheets.csv
+[2025-07-24 19:32:55] ✅ Processed 3/3 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Tear Cards.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14981: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(cut-to-shape-magnets-30mil) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 14985: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(cut-to-shape-magnets-20mil) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 2/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Magnets.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Plastics.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 4902: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(tentcards_14pt_matte_finish) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Tent Cards.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14678: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(booklets_offset_60lb_85x11) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 14679: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(booklets_offset_60lb_85x55) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 14979: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(booklets_80lb_silk_text_85x55) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 14980: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(booklets_80lb_silk_text_85x11) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 14982: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(booklets_100lb_silk_text_85x55) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 14983: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(booklets_100lb_silk_text_85x11) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 4/10 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Booklets.csv
+[2025-07-24 19:32:55] ✅ Processed 5/5 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Flyers.csv
+[2025-07-24 19:32:55] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Door Hangers.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Numbered Tickets.csv
+[2025-07-24 19:32:55] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Brochures.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Variable Printing.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Wall Calendars.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/H-Stands for Signs.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Display Board POP.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14978: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(3mm-aluminum-signs) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Aluminum Signs.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Styrene Signs.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/X-Frame Banners.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 206: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(window_perforated_vinyl) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Window Graphics.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Foam Board.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 7554: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(mesh_banners_8oz_polyester) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 2/3 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Vinyl Banners.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14676: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(floor-graphics) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Floor Graphics.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Clings.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/A-Frame Signs.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 202: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(premium_pullupbanner) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7547: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(table_top_pull-up_banners) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7548: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(premium_wide_pull_up_banners) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7549: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(double_sided_pull_up_banners) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15193: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(pullupbanner_13oz_v2) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 1/6 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Pull Up Banners.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 7555: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(removable-wall_decals_7_mil) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Wall Decals.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Sintra Rigid Board.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Canvas.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Coroplast Signs _ Yard Signs.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Unaddressed Admail.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Postcard Enveloped and Addressed.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14672: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(social-distancing-floor-stickers) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Covid-19-Decals-.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Postcard Addressed.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/A Frame Stands.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 4139: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(glossy_adhesive_vinyl) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Adhesive Vinyl.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14975: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(10mm_coroplast) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 1/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Coroplast Signs _ Yard Signs-.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 14972: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(social_distancing_signage) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Covid-19-Decals.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 1: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_14pt_profit_maximizer) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 2: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_14pt_aq) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_14pt_uv_high_gloss) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 8: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_14pt_matte_satin_aq) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 9: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_16pt_matte_silk_lamination) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 10: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_16pt_gloss_lamination) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 11: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_14pt_writable _aq_c1s) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 12: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_14pt_writable_uv_c1s) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 13: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscard_13pt_enviro_uncoated) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 5557: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(businesscards18ptc1s) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7324: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(foil-gold-silver) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7326: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(durable-business-cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7332: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(kraft-business-cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7334: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(pearl-business-cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7557: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(die_cut_business_cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7567: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(soft_touch_business_cards) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 15022: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(ultra-smooth-business-cards) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 8/25 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Business Cards/Business Cards.csv
+[2025-07-24 19:32:55] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Labels and Packaging/Supply Boxes.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Labels and Packaging/Square Cut Labels _ Stickers.csv
+[2025-07-24 19:32:55] ❌ Insert failed for product 7028: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(bopp_labels) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7029: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(poly_labels) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 7030: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(paper_labels) already exists.
+
+[2025-07-24 19:32:55] ❌ Insert failed for product 16930: duplicate key value violates unique constraint "products_sku_key"
+DETAIL:  Key (sku)=(willow_labels) already exists.
+
+[2025-07-24 19:32:55] ✅ Processed 0/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Labels and Packaging/Roll Labels _ Stickers.csv
+[2025-07-24 19:32:55] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Sample Kits/Sample Kits.csv
+[2025-07-24 19:32:55] 🏁 Import complete in 0.71s.
+[2025-07-24 19:36:39] 🚀 Starting Stage 1: Basic Product Import
+[2025-07-24 19:36:39] 🧨 Truncating products table...
+[2025-07-24 19:36:39] ✅ Products table truncated.
+[2025-07-24 19:36:39] ✅ Processed 3/3 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Envelopes.csv
+[2025-07-24 19:36:39] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Notepads.csv
+[2025-07-24 19:36:39] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/NCR Forms.csv
+[2025-07-24 19:36:39] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Stationery/Letterhead.csv
+[2025-07-24 19:36:39] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Presentation Folders.csv
+[2025-07-24 19:36:39] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Table Covers.csv
+[2025-07-24 19:36:40] ✅ Processed 11/11 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Promotional/Bookmarks.csv
+[2025-07-24 19:36:40] ✅ Processed 19/19 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Postcards.csv
+[2025-07-24 19:36:40] ✅ Processed 10/10 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Greeting Cards.csv
+[2025-07-24 19:36:40] ✅ Processed 6/6 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Invitations.csv
+[2025-07-24 19:36:40] ✅ Processed 5/5 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Posters.csv
+[2025-07-24 19:36:40] ✅ Processed 5/5 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Digital Sheets.csv
+[2025-07-24 19:36:40] ✅ Processed 3/3 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Tear Cards.csv
+[2025-07-24 19:36:40] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Magnets.csv
+[2025-07-24 19:36:40] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Plastics.csv
+[2025-07-24 19:36:40] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Tent Cards.csv
+[2025-07-24 19:36:41] ✅ Processed 10/10 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Booklets.csv
+[2025-07-24 19:36:41] ✅ Processed 5/5 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Flyers.csv
+[2025-07-24 19:36:41] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Door Hangers.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Numbered Tickets.csv
+[2025-07-24 19:36:41] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Brochures.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Variable Printing.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Print Products/Wall Calendars.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/H-Stands for Signs.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Display Board POP.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Aluminum Signs.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Styrene Signs.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/X-Frame Banners.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Window Graphics.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Foam Board.csv
+[2025-07-24 19:36:41] ✅ Processed 3/3 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Vinyl Banners.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Floor Graphics.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Clings.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/A-Frame Signs.csv
+[2025-07-24 19:36:41] ✅ Processed 6/6 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Pull Up Banners.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Wall Decals.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Sintra Rigid Board.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Large_Format/Canvas.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Coroplast Signs _ Yard Signs.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Unaddressed Admail.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Postcard Enveloped and Addressed.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Covid-19-Decals-.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Postcard Addressed.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/A Frame Stands.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Adhesive Vinyl.csv
+[2025-07-24 19:36:41] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Coroplast Signs _ Yard Signs-.csv
+[2025-07-24 19:36:41] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Uncategorized/Covid-19-Decals.csv
+[2025-07-24 19:36:42] ✅ Processed 25/25 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Business Cards/Business Cards.csv
+[2025-07-24 19:36:42] ✅ Processed 2/2 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Labels and Packaging/Supply Boxes.csv
+[2025-07-24 19:36:42] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Labels and Packaging/Square Cut Labels _ Stickers.csv
+[2025-07-24 19:36:42] ✅ Processed 4/4 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Labels and Packaging/Roll Labels _ Stickers.csv
+[2025-07-24 19:36:42] ✅ Processed 1/1 products from /home/twoldridge/adap-site/table_data/sinalite_categorized_export/Sample Kits/Sample Kits.csv
+[2025-07-24 19:36:42] 🏁 Import complete in 3.22s.

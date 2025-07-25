@@ -1,0 +1,1373 @@
+[15] invalid input syntax for type numeric: "12.25 x 9.5 x 6.5"
+LINE 3: ...3606b7a6d78c28b33f32d1ad615fe16c9e7dc87e427fd0b5','12.25 x 9...
+                                                             ^
+
+[147] numeric field overflow
+DETAIL:  A field with precision 12, scale 4 must round to an absolute value less than 10^8.
+
+Envelopes.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Envelopes.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Envelopes.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Notepads.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Notepads.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+NCR Forms.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Letterhead.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Table Covers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Table Covers.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 12]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 12]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 13]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 14]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 15]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 16]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 17]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 18]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 19]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 20]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tear Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tear Cards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tear Cards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Plastics.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tent Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Numbered Tickets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Variable Printing.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Wall Calendars.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Wall Calendars.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+H-Stands for Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Display Board POP.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Display Board POP.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Aluminum Signs.csv [line 2]: column "hash" of relation "pricing" does not exist
+LINE 2: ...                 INSERT INTO pricing (product_id, hash, valu...
+                                                             ^
+
+Styrene Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+X-Frame Banners.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Window Graphics.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Foam Board.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Vinyl Banners.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Vinyl Banners.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Vinyl Banners.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Floor Graphics.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Clings.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Clings.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+A-Frame Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Wall Decals.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Sintra Rigid Board.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Canvas.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Unaddressed Admail.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Enveloped and Addressed.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Enveloped and Addressed.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Covid-19-Decals-.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Addressed.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Addressed.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+A Frame Stands.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Adhesive Vinyl.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs-.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs-.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Covid-19-Decals.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 12]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 13]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 14]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 15]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 16]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 17]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 18]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 19]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 20]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 21]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 22]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 23]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 24]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 25]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 26]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Supply Boxes.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Supply Boxes.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Square Cut Labels _ Stickers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Sample Kits.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Envelopes.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Envelopes.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Envelopes.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Notepads.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Notepads.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+NCR Forms.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Letterhead.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Presentation Folders.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Table Covers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Table Covers.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Bookmarks.csv [line 12]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 12]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 13]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 14]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 15]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 16]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 17]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 18]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 19]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcards.csv [line 20]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Greeting Cards.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Invitations.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Posters.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Digital Sheets.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tear Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tear Cards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tear Cards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Magnets.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Plastics.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Tent Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Booklets.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Flyers.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Door Hangers.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Numbered Tickets.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Brochures.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Variable Printing.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Wall Calendars.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Wall Calendars.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+H-Stands for Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Display Board POP.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Display Board POP.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Aluminum Signs.csv [line 2]: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+Styrene Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+X-Frame Banners.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Window Graphics.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Foam Board.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Vinyl Banners.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Vinyl Banners.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Vinyl Banners.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Floor Graphics.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Clings.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Clings.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+A-Frame Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Pull Up Banners.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Wall Decals.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Sintra Rigid Board.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Canvas.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Unaddressed Admail.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Enveloped and Addressed.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Enveloped and Addressed.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Covid-19-Decals-.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Addressed.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Postcard Addressed.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+A Frame Stands.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Adhesive Vinyl.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs-.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Coroplast Signs _ Yard Signs-.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Covid-19-Decals.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 4]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 5]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 6]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 7]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 8]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 9]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 10]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 11]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 12]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 13]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 14]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 15]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 16]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 17]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 18]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 19]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 20]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 21]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 22]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 23]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 24]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 25]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Business Cards.csv [line 26]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Supply Boxes.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Supply Boxes.csv [line 3]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Square Cut Labels _ Stickers.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
+Sample Kits.csv [line 2]: column "name" of relation "options_groups" does not exist
+LINE 2: ...               INSERT INTO options_groups (product_id, name)
+                                                                  ^
+
