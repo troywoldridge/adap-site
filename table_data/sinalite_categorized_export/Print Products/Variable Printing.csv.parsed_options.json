@@ -1,0 +1,145 @@
+[
+  {
+    "product_id": "127",
+    "parsed_options": [
+      {
+        "id": 34,
+        "group": "size",
+        "name": "5 x 7",
+        "hidden": 0
+      },
+      {
+        "id": 35,
+        "group": "size",
+        "name": "8.5 x 5.5",
+        "hidden": 0
+      },
+      {
+        "id": 36,
+        "group": "size",
+        "name": "8.5 x 3.5",
+        "hidden": 0
+      },
+      {
+        "id": 43,
+        "group": "size",
+        "name": "8.5 x 11",
+        "hidden": 0
+      },
+      {
+        "id": 93,
+        "group": "Coating",
+        "name": "No Coating",
+        "hidden": 0
+      },
+      {
+        "id": 273,
+        "group": "qty",
+        "name": "1",
+        "hidden": 0
+      },
+      {
+        "id": 423,
+        "group": "Stock",
+        "name": "14PT C2S Printed 1 Side (4/0)",
+        "hidden": 0
+      },
+      {
+        "id": 424,
+        "group": "Stock",
+        "name": "14PT C2S Printed 2 Sides (4/4)",
+        "hidden": 0
+      },
+      {
+        "id": 426,
+        "group": "qty",
+        "name": "251",
+        "hidden": 0
+      },
+      {
+        "id": 427,
+        "group": "qty",
+        "name": "501",
+        "hidden": 0
+      },
+      {
+        "id": 428,
+        "group": "qty",
+        "name": "751",
+        "hidden": 0
+      },
+      {
+        "id": 429,
+        "group": "qty",
+        "name": "1001",
+        "hidden": 0
+      },
+      {
+        "id": 430,
+        "group": "qty",
+        "name": "1501",
+        "hidden": 0
+      },
+      {
+        "id": 431,
+        "group": "qty",
+        "name": "2001",
+        "hidden": 0
+      },
+      {
+        "id": 432,
+        "group": "qty",
+        "name": "2501",
+        "hidden": 0
+      },
+      {
+        "id": 433,
+        "group": "qty",
+        "name": "3001",
+        "hidden": 0
+      },
+      {
+        "id": 434,
+        "group": "qty",
+        "name": "3501",
+        "hidden": 0
+      },
+      {
+        "id": 435,
+        "group": "qty",
+        "name": "4001",
+        "hidden": 0
+      },
+      {
+        "id": 436,
+        "group": "qty",
+        "name": "4501",
+        "hidden": 0
+      },
+      {
+        "id": 456,
+        "group": "Number of Variables",
+        "name": "1 to 5 Fields",
+        "hidden": 0
+      },
+      {
+        "id": 457,
+        "group": "Number of Variables",
+        "name": "6 to 10 fields",
+        "hidden": 0
+      },
+      {
+        "id": 458,
+        "group": "Number of Variables",
+        "name": "11 to 20 fields",
+        "hidden": 0
+      },
+      {
+        "id": 1064,
+        "group": "Turnaround",
+        "name": "4 - 6 Business Days",
+        "hidden": 0
+      }
+    ]
+  }
+]

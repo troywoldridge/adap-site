@@ -1,0 +1,347 @@
+[
+  {
+    "product_id": "81",
+    "parsed_options": [
+      {
+        "id": 3,
+        "group": "Coating",
+        "name": "Uncoated",
+        "hidden": 0
+      },
+      {
+        "id": 7,
+        "group": "qty",
+        "name": "100",
+        "hidden": 0
+      },
+      {
+        "id": 9,
+        "group": "qty",
+        "name": "250",
+        "hidden": 0
+      },
+      {
+        "id": 12,
+        "group": "qty",
+        "name": "500",
+        "hidden": 0
+      },
+      {
+        "id": 14,
+        "group": "qty",
+        "name": "1000",
+        "hidden": 0
+      },
+      {
+        "id": 18,
+        "group": "Turnaround",
+        "name": "4 - 5 Business Days",
+        "hidden": 0
+      },
+      {
+        "id": 23,
+        "group": "qty",
+        "name": "5000",
+        "hidden": 0
+      },
+      {
+        "id": 98,
+        "group": "size",
+        "name": "9 x 12",
+        "hidden": 0
+      },
+      {
+        "id": 165,
+        "group": "qty",
+        "name": "2000",
+        "hidden": 0
+      },
+      {
+        "id": 166,
+        "group": "qty",
+        "name": "3000",
+        "hidden": 0
+      },
+      {
+        "id": 167,
+        "group": "qty",
+        "name": "4000",
+        "hidden": 0
+      },
+      {
+        "id": 235,
+        "group": "Stock",
+        "name": "60lb Uncoated Printed 1 Side (4/0)",
+        "hidden": 0
+      },
+      {
+        "id": 238,
+        "group": "size",
+        "name": "4.125 x 9.5 (#10 no window)",
+        "hidden": 0
+      },
+      {
+        "id": 239,
+        "group": "size",
+        "name": "4.125 x 9.5 (#10 window)",
+        "hidden": 0
+      },
+      {
+        "id": 240,
+        "group": "size",
+        "name": "5.875 x 9",
+        "hidden": 0
+      },
+      {
+        "id": 241,
+        "group": "size",
+        "name": "4.375 x 5.75",
+        "hidden": 0
+      },
+      {
+        "id": 242,
+        "group": "size",
+        "name": "5.25 x 7.25",
+        "hidden": 0
+      },
+      {
+        "id": 243,
+        "group": "Coverage",
+        "name": "1% - 25%",
+        "hidden": 0
+      },
+      {
+        "id": 244,
+        "group": "Coverage",
+        "name": "26% - 50%",
+        "hidden": 0
+      },
+      {
+        "id": 245,
+        "group": "Coverage",
+        "name": "51% - 75%",
+        "hidden": 0
+      },
+      {
+        "id": 645,
+        "group": "size",
+        "name": "10 x 13",
+        "hidden": 0
+      }
+    ]
+  },
+  {
+    "product_id": "4165",
+    "parsed_options": [
+      {
+        "id": 3,
+        "group": "Coating",
+        "name": "Uncoated",
+        "hidden": 0
+      },
+      {
+        "id": 7,
+        "group": "qty",
+        "name": "100",
+        "hidden": 0
+      },
+      {
+        "id": 9,
+        "group": "qty",
+        "name": "250",
+        "hidden": 0
+      },
+      {
+        "id": 12,
+        "group": "qty",
+        "name": "500",
+        "hidden": 0
+      },
+      {
+        "id": 13,
+        "group": "qty",
+        "name": "750",
+        "hidden": 0
+      },
+      {
+        "id": 14,
+        "group": "qty",
+        "name": "1000",
+        "hidden": 0
+      },
+      {
+        "id": 18,
+        "group": "Turnaround",
+        "name": "4 - 5 Business Days",
+        "hidden": 0
+      },
+      {
+        "id": 23,
+        "group": "qty",
+        "name": "5000",
+        "hidden": 0
+      },
+      {
+        "id": 165,
+        "group": "qty",
+        "name": "2000",
+        "hidden": 0
+      },
+      {
+        "id": 166,
+        "group": "qty",
+        "name": "3000",
+        "hidden": 0
+      },
+      {
+        "id": 167,
+        "group": "qty",
+        "name": "4000",
+        "hidden": 0
+      },
+      {
+        "id": 238,
+        "group": "size",
+        "name": "4.125 x 9.5 (#10 no window)",
+        "hidden": 0
+      },
+      {
+        "id": 239,
+        "group": "size",
+        "name": "4.125 x 9.5 (#10 window)",
+        "hidden": 0
+      },
+      {
+        "id": 243,
+        "group": "Coverage",
+        "name": "1% - 25%",
+        "hidden": 0
+      },
+      {
+        "id": 244,
+        "group": "Coverage",
+        "name": "26% - 50%",
+        "hidden": 0
+      },
+      {
+        "id": 245,
+        "group": "Coverage",
+        "name": "51% - 75%",
+        "hidden": 0
+      },
+      {
+        "id": 575,
+        "group": "Stock",
+        "name": "60lb Security Uncoated Printed 1 Side (4/0)",
+        "hidden": 0
+      }
+    ]
+  },
+  {
+    "product_id": "5585",
+    "parsed_options": [
+      {
+        "id": 3,
+        "group": "Coating",
+        "name": "Uncoated",
+        "hidden": 0
+      },
+      {
+        "id": 7,
+        "group": "qty",
+        "name": "100",
+        "hidden": 0
+      },
+      {
+        "id": 9,
+        "group": "qty",
+        "name": "250",
+        "hidden": 0
+      },
+      {
+        "id": 12,
+        "group": "qty",
+        "name": "500",
+        "hidden": 0
+      },
+      {
+        "id": 13,
+        "group": "qty",
+        "name": "750",
+        "hidden": 0
+      },
+      {
+        "id": 14,
+        "group": "qty",
+        "name": "1000",
+        "hidden": 0
+      },
+      {
+        "id": 18,
+        "group": "Turnaround",
+        "name": "4 - 5 Business Days",
+        "hidden": 0
+      },
+      {
+        "id": 23,
+        "group": "qty",
+        "name": "5000",
+        "hidden": 0
+      },
+      {
+        "id": 165,
+        "group": "qty",
+        "name": "2000",
+        "hidden": 0
+      },
+      {
+        "id": 166,
+        "group": "qty",
+        "name": "3000",
+        "hidden": 0
+      },
+      {
+        "id": 167,
+        "group": "qty",
+        "name": "4000",
+        "hidden": 0
+      },
+      {
+        "id": 238,
+        "group": "size",
+        "name": "4.125 x 9.5 (#10 no window)",
+        "hidden": 0
+      },
+      {
+        "id": 239,
+        "group": "size",
+        "name": "4.125 x 9.5 (#10 window)",
+        "hidden": 0
+      },
+      {
+        "id": 243,
+        "group": "Coverage",
+        "name": "1% - 25%",
+        "hidden": 0
+      },
+      {
+        "id": 244,
+        "group": "Coverage",
+        "name": "26% - 50%",
+        "hidden": 0
+      },
+      {
+        "id": 245,
+        "group": "Coverage",
+        "name": "51% - 75%",
+        "hidden": 0
+      },
+      {
+        "id": 586,
+        "group": "Stock",
+        "name": "60lb Self Adhesive Printed 1 Side (4/0)",
+        "hidden": 0
+      }
+    ]
+  }
+]
