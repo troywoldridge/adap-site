@@ -2,7 +2,7 @@ import type { Config } from "drizzle-kit";
 import { defineConfig } from "drizzle-kit";
 
 const config: Config = {
-  schema: "./drizzle/schema",        // your schema path
+  schema: "./drizzle/migrations/schema.ts",        // your schema path
   out: "./drizzle/migrations",       // output folder for generated migrations
     dialect: "postgresql",
 
