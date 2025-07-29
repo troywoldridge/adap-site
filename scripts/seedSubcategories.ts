@@ -1,4 +1,4 @@
-import { db } from 'src/lib/db';
+import { db } from '@/lib/db';
 import { subcategories } from '@/lib/migrations/schema';
 
 // Helper function to generate URL-friendly slugs

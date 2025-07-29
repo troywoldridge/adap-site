@@ -1,0 +1,51 @@
+id,name,category_id
+127,Envelopes,stationery
+128,Notepads,stationery
+129,NCR Forms,stationery
+130,Letterhead,stationery
+131,H-Stands for Signs,large-format
+132,Display Board POP,large-format
+133,Aluminum Signs,large-format
+134,Styrene Signs,large-format
+135,X-Frame Banners,large-format
+136,Window Graphics,large-format
+137,Foam Board,large-format
+138,Vinyl Banners,large-format
+139,Floor Graphics,large-format
+140,Clings,large-format
+141,A-Frame Signs,large-format
+142,Pull Up Banners,large-format
+143,Wall Decals,large-format
+144,Sintra Rigid Board,large-format
+145,Canvas,large-format
+146,Presentation Folders,promotional
+147,Table Covers,promotional
+148,Bookmarks,promotional
+149,Postcards,print-products
+150,Greeting Cards,print-products
+151,Invitations,print-products
+152,Posters,print-products
+153,Digital Sheets,print-products
+154,Tear Cards,print-products
+155,Magnets,print-products
+156,Plastics,print-products
+157,Tent Cards,print-products
+158,Booklets,print-products
+159,Flyers,print-products
+160,Door Hangers,print-products
+161,Numbered Tickets,print-products
+162,Brochures,print-products
+163,Variable Printing,print-products
+164,Wall Calendars,print-products
+165,Coroplast Signs _ Yard Signs,uncategorized
+166,Unaddressed Admail,uncategorized
+167,Postcard Enveloped and Addressed,uncategorized
+168,Covid-19-Decals-,uncategorized
+169,Postcard Addressed,uncategorized
+170,A Frame Stands,uncategorized
+171,Adhesive Vinyl,uncategorized
+172,Business Cards,business-cards
+173,Supply Boxes,labels-and-packaging
+174,Square Cut Labels _ Stickers,labels-and-packaging
+175,Roll Labels _ Stickers,labels-and-packaging
+176,Sample Kits,sample-kits

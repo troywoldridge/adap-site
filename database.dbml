@@ -1,0 +1,152 @@
+Enum "coupon_status" {
+  "ACTIVE"
+  "EXPIRED"
+}
+
+Enum "order_status" {
+  "NEW"
+  "PENDING"
+  "PAID"
+  "SHIPPED"
+  "CANCELLED"
+  "COMPLETED"
+}
+
+Table "products" {
+  "id" int4 [pk, not null, increment]
+  "sku" text [unique, not null]
+  "name" text [not null]
+  "category" text [not null]
+  "metadata" jsonb
+  "subcategory_id" int4
+  "slug" text
+  "category_id" text
+  "sinalite_id" text
+
+  Indexes {
+    category [type: btree, name: "idx_products_category"]
+  }
+}
+
+Table "options_groups" {
+  "id" int4 [pk, not null, increment]
+  "product_id" int4 [not null]
+  "group_name" text [not null]
+
+  Indexes {
+    product_id [type: btree, name: "idx_option_groups_product"]
+  }
+}
+
+Table "product_variants" {
+  "id" int4 [pk, not null, increment]
+  "product_id" int4 [not null]
+  "variant_sku" text [unique]
+  "option_combination" jsonb
+
+  Indexes {
+    product_id [type: btree, name: "idx_variant_product"]
+  }
+}
+
+Table "categories" {
+  "id" text [pk, not null]
+  "slug" text [unique, not null]
+  "name" text [not null]
+  "description" text
+  "created_at" timestamp [default: `now()`]
+  "updated_at" timestamp [default: `now()`]
+  "category_id" int4
+}
+
+Table "subcategories" {
+  "id" int4 [pk, not null, increment]
+  "category_id" text [not null]
+  "slug" text [not null]
+  "name" text [not null]
+  "description" text
+  "created_at" timestamp [default: `now()`]
+  "updated_at" timestamp [default: `now()`]
+
+  Indexes {
+    (category_id, slug) [type: btree, name: "subcategories_category_slug_unique"]
+  }
+}
+
+Table "options" {
+  "id" int4 [pk, not null, increment]
+  "product_id" int4 [not null]
+  "sku" text
+  "option_id" text
+  "group" text [not null]
+  "name" text [not null]
+  "hidden" bool [default: false]
+
+  Indexes {
+    group [type: btree, name: "idx_options_group"]
+    option_id [type: btree, name: "idx_options_option_id"]
+    product_id [type: btree, name: "idx_options_product_id"]
+  }
+}
+
+Table "pricing" {
+  "id" int4 [pk, not null, increment]
+  "category" text [not null]
+  "product" text [not null]
+  "row_number" int4 [not null]
+  "hash" text [not null]
+  "value" text [not null]
+  "type" text [not null]
+  "markup" int4
+  "numeric_value" numeric
+  "width" numeric
+  "height" numeric
+  "depth" numeric
+  "raw_dimensions" text
+}
+
+Table "image_category_links" {
+  "cloudflare_id" text [pk, not null]
+  "filename" text
+  "guessed_subcategory_name" text
+  "guessed_category_name" text
+}
+
+Table "images" {
+  "id" int4 [pk, not null, increment]
+  "filename" text
+  "cdn_filename" text
+  "cloudflare_id" text
+  "image_url" text
+  "is_matched" bool [default: false]
+  "product_id" int4
+  "category_id" text
+  "subcategory_id" int4
+  "variant" text [default: 'public']
+  "alt" text
+  "created_at" timestamp [default: `now()`]
+  "updated_at" timestamp [default: `now()`]
+  "category_id_slug" text
+}
+
+Table "image_import" {
+  "category_id" text
+  "subcategory_id" int4
+  "alt" text
+  "filename" text
+  "cloudflare_id" text
+}
+
+Ref "fk_category":"categories"."id" < "images"."category_id" [delete: set null]
+
+Ref "fk_category_slug":"categories"."id" < "images"."category_id_slug" [delete: set null]
+
+Ref "fk_product":"products"."id" < "images"."product_id" [delete: set null]
+
+Ref "fk_subcategory":"subcategories"."id" < "images"."subcategory_id" [delete: set null]
+
+Ref "options_groups_product_id_fkey":"products"."id" < "options_groups"."product_id" [delete: cascade]
+
+Ref "product_variants_product_id_fkey":"products"."id" < "product_variants"."product_id" [delete: cascade]
+
+Ref "subcategories_category_id_fkey":"categories"."id" < "subcategories"."category_id" [delete: cascade]
