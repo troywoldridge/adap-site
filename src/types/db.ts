@@ -1,12 +1,21 @@
 // src/types/db.ts
+import type { ReactNode } from "react";
 
+
+// ---------- CATEGORIES ----------
 export interface Category {
   id: string;
+  slug: string;
   name: string;
+  description: string | null;
   hidden: boolean;
   sortOrder: number | null;
   createdAt: Date;
 }
+
+
+
+
 
 export interface Subcategory {
   id: number;
@@ -17,7 +26,10 @@ export interface Subcategory {
   createdAt: Date;
 }
 
+// ---------- PRODUCTS ----------
 export interface Product {
+  images(images: unknown): Image[];
+  description: ReactNode;
   id: string;
   name: string;
   subcategoryId: number;
@@ -26,6 +38,7 @@ export interface Product {
   createdAt: Date;
 }
 
+// ---------- OPTIONS & GROUPS ----------
 export interface OptionGroup {
   id: number;
   groupId: number;
@@ -36,13 +49,31 @@ export interface OptionGroup {
 
 export interface Option {
   id: number;
-  groupId: number;
-  optionId: number;
+  productId: number;
+  sku: string | null;
+  optionId: string | null;
+  group: string; // ✅ use this, not groupId
   name: string;
-  hidden: boolean;
-  productId: string;
+  hidden: boolean | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
+
+export interface ProductOption {
+  id: number;
+  name: string;
+  groupId: number;
+  group: string;
+}
+
+export interface ProductOptionGroup {
+  groupId: number;
+  group: string;
+  options: ProductOption[];
+}
+
+// ---------- VARIANTS ----------
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -54,6 +85,7 @@ export interface ProductVariant {
   createdAt: Date;
 }
 
+// ---------- PRICING ----------
 export interface Pricing {
   id: string;
   variantId: string;
@@ -62,8 +94,29 @@ export interface Pricing {
   turnaround: string;
 }
 
-export interface Image {
+export interface PricingRow {
   id: number;
+  category: string;
+  product: string | number;
+  rowNumber: number;
+  hash: string;
+  value: string;
+  type: string;
+  markup: number | null;
+  numericValue: number | null;
+  width?: number;
+  height?: number;
+  depth?: number;
+  rawDimensions?: string;
+}
+
+// ---------- IMAGES ----------
+
+/**
+ * Raw image entry from DB, used for storage, linking, admin UI
+ */
+export interface Image {
+  id: number;  // Comes from database as number
   productId: string | null;
   categoryId: string | null;
   subcategoryId: number | null;
@@ -71,3 +124,16 @@ export interface Image {
   url: string;
   alt: string | null;
 }
+
+/**
+ * Lightweight version for client display.
+ * Use this in frontend components where image `id` must be a string (e.g. React key).
+ */
+export type ProductImage = {
+  id: string;       // `String(image.id)` when transforming raw Image to this
+  url: string;
+  alt?: string | null;
+};
+
+
+

@@ -1,14 +1,39 @@
-// src/lib/queries/categories.ts
-
-import { db, categories } from '@/lib/db';
+import { db } from '@/lib/db';
+import { categories } from '@/drizzle/migrations/schema';
 import { eq } from 'drizzle-orm';
-import type { Category } from '@/types/db';
+import { Category } from '@/types/db';
 
-export const getCategories = async (): Promise<Category[]> => {
-  return await db.select().from(categories);
+// ✅ Get all categories
+export const getAllCategories = async (): Promise<Category[]> => {
+  const results = await db.select().from(categories);
+  return results.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug,
+    description: cat.description ?? '',
+    hidden: cat.hidden ?? false,
+    sortOrder: cat.sortOrder ?? null,
+    createdAt: cat.createdAt ? new Date(cat.createdAt) : new Date(),
+  }));
 };
 
-export const getCategoryById = async (id: string): Promise<Category | undefined> => {
-  const result = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
-  return result[0];
-};
+// ✅ Get a single category by ID
+export async function getCategoryById(id: string): Promise<Category | null> {
+  const results = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+  if (results.length === 0) {
+    return null;
+  }
+
+  const cat = results[0];
+  return {
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug,
+    description: cat.description ?? '',
+    hidden: cat.hidden ?? false,
+    sortOrder: cat.sortOrder ?? null,
+    createdAt: cat.createdAt ? new Date(cat.createdAt) : new Date(),
+  };
+}
+
+

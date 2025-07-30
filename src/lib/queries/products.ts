@@ -1,10 +1,11 @@
-// src/lib/queries/products.ts
-
-import { db, products } from '@/lib/db';
+import { db } from '@/lib/db';
+import { products } from '@/drizzle/migrations/schema';
 import { eq } from 'drizzle-orm';
-import type { Product } from '@/types/db';
+import { Product } from '@/types/db';
 
-export const getProductsBySubcategory = async (subcategoryId: number): Promise<Product[]> => {
+export const getProductsBySubcategory = async (
+  subcategoryId: number
+): Promise<Product[]> => {
   return await db.select().from(products).where(eq(products.subcategoryId, subcategoryId));
 };
 

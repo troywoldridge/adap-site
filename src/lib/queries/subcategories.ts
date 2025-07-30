@@ -1,10 +1,11 @@
-// src/lib/queries/subcategories.ts
-
-import { db, subcategories } from '@/lib/db';
+import { db } from '@/lib/db';
+import { subcategories } from '@/drizzle/migrations/schema';
 import { eq } from 'drizzle-orm';
-import type { Subcategory } from '@/types/db';
+import { Subcategory } from '@/types/db';
 
-export const getSubcategoriesByCategoryId = async (categoryId: string): Promise<Subcategory[]> => {
+export const getSubcategoriesByCategoryId = async (
+  categoryId: number
+): Promise<Subcategory[]> => {
   return await db.select().from(subcategories).where(eq(subcategories.categoryId, categoryId));
 };
 

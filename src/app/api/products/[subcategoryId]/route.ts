@@ -1,21 +1,38 @@
+// src/app/api/products/[subcategoryId]/route.ts
+
 import { NextResponse } from 'next/server';
 import { getProductsBySubcategory } from '@/lib/queries/products';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { subcategoryId: string } }
-) {
-  const subcategoryId = Number(params.subcategoryId);
+function errorResponse(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
 
-  if (!subcategoryId || isNaN(subcategoryId)) {
-    return NextResponse.json({ error: 'Valid subcategoryId is required' }, { status: 400 });
+export async function GET(
+  _request: Request,
+  { params }: { params: { subcategoryId?: string } }
+) {
+  const subcategoryIdRaw = params.subcategoryId;
+
+  if (!subcategoryIdRaw) {
+    return errorResponse('Missing subcategoryId parameter', 400);
+  }
+
+  const subcategoryId = Number(subcategoryIdRaw);
+
+  if (isNaN(subcategoryId) || subcategoryId <= 0) {
+    return errorResponse('Invalid subcategoryId parameter', 400);
   }
 
   try {
     const products = await getProductsBySubcategory(subcategoryId);
-    return NextResponse.json(products);
+
+    if (!products || products.length === 0) {
+      return errorResponse('No products found for this subcategory', 404);
+    }
+
+    return NextResponse.json(products, { status: 200 });
   } catch (error) {
     console.error('Failed to fetch products:', error);
-    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+    return errorResponse('Internal Server Error', 500);
   }
 }

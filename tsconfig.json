@@ -23,7 +23,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@components/*": ["/src/components/*"]
+      "@components/*": ["/src/components/*"],
+      "@lib/*": ["src/lib/*"],
+      "@drizzle/*": ["src/drizzle/*"],
+      "@types/*": ["src/types/*"],
+      "@schema/*": ["drizzle/migrations/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
