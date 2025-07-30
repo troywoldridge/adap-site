@@ -1,1 +1,2 @@
+table_data/sinalite_categorized_export/**/*.json filter=lfs diff=lfs merge=lfs -text
 parsed_option_blobs.json filter=lfs diff=lfs merge=lfs -text
