@@ -10,7 +10,8 @@ import {
   timestamp,
   boolean,
   pgEnum,
-  numeric
+  numeric,
+  varchar
 } from "drizzle-orm/pg-core";
 
 export const couponStatus = pgEnum("coupon_status", ['ACTIVE', 'EXPIRED']);
@@ -97,6 +98,18 @@ export const options = pgTable("options", {
     name: "options_product_id_fkey"
   }).onDelete("cascade"),
 ]);
+
+export const product_option_hashes = pgTable("product_option_hashes", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  optionIds: varchar("option_ids", { length: 255 }).notNull(), // Or `text("option_ids")` if no limit
+  optionChain: varchar("option_chain", { length: 255 }).notNull(),
+  hash: varchar("hash", { length: 32 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+
 
 export const productVariants = pgTable("product_variants", {
   id: serial().primaryKey().notNull(),

@@ -1,4 +1,7 @@
-const config = {
-  };
+const postcssConfig = {
+  plugins: {
+    autoprefixer: {},
+  }
+};
 
-export default config;
+export default postcssConfig;

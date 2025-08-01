@@ -5,17 +5,27 @@
   "type": "module",
   "scripts": {
     "db:introspect": "drizzle-kit introspect",
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync:sinalite": "ts-node scripts/sync-sinalite-products.ts",
-    "seed:subcategories": "pnpm exec ts-node --esm scripts/seed-subcategories.ts"
-  },
+    "seed:subcategories": "pnpm exec ts-node --esm scripts/seed-subcategories.ts",
+    "generate:migrations": "pnpm drizzle-kit generate",
+    "push:schema": "pnpm drizzle-kit push",
+    "generate:types": "pnpm drizzle-kit generate:types",
+    "build:hashes": "pnpm tsx scripts/buildAllOptionHashes.ts",
+    "watch:hashes": "nodemon --watch drizzle/migrations/schema.ts --exec \"pnpm build:hashes\"",
+    "sync:sinalite": "node scripts/syncSinalite.js"
+    
+},
+
   "dependencies": {
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.3",
-    "next": "15.4.2",
+    "next": "14.2.3",
+    "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -28,10 +38,13 @@
     "@types/pg": "^8.15.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
+    "tailwindcss": "^4.1.11",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

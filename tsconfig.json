@@ -30,6 +30,6 @@
       "@schema/*": ["drizzle/migrations/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "scripts/syncSinalite.js"],
   "exclude": ["node_modules"]
 }
