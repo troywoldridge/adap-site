@@ -13,25 +13,22 @@ const pool = new Pool({
   ssl: process.env.PGSSLMODE === "require" ? { rejectUnauthorized: false } : false,
 });
 
-const insertBatchSize = 1000; // Adjust batch size based on your use case
-let insertBatch = [];
+const BATCH_SIZE = 1000; // tune based on memory / performance tradeoff
 
 async function query(text, params) {
   return pool.query(text, params);
 }
 
-// Fetch all distinct product IDs
 async function getAllProductIds() {
   const res = await query(`SELECT DISTINCT product_id FROM options`);
-  return res.rows.map(row => row.product_id);
+  return res.rows.map(r => r.product_id);
 }
 
-// Fetch options by group for a product
 async function getOptionsByGroup(productId) {
   const res = await query(`SELECT * FROM options WHERE product_id = $1`, [productId]);
   const groups = {};
   for (const opt of res.rows) {
-    const group = opt.group_name?.trim()?.toLowerCase();
+    const group = (opt.group_name || opt.group || "").toString().trim().toLowerCase();
     if (!group) continue;
     if (!groups[group]) groups[group] = [];
     groups[group].push(opt);
@@ -39,134 +36,164 @@ async function getOptionsByGroup(productId) {
   return groups;
 }
 
-// Generate all possible combinations of option groups
 function generateCombinations(optionGroups) {
+  if (!optionGroups || optionGroups.length === 0) return [];
   const [first, ...rest] = optionGroups;
-  let combinations = first.map(opt => [opt]);
-
+  let combos = first.map(o => [o]);
   for (const group of rest) {
-    combinations = combinations.flatMap(combo =>
-      group.map(opt => [...combo, opt])
+    combos = combos.flatMap(existing =>
+      group.map(o => [...existing, o])
+    );
+  }
+  return combos;
+}
+
+function formatChain(optionIds) {
+  const padded = optionIds.map(id => id.toString().padStart(2, "0"));
+  const option_chain = padded.join("");
+  const hash = crypto.createHash("md5").update(option_chain).digest("hex");
+  return { option_chain, hash };
+}
+
+async function getPricingIdsForHashes(productId, hashes) {
+  if (hashes.length === 0) return {};
+  const res = await query(
+    `SELECT hash, id FROM pricing WHERE product_id = $1 AND hash = ANY($2)`,
+    [productId, hashes]
+  );
+  const map = {};
+  for (const row of res.rows) {
+    map[row.hash] = row.id;
+  }
+  return map;
+}
+
+async function getExistingChains(productId, chains) {
+  if (chains.length === 0) return new Set();
+  const res = await query(
+    `SELECT option_chain FROM product_option_hashes WHERE product_id = $1 AND option_chain = ANY($2)`,
+    [productId, chains]
+  );
+  return new Set(res.rows.map(r => r.option_chain));
+}
+
+async function insertHashesInBatch(preppedRows) {
+  if (preppedRows.length === 0) return;
+  // preppedRows: array of { productId, optionIds, option_chain, hash, pricing_id }
+  const values = [];
+  const placeholders = preppedRows
+    .map((_, i) => {
+      const base = i * 5;
+      // ($1,$2,$3,$4,$5), ($6,$7,$8,$9,$10), ...
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+    })
+    .join(", ");
+
+  for (const row of preppedRows) {
+    values.push(
+      row.productId,
+      JSON.stringify(row.optionIds),
+      row.option_chain,
+      row.hash,
+      row.pricing_id
     );
   }
 
-  return combinations;
-}
-
-// Format the option IDs into a chain and generate the hash
-function formatChain(optionIds) {
-  const padded = optionIds.map(id => id.toString().padStart(2, "0"));
-  const chain = padded.join("");
-  const hash = crypto.createHash("md5").update(chain).digest("hex");
-  return { chain, hash };
-}
-
-// Fetch pricing ID for a product and hash
-async function getPricingId(productId, hash) {
-  const res = await query(
-    `SELECT id FROM pricing WHERE product_id = $1 AND hash = $2 LIMIT 1`,
-    [productId, hash]
-  );
-  return res.rows[0]?.id || null;
-}
-
-// Batch insert hashes into the database
-async function insertBatchHashes() {
-  if (insertBatch.length === 0) return;
-
   const sql = `
     INSERT INTO product_option_hashes (product_id, option_ids, option_chain, hash, pricing_id)
-    VALUES
-      ${insertBatch.map((_, index) => `($${index * 5 + 1}, $${index * 5 + 2}, $${index * 5 + 3}, $${index * 5 + 4}, $${index * 5 + 5})`).join(", ")}
+    VALUES ${placeholders}
     ON CONFLICT (product_id, option_chain) DO UPDATE
-    SET updated_at = NOW(), pricing_id = COALESCE(EXCLUDED.pricing_id, product_option_hashes.pricing_id)
+    SET updated_at = NOW(),
+        pricing_id = COALESCE(EXCLUDED.pricing_id, product_option_hashes.pricing_id)
   `;
-  
-  const values = insertBatch.flat();
   await query(sql, values);
-  console.log(`✅ Batch insert of ${insertBatch.length} hashes completed`);
-  insertBatch = []; // Reset the batch after insert
 }
 
-// Insert a hash into the batch, checking if it already exists
-async function insertHash(productId, optionIds, option_chain, hash, pricing_id) {
-  // Add the hash to the batch
-  insertBatch.push([productId, JSON.stringify(optionIds), option_chain, hash, pricing_id]);
-
-  // If the batch size exceeds the limit, insert the batch
-  if (insertBatch.length >= insertBatchSize) {
-    await insertBatchHashes();
-  }
-}
-
-// Process a single product
 async function processProduct(productId) {
-  const optionGroups = await getOptionsByGroup(productId);
-  const groupNames = Object.keys(optionGroups);
-
+  const optionGroupsObj = await getOptionsByGroup(productId);
+  const groupNames = Object.keys(optionGroupsObj);
   if (groupNames.length === 0) {
     console.warn(`⚠️ Skipping product ${productId}: no option groups found`);
     return;
   }
 
-  const combinations = generateCombinations(groupNames.map(name => optionGroups[name]));
-  const hashesToInsert = [];
-  const existingHashesSet = new Set();
-
-  for (const combo of combinations) {
-    const optionIds = combo.map(opt => opt.option_id);
-    const { chain: option_chain, hash } = formatChain(optionIds);
-
-    // Check if the hash exists in the set
-    if (existingHashesSet.has(hash)) {
-      console.log(`⚠️ Skipping existing hash for product ${productId} and chain ${option_chain}`);
-      continue;
-    }
-
-    existingHashesSet.add(hash);
-    hashesToInsert.push({ productId, optionIds, option_chain, hash });
+  const optionGroups = groupNames.map(name => optionGroupsObj[name]);
+  const combos = generateCombinations(optionGroups);
+  if (combos.length === 0) {
+    console.warn(`⚠️ No combinations for product ${productId}`);
+    return;
   }
 
-  // After processing all combinations, insert the batch
-  await insertHashesInBatch(hashesToInsert);
+  // Build chain/hash list
+  const chainHashPairs = combos.map(combo => {
+    const optionIds = combo.map(o => o.option_id);
+    const { option_chain, hash } = formatChain(optionIds);
+    return { optionIds, option_chain, hash };
+  });
+
+  // Deduplicate by chain in-memory
+  const uniqueByChain = new Map(); // option_chain -> { optionIds, hash }
+  for (const { optionIds, option_chain, hash } of chainHashPairs) {
+    if (!uniqueByChain.has(option_chain)) {
+      uniqueByChain.set(option_chain, { optionIds, hash });
+    }
+  }
+
+  const allChains = Array.from(uniqueByChain.keys());
+  const allHashes = Array.from(new Set(Array.from(uniqueByChain.values()).map(v => v.hash)));
+
+  // Fetch existing chains to skip
+  const existingChainsSet = await getExistingChains(productId, allChains);
+
+  // Fetch pricing ids for all hashes (only those we might insert)
+  const pricingIdMap = await getPricingIdsForHashes(productId, allHashes);
+
+  // Prepare rows to upsert in batches
+  const toInsert = [];
+  for (const [option_chain, { optionIds, hash }] of uniqueByChain.entries()) {
+    if (existingChainsSet.has(option_chain)) {
+      // skip existing
+      continue;
+    }
+    const pricing_id = pricingIdMap[hash] || null;
+    toInsert.push({
+      productId,
+      optionIds,
+      option_chain,
+      hash,
+      pricing_id,
+    });
+    if (toInsert.length >= BATCH_SIZE) {
+      await insertHashesInBatch(toInsert);
+      toInsert.length = 0; // clear
+    }
+  }
+
+  // final flush for this product
+  if (toInsert.length > 0) {
+    await insertHashesInBatch(toInsert);
+  }
+
+  console.log(`✅ Product ${productId}: processed combinations=${combos.length}, inserted=${/* approximate count */ "see logs"}`);
 }
 
-// Insert all hashes in batch
-async function insertHashesInBatch(hashesToInsert) {
-  const values = hashesToInsert.flatMap(item => [
-    item.productId, 
-    JSON.stringify(item.optionIds), 
-    item.option_chain, 
-    item.hash, 
-    await getPricingId(item.productId, item.hash)
-  ]);
-  
-  const sql = `
-    INSERT INTO product_option_hashes (product_id, option_ids, option_chain, hash, pricing_id)
-    VALUES
-      ${hashesToInsert.map((_, index) => `($${index * 5 + 1}, $${index * 5 + 2}, $${index * 5 + 3}, $${index * 5 + 4}, $${index * 5 + 5})`).join(", ")}
-    ON CONFLICT (product_id, option_chain) DO UPDATE
-    SET updated_at = NOW(), pricing_id = COALESCE(EXCLUDED.pricing_id, product_option_hashes.pricing_id)
-  `;
-  
-  await query(sql, values);
-  console.log(`✅ Inserted ${hashesToInsert.length} hashes in batch`);
-}
-
-// Main function to execute the script
 async function main() {
   try {
+    // Optional: fresh start
+    // await query('TRUNCATE TABLE product_option_hashes RESTART IDENTITY CASCADE');
+    // console.log("🧹 Truncated product_option_hashes");
+
     const productIds = await getAllProductIds();
     console.log(`🔍 Found ${productIds.length} products`);
 
-    // Process products in parallel
-    const productProcesses = productIds.map(productId => processProduct(productId));
-    await Promise.all(productProcesses);
-
-    // Final batch insert if any records are left
-    await insertBatchHashes();
+    // Process products with controlled concurrency to avoid overwhelming the DB
+    const CONCURRENCY = 5; // tune: how many products at once
+    for (let i = 0; i < productIds.length; i += CONCURRENCY) {
+      const chunk = productIds.slice(i, i + CONCURRENCY);
+      await Promise.all(chunk.map(pid => processProduct(pid)));
+    }
   } catch (err) {
-    console.error("🔥 Error during hash generation:", err.message);
+    console.error("🔥 Error during hash generation:", err);
   } finally {
     await pool.end();
     console.log("🏁 Done");
@@ -174,3 +201,4 @@ async function main() {
 }
 
 main();
+

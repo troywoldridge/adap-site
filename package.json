@@ -16,10 +16,9 @@
     "build:hashes": "pnpm tsx scripts/buildAllOptionHashes.ts",
     "watch:hashes": "nodemon --watch drizzle/migrations/schema.ts --exec \"pnpm build:hashes\"",
     "sync:sinalite": "node scripts/syncSinalite.js"
-    
-},
-
+  },
   "dependencies": {
+    "@vercel/og": "^0.8.5",
     "axios": "^1.11.0",
     "dotenv": "^17.2.1",
     "drizzle-kit": "^0.31.4",
@@ -30,6 +29,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0",
+    "satori": "^0.16.2",
+    "sharp": "^0.34.3",
     "swr": "^2.3.4"
   },
   "devDependencies": {

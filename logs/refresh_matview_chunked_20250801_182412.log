@@ -1,0 +1,7 @@
+==== [2025-08-01 18:24:12] Starting chunked materialized view rebuild ====
+[2025-08-01 18:24:12] Analyzing base tables for fresh planner stats...
+[2025-08-01 18:24:13] Dropping and recreating temporary unlogged staging table product_denorm_tmp
+NOTICE:  materialized view "product_denorm_tmp" does not exist, skipping
+[2025-08-01 18:24:13] Starting chunked population (batch size = 1000)
+[2025-08-01 18:24:13] Total products: 178
+[2025-08-01 18:24:13] Processing products offset=0 (next 1000)
