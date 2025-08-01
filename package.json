@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
+  "engines": {
+    "node": ">=18 <=22"
+  },
   "scripts": {
     "db:introspect": "drizzle-kit introspect",
     "dev": "next dev",
@@ -26,8 +29,8 @@
     "next": "14.2.3",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-icons": "^5.5.0",
     "satori": "^0.16.2",
     "sharp": "^0.34.3",
@@ -35,10 +38,10 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@types/node": "^20",
+    "@types/node": "^20.19.9",
     "@types/pg": "^8.15.4",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
     "autoprefixer": "^10.4.21",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9",
