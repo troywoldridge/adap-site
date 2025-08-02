@@ -1,7 +1,8 @@
 // server component
 import fs from "fs";
 import path from "path";
-import AnalyticsViewer from "./AnalyticsViewer";
+import AnalyticsViewer from '@/app/admin/analytics/AnalyticsViewer';
+
 
 type Event = {
   type: "impression" | "click";

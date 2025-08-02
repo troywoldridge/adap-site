@@ -4,6 +4,16 @@ const nextConfig = {
   experimental: {
     // turbo: false, // optional: only if needed
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "imagedelivery.net",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

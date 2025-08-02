@@ -19,7 +19,8 @@
     "build:hashes": "pnpm tsx scripts/buildAllOptionHashes.ts",
     "watch:hashes": "nodemon --watch drizzle/migrations/schema.ts --exec \"pnpm build:hashes\"",
     "sync:sinalite": "node scripts/syncSinalite.js",
-    "export:hero-analytics": "node scripts/parse-hero-analytics.js"
+    "export:hero-analytics": "node scripts/parse-hero-analytics.js",
+    "deploy:full": "bash scripts/deploy.sh develop origin"
   },
   "dependencies": {
     "@vercel/og": "^0.8.5",

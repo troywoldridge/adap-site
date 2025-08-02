@@ -1,7 +1,12 @@
-// src/components/Hero.tsx
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -81,14 +86,22 @@ type AnalyticsEvent =
       ctaText: string;
     };
 
+// Cloudflare resize helper
+function cloudflareResized(src: string, width: number) {
+  if (!src) return "";
+  const separator = src.includes("?") ? "&" : "?";
+  return `${src}${separator}width=${width}&format=auto&quality=75`;
+}
+
 export default function Hero() {
   const [slides, setSlides] = useState<HeroSlide[]>(defaultSlides);
   const [current, setCurrent] = useState(0);
+  const [targetWidth, setTargetWidth] = useState(1200);
   const timeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
   const startXRef = useRef<number | null>(null);
   const deltaXRef = useRef<number>(0);
-  const announcementRef = useRef<HTMLElement | null>(null);
+  const announcementRef = useRef<HTMLDivElement | null>(null);
   const slideCount = slides.length;
 
   // analytics
@@ -132,29 +145,28 @@ export default function Hero() {
       body: JSON.stringify({ events: payload }),
     }).catch((e) => {
       console.warn("Failed to flush hero analytics:", e);
-      // re-queue on failure
       analyticsQueue.current.unshift(...payload);
     });
   }, []);
 
-  // dynamic slides fetch
+  // dynamic slides
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     fetch("/api/hero-slides")
       .then((r) => {
         if (!r.ok) throw new Error("Fetch failed");
         return r.json();
       })
       .then((data: HeroSlide[]) => {
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
+        if (!canceled && Array.isArray(data) && data.length > 0) {
           setSlides(data);
         }
       })
       .catch(() => {
-        // keep defaults
+        // ignore, keep defaults
       });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, []);
 
@@ -188,7 +200,6 @@ export default function Hero() {
       deltaXRef.current = 0;
       resetAutoPlay();
     };
-
     container.addEventListener("pointerdown", onPointerDown);
     container.addEventListener("pointermove", onPointerMove);
     container.addEventListener("pointerup", onPointerUp);
@@ -201,7 +212,7 @@ export default function Hero() {
     };
   }, [prev, next, resetAutoPlay]);
 
-  // announcement for screen readers
+  // screen reader announcement
   useEffect(() => {
     if (announcementRef.current) {
       const slide = slides[current];
@@ -209,7 +220,7 @@ export default function Hero() {
     }
   }, [current, slides, slideCount]);
 
-  // impression tracking (debounced)
+  // impression tracking
   useEffect(() => {
     if (impressionTimer.current) window.clearTimeout(impressionTimer.current);
     impressionTimer.current = window.setTimeout(() => {
@@ -231,16 +242,23 @@ export default function Hero() {
       flushAnalytics();
     }, ANALYTICS_FLUSH_INTERVAL) as unknown as number;
     return () => {
-      if (flushIntervalRef.current) window.clearInterval(flushIntervalRef.current);
+      if (flushIntervalRef.current !== null)
+        window.clearInterval(flushIntervalRef.current);
       flushAnalytics();
     };
   }, [flushAnalytics]);
 
-  // small debug output (remove in prod)
-  useEffect(() => {
-    console.log("Hero slides:", slides);
-    console.log("Current slide:", current);
-  }, [slides, current]);
+  // responsive target width with DPR
+  useLayoutEffect(() => {
+    const update = () => {
+      const base = containerRef.current?.clientWidth || 1200;
+      const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      setTargetWidth(Math.min(Math.round(base * dpr), 2400));
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const onCtaClick = (slide: HeroSlide) => {
     enqueueEvent({
@@ -259,7 +277,11 @@ export default function Hero() {
         containerRef.current = el;
       }}
     >
-      <link rel="preload" as="image" href={slides[0]?.imageUrl} />
+      <link
+        rel="preload"
+        as="image"
+        href={cloudflareResized(slides[0]?.imageUrl || "", targetWidth)}
+      />
 
       <div
         aria-live="polite"
@@ -270,58 +292,24 @@ export default function Hero() {
         }}
       />
 
-      {/* subtle debug badge */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: 8,
-          right: 8,
-          background: "rgba(0,0,0,0.6)",
-          color: "#fff",
-          padding: "4px 8px",
-          borderRadius: 4,
-          fontSize: 11,
-          zIndex: 60,
-          pointerEvents: "none",
-        }}
-      >
-        {current + 1} / {slideCount}
-      </div>
+      {showDebug && (
+        <div aria-hidden="true" className="hero-debug-badge">
+          {current + 1}/{slideCount} • width: {targetWidth}
+        </div>
+      )}
 
-      <div className="slides-wrapper" style={{ transform: `translateX(-${current * 100}%)` }}>
+      <div
+        className="slides-wrapper"
+        style={{ transform: `translateX(-${current * 100}%)` }}
+      >
         {slides.map((slide, idx) => (
-          <div key={slide.id} className="slide" aria-hidden={idx !== current}>
-            <div className="image-container">
-              {slide.blurDataURL && (
-                <div
-                  className="placeholder"
-                  aria-hidden="true"
-                  style={{
-                    backgroundImage: `url(${slide.blurDataURL})`,
-                    filter: "blur(8px)",
-                    position: "absolute",
-                    inset: 0,
-                    backgroundSize: "cover",
-                    transition: "opacity 0.3s ease",
-                  }}
-                />
-              )}
-              <div style={{ position: "absolute", inset: 0 }}>
-                <Image
-                  src={slide.imageUrl}
-                  alt={slide.alt}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 1200px"
-                  style={{ objectFit: "cover" }}
-                  placeholder={slide.blurDataURL ? "blur" : undefined}
-                  blurDataURL={slide.blurDataURL}
-                  priority={idx === 0}
-                />
-              </div>
-            </div>
-            <div className="overlay">
-              <div className="text-content">
+          <div
+            key={slide.id}
+            className={`slide ${idx === current ? "active" : ""}`}
+            aria-hidden={idx !== current}
+          >
+            <div className="slide-inner">
+              <div className="text-panel">
                 <h2>{slide.title}</h2>
                 <p>{slide.description}</p>
                 <Link
@@ -332,6 +320,25 @@ export default function Hero() {
                 >
                   {slide.ctaText}
                 </Link>
+              </div>
+              <div className="image-panel">
+                {slide.blurDataURL && (
+                  <div
+                    className="placeholder"
+                    aria-hidden="true"
+                    style={{ backgroundImage: `url(${slide.blurDataURL})` }}
+                  />
+                )}
+                <Image
+                  src={cloudflareResized(slide.imageUrl, targetWidth)}
+                  alt={slide.alt}
+                  fill
+                  sizes="(max-width: 1024px) 50vw, 600px"
+                  style={{ objectFit: "contain" }}
+                  placeholder={slide.blurDataURL ? "blur" : undefined}
+                  blurDataURL={slide.blurDataURL}
+                  priority={idx === 0}
+                />
               </div>
             </div>
           </div>
@@ -354,13 +361,14 @@ export default function Hero() {
           {slides.map((s, i) => (
             <button
               key={s.id}
-              aria-label={`Slide ${i + 1}`}
+              aria-label={`Slide ${i + 1}: ${s.title}`}
               aria-current={i === current ? "true" : undefined}
               onClick={() => {
                 goTo(i);
                 resetAutoPlay();
               }}
               className={`dot ${i === current ? "active" : ""}`}
+              role="tab"
             />
           ))}
         </div>
