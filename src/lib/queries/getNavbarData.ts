@@ -45,7 +45,6 @@ export async function getNavbarData(): Promise<NavCat[]> {
       sc.slug AS subcat_slug
     FROM categories c
     LEFT JOIN subcategories sc ON sc.category_id = c.id
-    WHERE c.hidden IS NOT TRUE
     ORDER BY c.name ASC, sc.name ASC
   `;
 

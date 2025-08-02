@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import Navbar from '@/components/Navbar';
 import Header from '@/components/Header';
-import './globals.css'; // full stylesheet loaded after critical CSS
+import '@/globals.css'; // full stylesheet loaded after critical CSS
 
 export const metadata = {
   title: 'Custom Print Experts',

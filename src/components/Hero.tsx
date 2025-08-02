@@ -3,8 +3,10 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
-interface Slide {
+export interface HeroSlide {
   id: string;
   imageUrl: string;
   alt: string;
@@ -12,9 +14,10 @@ interface Slide {
   description: string;
   ctaText: string;
   ctaHref: string;
+  blurDataURL?: string;
 }
 
-const defaultSlides: Slide[] = [
+const defaultSlides: HeroSlide[] = [
   {
     id: "promo-group-3",
     imageUrl:
@@ -61,17 +64,40 @@ const defaultSlides: Slide[] = [
   },
 ];
 
-const AUTO_PLAY_INTERVAL = 5000; // 5 seconds
+const AUTO_PLAY_INTERVAL = 5000;
+const IMPRESSION_DEBOUNCE_MS = 500;
+const ANALYTICS_FLUSH_INTERVAL = 5000;
+
+type AnalyticsEvent =
+  | {
+      type: "impression";
+      slideId: string;
+      timestamp: number;
+    }
+  | {
+      type: "click";
+      slideId: string;
+      timestamp: number;
+      ctaText: string;
+    };
 
 export default function Hero() {
-  const [slides, setSlides] = useState<Slide[]>(defaultSlides);
+  const [slides, setSlides] = useState<HeroSlide[]>(defaultSlides);
   const [current, setCurrent] = useState(0);
   const timeoutRef = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const startXRef = useRef<number | null>(null);
   const deltaXRef = useRef<number>(0);
-  const announcementRef = useRef<HTMLDivElement | null>(null);
+  const announcementRef = useRef<HTMLElement | null>(null);
   const slideCount = slides.length;
+
+  // analytics
+  const analyticsQueue = useRef<AnalyticsEvent[]>([]);
+  const seenImpressions = useRef<Set<string>>(new Set());
+  const flushIntervalRef = useRef<number | null>(null);
+  const impressionTimer = useRef<number | null>(null);
+  const searchParams = useSearchParams();
+  const showDebug = searchParams?.get("debug") === "1";
 
   const resetAutoPlay = useCallback(() => {
     if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
@@ -88,35 +114,51 @@ export default function Hero() {
     setCurrent((prev) => (prev + 1) % slideCount);
   }, [slideCount]);
 
-  const goTo = useCallback(
-    (index: number) => {
-      setCurrent(index);
-    },
-    []
-  );
+  const goTo = useCallback((index: number) => {
+    setCurrent(index);
+  }, []);
 
-  // Fetch dynamic slides; fallback to defaults if fails
+  const enqueueEvent = useCallback((event: AnalyticsEvent) => {
+    analyticsQueue.current.push(event);
+  }, []);
+
+  const flushAnalytics = useCallback(() => {
+    if (analyticsQueue.current.length === 0) return;
+    const payload = [...analyticsQueue.current];
+    analyticsQueue.current = [];
+    fetch("/api/hero-analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events: payload }),
+    }).catch((e) => {
+      console.warn("Failed to flush hero analytics:", e);
+      // re-queue on failure
+      analyticsQueue.current.unshift(...payload);
+    });
+  }, []);
+
+  // dynamic slides fetch
   useEffect(() => {
     let cancelled = false;
-    async function fetchSlides() {
-      try {
-        const res = await fetch("/api/hero-slides");
-        if (!res.ok) throw new Error("Fetch failed");
-        const data: Slide[] = await res.json();
+    fetch("/api/hero-slides")
+      .then((r) => {
+        if (!r.ok) throw new Error("Fetch failed");
+        return r.json();
+      })
+      .then((data: HeroSlide[]) => {
         if (!cancelled && Array.isArray(data) && data.length > 0) {
           setSlides(data);
         }
-      } catch (err) {
-        console.warn("Could not load dynamic hero slides, using defaults.", err);
-      }
-    }
-    fetchSlides();
+      })
+      .catch(() => {
+        // keep defaults
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Auto-play
+  // autoplay
   useEffect(() => {
     resetAutoPlay();
     return () => {
@@ -124,30 +166,24 @@ export default function Hero() {
     };
   }, [current, resetAutoPlay]);
 
-  // Swipe / drag handlers
+  // swipe
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
     const onPointerDown = (e: PointerEvent) => {
       startXRef.current = e.clientX;
       deltaXRef.current = 0;
       container.setPointerCapture(e.pointerId);
     };
-
     const onPointerMove = (e: PointerEvent) => {
       if (startXRef.current === null) return;
       deltaXRef.current = e.clientX - startXRef.current;
     };
-
     const onPointerUp = () => {
       if (startXRef.current === null) return;
       const threshold = 50;
-      if (deltaXRef.current > threshold) {
-        prev();
-      } else if (deltaXRef.current < -threshold) {
-        next();
-      }
+      if (deltaXRef.current > threshold) prev();
+      else if (deltaXRef.current < -threshold) next();
       startXRef.current = null;
       deltaXRef.current = 0;
       resetAutoPlay();
@@ -157,7 +193,6 @@ export default function Hero() {
     container.addEventListener("pointermove", onPointerMove);
     container.addEventListener("pointerup", onPointerUp);
     container.addEventListener("pointerleave", onPointerUp);
-
     return () => {
       container.removeEventListener("pointerdown", onPointerDown);
       container.removeEventListener("pointermove", onPointerMove);
@@ -166,25 +201,66 @@ export default function Hero() {
     };
   }, [prev, next, resetAutoPlay]);
 
-  // Announce slide changes for screen readers
+  // announcement for screen readers
   useEffect(() => {
-    if (!announcementRef.current) return;
-    const slide = slides[current];
-    announcementRef.current.textContent = `Slide ${current + 1} of ${slideCount}: ${slide.title}`;
+    if (announcementRef.current) {
+      const slide = slides[current];
+      announcementRef.current.textContent = `Slide ${current + 1} of ${slideCount}: ${slide.title}`;
+    }
   }, [current, slides, slideCount]);
+
+  // impression tracking (debounced)
+  useEffect(() => {
+    if (impressionTimer.current) window.clearTimeout(impressionTimer.current);
+    impressionTimer.current = window.setTimeout(() => {
+      const slide = slides[current];
+      if (!seenImpressions.current.has(slide.id)) {
+        enqueueEvent({
+          type: "impression",
+          slideId: slide.id,
+          timestamp: Date.now(),
+        });
+        seenImpressions.current.add(slide.id);
+      }
+    }, IMPRESSION_DEBOUNCE_MS);
+  }, [current, slides, enqueueEvent]);
+
+  // periodic flush
+  useEffect(() => {
+    flushIntervalRef.current = window.setInterval(() => {
+      flushAnalytics();
+    }, ANALYTICS_FLUSH_INTERVAL) as unknown as number;
+    return () => {
+      if (flushIntervalRef.current) window.clearInterval(flushIntervalRef.current);
+      flushAnalytics();
+    };
+  }, [flushAnalytics]);
+
+  // small debug output (remove in prod)
+  useEffect(() => {
+    console.log("Hero slides:", slides);
+    console.log("Current slide:", current);
+  }, [slides, current]);
+
+  const onCtaClick = (slide: HeroSlide) => {
+    enqueueEvent({
+      type: "click",
+      slideId: slide.id,
+      timestamp: Date.now(),
+      ctaText: slide.ctaText,
+    });
+  };
 
   return (
     <section
       aria-label="Hero carousel"
       className="hero-carousel"
       ref={(el) => {
-        containerRef.current = el ?? null;
+        containerRef.current = el;
       }}
     >
-      {/* Preload first slide image */}
       <link rel="preload" as="image" href={slides[0]?.imageUrl} />
 
-      {/* ARIA live region (visually hidden) */}
       <div
         aria-live="polite"
         aria-atomic="true"
@@ -192,29 +268,68 @@ export default function Hero() {
         ref={(el) => {
           announcementRef.current = el;
         }}
-      ></div>
+      />
 
-      <div className="slides-wrapper">
+      {/* subtle debug badge */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          background: "rgba(0,0,0,0.6)",
+          color: "#fff",
+          padding: "4px 8px",
+          borderRadius: 4,
+          fontSize: 11,
+          zIndex: 60,
+          pointerEvents: "none",
+        }}
+      >
+        {current + 1} / {slideCount}
+      </div>
+
+      <div className="slides-wrapper" style={{ transform: `translateX(-${current * 100}%)` }}>
         {slides.map((slide, idx) => (
-          <div
-            key={slide.id}
-            className={`slide ${idx === current ? "active" : ""}`}
-            aria-hidden={idx !== current}
-          >
+          <div key={slide.id} className="slide" aria-hidden={idx !== current}>
             <div className="image-container">
-              <img
-                src={slide.imageUrl}
-                alt={slide.alt}
-                loading={idx === 0 ? "eager" : "lazy"}
-                width={1200}
-                height={500}
-              />
+              {slide.blurDataURL && (
+                <div
+                  className="placeholder"
+                  aria-hidden="true"
+                  style={{
+                    backgroundImage: `url(${slide.blurDataURL})`,
+                    filter: "blur(8px)",
+                    position: "absolute",
+                    inset: 0,
+                    backgroundSize: "cover",
+                    transition: "opacity 0.3s ease",
+                  }}
+                />
+              )}
+              <div style={{ position: "absolute", inset: 0 }}>
+                <Image
+                  src={slide.imageUrl}
+                  alt={slide.alt}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 1200px"
+                  style={{ objectFit: "cover" }}
+                  placeholder={slide.blurDataURL ? "blur" : undefined}
+                  blurDataURL={slide.blurDataURL}
+                  priority={idx === 0}
+                />
+              </div>
             </div>
             <div className="overlay">
               <div className="text-content">
                 <h2>{slide.title}</h2>
                 <p>{slide.description}</p>
-                <Link href={slide.ctaHref} className="button" aria-label={slide.ctaText}>
+                <Link
+                  href={slide.ctaHref}
+                  className="button"
+                  aria-label={slide.ctaText}
+                  onClick={() => onCtaClick(slide)}
+                >
                   {slide.ctaText}
                 </Link>
               </div>
@@ -223,7 +338,7 @@ export default function Hero() {
         ))}
       </div>
 
-      {/* Controls */}
+      {/* controls */}
       <div className="controls">
         <button
           aria-label="Previous slide"
