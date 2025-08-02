@@ -359,8 +359,8 @@ body {
   overflow: hidden;
   margin: var(--space-xl) 0;
   border-radius: 12px;
-  background: #000;
-  aspect-ratio: 16 / 6;
+  background: #000; /* dark hero background */
+  aspect-ratio: 16 / 4;
 }
 
 /* wrapper shifts slides horizontally */
@@ -388,12 +388,13 @@ body {
   gap: var(--space-lg);
   width: 100%;
   align-items: center;
+  flex-wrap: nowrap; /* prevent stacking unless you want responsive wrap */
 }
 
-/* text panel */
+/* text panel: stronger contrast, no extra shadow box unless wanted */
 .text-panel {
-  flex: 1 1 50%;
-  background: rgba(0, 0, 0, 0.35);
+  flex: 1 1 45%;
+  background: rgba(0, 0, 0, 0.5); /* slightly darker to lift text */
   padding: var(--space-lg);
   border-radius: 8px;
   color: white;
@@ -403,24 +404,23 @@ body {
 
 /* image panel */
 .image-panel {
-  flex: 1 1 50%;
+  flex: 1 1 55%;
   position: relative;
+  min-height: 250px; /* ensure space for fill image */
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface);
-  border-radius: 8px;
-  overflow: hidden;
-  min-height: 0;
+  background: rgba(0, 0, 0, 0.5) !important; /* light “off-white” instead of navy */
+  /* optional subtle border to separate: */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); 
 }
-
 /* next/image or img inside image panel */
 .image-panel :is(img, .next-image) {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
-  background: var(--color-surface);
+  background: transparent;
 }
 
 /* placeholder (blur) behind image */

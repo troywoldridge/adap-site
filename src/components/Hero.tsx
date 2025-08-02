@@ -1,3 +1,4 @@
+// src/components/Hero.tsx
 "use client";
 
 import {
@@ -86,7 +87,7 @@ type AnalyticsEvent =
       ctaText: string;
     };
 
-// Cloudflare resize helper
+// Cloudflare image resize helper (adds width param safely)
 function cloudflareResized(src: string, width: number) {
   if (!src) return "";
   const separator = src.includes("?") ? "&" : "?";
@@ -98,13 +99,13 @@ export default function Hero() {
   const [current, setCurrent] = useState(0);
   const [targetWidth, setTargetWidth] = useState(1200);
   const timeoutRef = useRef<number | null>(null);
-  const containerRef = useRef<HTMLElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef<number | null>(null);
   const deltaXRef = useRef<number>(0);
   const announcementRef = useRef<HTMLDivElement | null>(null);
   const slideCount = slides.length;
 
-  // analytics
+  // analytics state
   const analyticsQueue = useRef<AnalyticsEvent[]>([]);
   const seenImpressions = useRef<Set<string>>(new Set());
   const flushIntervalRef = useRef<number | null>(null);
@@ -139,7 +140,7 @@ export default function Hero() {
     if (analyticsQueue.current.length === 0) return;
     const payload = [...analyticsQueue.current];
     analyticsQueue.current = [];
-    fetch("/api/hero-analytics", {
+    void fetch("/api/hero-analytics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ events: payload }),
@@ -149,10 +150,10 @@ export default function Hero() {
     });
   }, []);
 
-  // dynamic slides
+  // fetch dynamic slides
   useEffect(() => {
     let canceled = false;
-    fetch("/api/hero-slides")
+    void fetch("/api/hero-slides")
       .then((r) => {
         if (!r.ok) throw new Error("Fetch failed");
         return r.json();
@@ -163,7 +164,7 @@ export default function Hero() {
         }
       })
       .catch(() => {
-        // ignore, keep defaults
+        /* fallback to defaultSlides */
       });
     return () => {
       canceled = true;
@@ -178,7 +179,7 @@ export default function Hero() {
     };
   }, [current, resetAutoPlay]);
 
-  // swipe
+  // swipe handlers
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -200,6 +201,7 @@ export default function Hero() {
       deltaXRef.current = 0;
       resetAutoPlay();
     };
+
     container.addEventListener("pointerdown", onPointerDown);
     container.addEventListener("pointermove", onPointerMove);
     container.addEventListener("pointerup", onPointerUp);
@@ -220,7 +222,7 @@ export default function Hero() {
     }
   }, [current, slides, slideCount]);
 
-  // impression tracking
+  // impression tracking (debounced)
   useEffect(() => {
     if (impressionTimer.current) window.clearTimeout(impressionTimer.current);
     impressionTimer.current = window.setTimeout(() => {
@@ -234,24 +236,27 @@ export default function Hero() {
         seenImpressions.current.add(slide.id);
       }
     }, IMPRESSION_DEBOUNCE_MS);
+    return () => {
+      if (impressionTimer.current) window.clearTimeout(impressionTimer.current);
+    };
   }, [current, slides, enqueueEvent]);
 
-  // periodic flush
+  // periodic analytics flush
   useEffect(() => {
     flushIntervalRef.current = window.setInterval(() => {
       flushAnalytics();
     }, ANALYTICS_FLUSH_INTERVAL) as unknown as number;
     return () => {
       if (flushIntervalRef.current !== null)
-        window.clearInterval(flushIntervalRef.current);
+        window.clearInterval(flushIntervalRef.current as unknown as number);
       flushAnalytics();
     };
   }, [flushAnalytics]);
 
-  // responsive target width with DPR
+  // responsive targetWidth (with DPR)
   useLayoutEffect(() => {
     const update = () => {
-      const base = containerRef.current?.clientWidth || 1200;
+      const base = (containerRef.current as HTMLDivElement)?.clientWidth || 1200;
       const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
       setTargetWidth(Math.min(Math.round(base * dpr), 2400));
     };
@@ -273,25 +278,28 @@ export default function Hero() {
     <section
       aria-label="Hero carousel"
       className="hero-carousel"
-      ref={(el) => {
+      ref={(el: HTMLDivElement | null) => {
         containerRef.current = el;
       }}
     >
+      {/* Preload first slide image */}
       <link
         rel="preload"
         as="image"
         href={cloudflareResized(slides[0]?.imageUrl || "", targetWidth)}
       />
 
+      {/* ARIA live region */}
       <div
         aria-live="polite"
         aria-atomic="true"
         className="sr-only"
         ref={(el) => {
-          announcementRef.current = el;
+          announcementRef.current = el as HTMLDivElement | null;
         }}
       />
 
+      {/* debug badge */}
       {showDebug && (
         <div aria-hidden="true" className="hero-debug-badge">
           {current + 1}/{slideCount} • width: {targetWidth}
@@ -310,13 +318,14 @@ export default function Hero() {
           >
             <div className="slide-inner">
               <div className="text-panel">
-                <h2>{slide.title}</h2>
-                <p>{slide.description}</p>
+                <h2 style={{ margin: 0 }}>{slide.title}</h2>
+                <p style={{ margin: "0.5rem 0 1rem" }}>{slide.description}</p>
                 <Link
                   href={slide.ctaHref}
                   className="button"
                   aria-label={slide.ctaText}
                   onClick={() => onCtaClick(slide)}
+                  style={{ boxShadow: "none" }}
                 >
                   {slide.ctaText}
                 </Link>
