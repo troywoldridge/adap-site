@@ -1,11 +1,10 @@
 // src/components/Header.tsx
-
 "use client";
 
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 interface HeaderProps {
@@ -25,9 +24,9 @@ const DEFAULT_DESCRIPTION =
 const CF_ACCOUNT_HASH = process.env.CF_ACCOUNT_HASH || "";
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com").replace(/\/+$/, "");
 const DEFAULT_SOCIAL_SHARE_IMAGE_ID = process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID || "";
-const LOGO_IMAGE_ID = "a90ba357-76ea-48ed-1c65-44fff4401600"; // provided logo ID
+const LOGO_IMAGE_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
 
-// Helpers
+// helpers
 function buildCloudflareImageUrl(imageId: string, variant = "public"): string {
   if (!CF_ACCOUNT_HASH || !imageId) return "";
   return `https://imagedelivery.net/${CF_ACCOUNT_HASH}/${imageId}/${variant}`;
@@ -62,8 +61,10 @@ export default function Header({
   priceDisplay,
   primaryImageId,
 }: HeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
   const queryString = useMemo(() => {
     if (!searchParams) return "";
     const s = searchParams.toString();
@@ -117,84 +118,79 @@ export default function Header({
         <link rel="icon" type="image/webp" href="/adap_favicon.webp" />
         <meta name="theme-color" content="#ffffff" />
 
-        {/* Performance hints */}
+        {/* Performance */}
         <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="anonymous" />
         {computedOgImage && <link rel="preload" as="image" href={computedOgImage} />}
-
-        {/* Structured data */}
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: SITE_NAME,
-              url: BASE_URL,
-              logo: logoUrl,
-              sameAs: [],
-              contactPoint: [
-                {
-                  "@type": "ContactPoint",
-                  telephone: "+1-800-000-0000",
-                  contactType: "customer support",
-                  areaServed: "US",
-                  availableLanguage: ["English"],
-                },
-              ],
-            }),
-          }}
-        />
       </Head>
 
-      <header
-        aria-label="Primary"
-        className="site-header flex items-center justify-between px-4 py-3 border-b bg-white"
-      >
-        <div className="flex items-center gap-3">
-          <Link href="/" aria-label="Home">
-            <div className="relative w-[100px] h-[60px] flex-shrink-0">
-              <Image
-                src={logoUrl}
-                alt={`${SITE_NAME} logo`}
-                fill
-                sizes="(max-width: 640px) 80px, 100px"
-                priority
-                className="object-contain"
-                placeholder="blur"
-                blurDataURL="/placeholder-logo.png"
-                onError={() => {
-                  /* swallow silently or log if you have a logger */
-                }}
-              />
+      <header className="site-header" aria-label="Main header">
+        <div className="container header-content">
+          <div className="logo-block">
+            <Link href="/" aria-label="Home" className="nav-logo" onClick={() => setMenuOpen(false)}>
+              <div className="logo-wrapper">
+                {logoUrl ? (
+                  <Image
+                    src={logoUrl}
+                    alt={`${SITE_NAME} logo`}
+                    width={100}
+                    height={60}
+                    className="logo"
+                    priority
+                    placeholder="blur"
+                    blurDataURL="/placeholder-logo.png"
+                    onError={() => {
+                      console.warn("Logo image failed to load");
+                    }}
+                  />
+                ) : (
+                  <div style={{ fontWeight: 700, fontSize: '1.25rem' }}>{SITE_NAME}</div>
+                )}
+              </div>
+            </Link>
+            <div className="site-title">
+              <h1 className="header-title">{SITE_NAME}</h1>
+              <p className="subtitle">Custom Print Experts</p>
             </div>
-          </Link>
-          <div className="hidden sm:block">
-            <h1 className="text-xl font-semibold leading-tight m-0">{SITE_NAME}</h1>
-            <p className="text-sm text-gray-600 m-0">Custom Print Experts</p>
+          </div>
+
+          <div className="nav-actions">
+            <div className="desktop-actions">
+              <Link href="/search" aria-label="Search" className="nav-icon">
+                <span className="sr-only">Search</span>🔍
+              </Link>
+              <Link href="/cart" aria-label="Cart" className="nav-icon">
+                <span className="sr-only">Cart</span>🛒
+              </Link>
+              <Link href="/account" aria-label="Account" className="nav-icon">
+                <span className="sr-only">Account</span>👤
+              </Link>
+            </div>
+            <button
+              aria-label="Toggle menu"
+              aria-expanded={menuOpen}
+              className="hamburger"
+              onClick={() => setMenuOpen(o => !o)}
+            >
+              {menuOpen ? '✕' : '☰'}
+            </button>
           </div>
         </div>
 
-        <nav aria-label="Main navigation" className="flex items-center gap-4">
-          <Link href="/search" aria-label="Search">
-            <span className="sr-only">Search</span>
-            <div className="p-2 rounded focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-500">
-              🔍
+        {menuOpen && (
+          <div className="mobile-menu" role="dialog" aria-label="Expanded menu">
+            <div className="mobile-links">
+              <Link href="/search" className="nav-icon" onClick={() => setMenuOpen(false)}>
+                🔍 Search
+              </Link>
+              <Link href="/cart" className="nav-icon" onClick={() => setMenuOpen(false)}>
+                🛒 Cart
+              </Link>
+              <Link href="/account" className="nav-icon" onClick={() => setMenuOpen(false)}>
+                👤 Account
+              </Link>
             </div>
-          </Link>
-          <Link href="/cart" aria-label="Cart">
-            <span className="sr-only">Cart</span>
-            <div className="p-2 rounded focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-500">
-              🛒
-            </div>
-          </Link>
-          <Link href="/account" aria-label="Account">
-            <span className="sr-only">Account</span>
-            <div className="p-2 rounded focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-blue-500">
-              👤
-            </div>
-          </Link>
-        </nav>
+          </div>
+        )}
       </header>
     </>
   );

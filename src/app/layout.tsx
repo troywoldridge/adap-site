@@ -1,69 +1,50 @@
-import '@/globals.css'
-import Navbar from '@/components/Navbar'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+// src/app/layout.tsx
+import type { ReactNode } from 'react';
+import Navbar from '@/components/Navbar';
+import Header from '@/components/Header';
+import './globals.css'; // full stylesheet loaded after critical CSS
 
 export const metadata = {
-  title: 'American Design And Printing | Premium Print & Promo Products',
+  title: 'Custom Print Experts',
   description:
-    'Discover high-quality custom print, packaging, and promotional products for your business. Fast shipping, unbeatable quality, and expert service.',
-  openGraph: {
-    title: 'ADAP E-Commerce',
-    description:
-      'High-quality custom print and promo products for growing brands.',
-    url: 'https://www.adapprint.com',
-    siteName: 'ADAP E-Commerce',
-    images: [
-      {
-        url: 'https://www.adapprint.com/og-cover.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'ADAP E-Commerce - Custom Print Experts'
-      }
-    ],
-    locale: 'en_US',
-    type: 'website'
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@adapnow',
-    creator: '@adapnow',
-    title: 'ADAP E-Commerce',
-    description:
-      'Custom print, promo, and packaging products to power your brand.',
-    images: ['https://www.adapprint.com/og-cover.jpg']
-  },
-  metadataBase: new URL('https://www.adapprint.com')
-}
+    'Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.',
+};
 
-export default function RootLayout({
-  children
-}: {
-  children: React.ReactNode
-}) {
+const criticalCss = `
+:root {
+  --color-primary: #1e3a8a;
+  --color-bg: #ffffff;
+  --color-text: #171717;
+  --radius: 6px;
+  --focus-ring-color: #2563eb;
+  --space-lg: 24px;
+}
+html { box-sizing: border-box; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+*,*::before,*::after{box-sizing:inherit;margin:0;padding:0;}
+body { background: var(--color-bg); color: var(--color-text); line-height:1.5; }
+.site-header { background:#e0f2fe; color: var(--color-primary); padding:16px 0; }
+.container { max-width:1200px; margin:0 auto; padding:0 24px; }
+.hero { background:#1f2937; color:#f0f9ff; padding:48px; text-align:center; border-radius:8px; }
+.button { background: var(--color-primary); color:#fff; padding:12px 24px; border-radius:6px; text-decoration:none; display:inline-block; font-weight:600; }
+`;
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#1D4ED8" />
-        <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://www.adapprint.com/" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Critical CSS inlined for first paint */}
+        <style dangerouslySetInnerHTML={{ __html: criticalCss }} />
       </head>
-     <body>
-  <Header />
-  <Navbar />
-  
-  
- <main>
-    {children}
-  </main>
-
-  <Footer />
-</body>
-
+      <body>
+        <Navbar />
+        <Header />
+        <main>{children}</main>
+        <footer>
+          <div className="container">
+            <p>© {new Date().getFullYear()} Custom Print Experts. All rights reserved.</p>
+          </div>
+        </footer>
+      </body>
     </html>
-  )
+  );
 }
