@@ -1,13 +1,13 @@
-// src/app/layout.tsx
-import type { ReactNode } from 'react';
-import Navbar from '@/components/Navbar';
-import Header from '@/components/Header';
-import '@/globals.css'; // full stylesheet loaded after critical CSS
+import type { ReactNode } from "react";
+import Navbar from "@/components/Navbar";
+import Header from "@/components/Header";
+import "@/globals.css"; // full stylesheet loaded after critical CSS
+import ChunkErrorRecovery from "@/components/ChunkErrorRecovery";
 
 export const metadata = {
-  title: 'Custom Print Experts',
+  title: "Custom Print Experts",
   description:
-    'Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.',
+    "Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.",
 };
 
 const criticalCss = `
@@ -36,8 +36,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <style dangerouslySetInnerHTML={{ __html: criticalCss }} />
       </head>
       <body>
-        <Navbar />
+        <ChunkErrorRecovery />
         <Header />
+        <Navbar />
         <main>{children}</main>
         <footer>
           <div className="container">

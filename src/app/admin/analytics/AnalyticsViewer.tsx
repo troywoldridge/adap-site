@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 
-type Event = {
-  type: "impression" | "click";
-  slideId: string;
+export type Event = {
+  type: "impression" | "click" | "category_impression" | "category_click";
+  slideId?: string; // for slides
+  itemId?: string; // for categories
   timestamp: number;
   ctaText?: string;
   receivedAt: string;
@@ -14,22 +15,97 @@ interface Props {
   initialEvents: Event[];
 }
 
-type Summary = Record<string, { impressions: number; clicks: number }>;
+type SummaryEntry = {
+  impressions: number;
+  clicks: number;
+  ctr: number; // fraction
+  recent: Event[]; // last N events for sparkline
+  label: string; // human readable (slide or category)
+  kind: "slide" | "category";
+};
 
-function aggregate(events: Event[]): Summary {
-  const summary: Summary = {};
+type Summary = Record<string, SummaryEntry>; // key is composite: kind|id
+
+function aggregate(events: Event[], recentLimit = 50): Summary {
+  const buckets: Record<string, { impressions: number; clicks: number; raw: Event[]; label: string; kind: "slide" | "category" }> = {};
+
   for (const ev of events) {
-    if (!summary[ev.slideId]) {
-      summary[ev.slideId] = { impressions: 0, clicks: 0 };
+    const isCategory = ev.type.startsWith("category");
+    const id = isCategory ? ev.itemId! : ev.slideId!;
+    const kind = isCategory ? "category" : "slide";
+    const key = `${kind}|${id}`;
+
+    if (!buckets[key]) {
+      buckets[key] = {
+        impressions: 0,
+        clicks: 0,
+        raw: [],
+        label: id,
+        kind,
+      };
     }
-    if (ev.type === "impression") {
-      summary[ev.slideId].impressions += 1;
-    }
-    if (ev.type === "click") {
-      summary[ev.slideId].clicks += 1;
-    }
+    if (ev.type === "impression" || ev.type === "category_impression") buckets[key].impressions += 1;
+    if (ev.type === "click" || ev.type === "category_click") buckets[key].clicks += 1;
+    buckets[key].raw.push(ev);
+  }
+
+  const summary: Summary = {};
+  for (const [key, { impressions, clicks, raw, label, kind }] of Object.entries(buckets)) {
+    const ctr = impressions ? clicks / impressions : 0;
+    const recent = raw
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-recentLimit);
+    summary[key] = { impressions, clicks, ctr, recent, label, kind };
   }
   return summary;
+}
+
+function Sparkline({
+  events,
+  width = 120,
+  height = 24,
+}: {
+  events: Event[];
+  width?: number;
+  height?: number;
+}) {
+  if (events.length === 0) {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          opacity: 0.3,
+          fontSize: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f5f5f5",
+          borderRadius: 4,
+        }}
+      >
+        no data
+      </div>
+    );
+  }
+
+  const times = events.map((e) => e.timestamp);
+  const min = Math.min(...times);
+  const max = Math.max(...times);
+  const span = max - min || 1;
+
+  const circles = events.map((e) => {
+    const x = ((e.timestamp - min) / span) * (width - 6) + 3; // padding
+    const isClick = e.type === "click" || e.type === "category_click";
+    const color = isClick ? "#2563eb" : "#bbb";
+    return `<circle cx="${x}" cy="${height / 2}" r="3" fill="${color}" />`;
+  });
+
+  const svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${circles.join(
+    ""
+  )}</svg>`;
+
+  return <div dangerouslySetInnerHTML={{ __html: svg }} aria-label="sparkline" />;
 }
 
 export default function AnalyticsViewer({ initialEvents }: Props) {
@@ -37,21 +113,12 @@ export default function AnalyticsViewer({ initialEvents }: Props) {
   const [error, setError] = useState<string | null>(null);
   const summary = useMemo(() => aggregate(events), [events]);
 
-  // Poll every 5 seconds for updates
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("/admin/analytics?raw=1"); // re-request page to get fresh events
-        if (!res.ok) {
-          throw new Error("Failed to refresh");
-        }
-        // parse the HTML and extract JSON embedded? Instead, use dedicated endpoint below.
-        // We'll call a new helper API to fetch events:
-        const dataRes = await fetch("/api/hero-analytics/view");
-        if (!dataRes.ok) {
-          throw new Error("Failed to load events");
-        }
-        const { events: fresh } = await dataRes.json();
+        const res = await fetch("/api/hero-analytics/view");
+        if (!res.ok) throw new Error("Failed to load events");
+        const { events: fresh } = await res.json();
         setEvents(fresh);
       } catch (e: any) {
         setError(e.message || "Refresh error");
@@ -61,13 +128,12 @@ export default function AnalyticsViewer({ initialEvents }: Props) {
   }, []);
 
   const downloadCSV = useCallback(() => {
-    if (events.length === 0) {
-      return;
-    }
-    const header = ["type", "slideId", "ctaText", "timestamp", "receivedAt"];
+    if (!events.length) return;
+    const header = ["type", "slideId", "itemId", "ctaText", "timestamp", "receivedAt"];
     const rows = events.map((e) => [
       e.type,
-      e.slideId,
+      e.slideId || "",
+      e.itemId || "",
       e.ctaText || "",
       e.timestamp.toString(),
       e.receivedAt,
@@ -79,13 +145,19 @@ export default function AnalyticsViewer({ initialEvents }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `hero-analytics-${Date.now()}.csv`;
+    a.download = `analytics-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }, [events]);
 
+  const colorForCtr = (ctr: number) => {
+    if (ctr >= 0.1) return "#16a34a";
+    if (ctr >= 0.03) return "#d97706";
+    return "#b91c1c";
+  };
+
   return (
-    <div style={{ marginTop: 16 }}>
+    <div style={{ marginTop: 16, fontFamily: "system-ui,-apple-system,BlinkMacSystemFont,sans-serif" }}>
       {error && (
         <div style={{ marginBottom: 8, color: "crimson" }}>
           Error refreshing: {error}
@@ -102,37 +174,64 @@ export default function AnalyticsViewer({ initialEvents }: Props) {
       </div>
 
       <section style={{ marginTop: 12 }}>
-        <h2>Summary by Slide</h2>
+        <h2>Summary (Slides & Categories)</h2>
         <table
           style={{
             borderCollapse: "collapse",
             width: "100%",
-            maxWidth: 900,
+            maxWidth: 1100,
             marginBottom: 24,
           }}
         >
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "left" }}>Slide ID</th>
+              <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "left" }}>Type</th>
+              <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "left" }}>ID</th>
               <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>Impressions</th>
               <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>Clicks</th>
               <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>CTR</th>
+              <th style={{ border: "1px solid #ccc", padding: 8, textAlign: "center" }}>Sparkline</th>
             </tr>
           </thead>
           <tbody>
-            {Object.entries(summary).map(([slideId, { impressions, clicks }]) => {
-              const ctr = impressions ? ((clicks / impressions) * 100).toFixed(1) : "0.0";
-              return (
-                <tr key={slideId}>
-                  <td style={{ border: "1px solid #ccc", padding: 8 }}>{slideId}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>{impressions}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>{clicks}</td>
-                  <td style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>
-                    {ctr}%
-                  </td>
-                </tr>
-              );
-            })}
+            {Object.entries(summary).map(
+              ([key, { impressions, clicks, ctr, recent, label, kind }]) => {
+                const pct = impressions ? ((clicks / impressions) * 100).toFixed(1) : "0.0";
+                return (
+                  <tr key={key}>
+                    <td style={{ border: "1px solid #ccc", padding: 8 }}>{kind}</td>
+                    <td style={{ border: "1px solid #ccc", padding: 8 }}>{label}</td>
+                    <td style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>
+                      {impressions}
+                    </td>
+                    <td style={{ border: "1px solid #ccc", padding: 8, textAlign: "right" }}>
+                      {clicks}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: 8,
+                        textAlign: "right",
+                        color: colorForCtr(ctr),
+                        fontWeight: 600,
+                      }}
+                    >
+                      {pct}%
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: 8,
+                        textAlign: "center",
+                        minWidth: 140,
+                      }}
+                    >
+                      <Sparkline events={recent} width={140} height={24} />
+                    </td>
+                  </tr>
+                );
+              }
+            )}
           </tbody>
         </table>
 
@@ -155,4 +254,3 @@ export default function AnalyticsViewer({ initialEvents }: Props) {
     </div>
   );
 }
-

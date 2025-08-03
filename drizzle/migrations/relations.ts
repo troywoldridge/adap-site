@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { products, optionsGroups, productVariants, categories, subcategories, images } from "./schema";
+import { products, optionsGroups, productOptionHashes, pricing, categories, subcategories, options, images } from "./schema";
 
 export const optionsGroupsRelations = relations(optionsGroups, ({one}) => ({
 	product: one(products, {
@@ -10,13 +10,27 @@ export const optionsGroupsRelations = relations(optionsGroups, ({one}) => ({
 
 export const productsRelations = relations(products, ({many}) => ({
 	optionsGroups: many(optionsGroups),
-	productVariants: many(productVariants),
+	productOptionHashes: many(productOptionHashes),
+	options: many(options),
+	pricings: many(pricing),
 	images: many(images),
 }));
 
-export const productVariantsRelations = relations(productVariants, ({one}) => ({
+export const productOptionHashesRelations = relations(productOptionHashes, ({one}) => ({
 	product: one(products, {
-		fields: [productVariants.productId],
+		fields: [productOptionHashes.productId],
+		references: [products.id]
+	}),
+	pricing: one(pricing, {
+		fields: [productOptionHashes.pricingId],
+		references: [pricing.id]
+	}),
+}));
+
+export const pricingRelations = relations(pricing, ({one, many}) => ({
+	productOptionHashes: many(productOptionHashes),
+	product: one(products, {
+		fields: [pricing.productId],
 		references: [products.id]
 	}),
 }));
@@ -31,11 +45,13 @@ export const subcategoriesRelations = relations(subcategories, ({one, many}) => 
 
 export const categoriesRelations = relations(categories, ({many}) => ({
 	subcategories: many(subcategories),
-	images_categoryId: many(images, {
-		relationName: "images_categoryId_categories_id"
-	}),
-	images_categoryIdSlug: many(images, {
-		relationName: "images_categoryIdSlug_categories_id"
+	images: many(images),
+}));
+
+export const optionsRelations = relations(options, ({one}) => ({
+	product: one(products, {
+		fields: [options.productId],
+		references: [products.id]
 	}),
 }));
 
@@ -44,18 +60,12 @@ export const imagesRelations = relations(images, ({one}) => ({
 		fields: [images.productId],
 		references: [products.id]
 	}),
-	category_categoryId: one(categories, {
+	category: one(categories, {
 		fields: [images.categoryId],
-		references: [categories.id],
-		relationName: "images_categoryId_categories_id"
+		references: [categories.id]
 	}),
 	subcategory: one(subcategories, {
 		fields: [images.subcategoryId],
 		references: [subcategories.id]
-	}),
-	category_categoryIdSlug: one(categories, {
-		fields: [images.categoryIdSlug],
-		references: [categories.id],
-		relationName: "images_categoryIdSlug_categories_id"
 	}),
 }));
