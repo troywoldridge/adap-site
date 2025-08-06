@@ -1,25 +1,23 @@
 // src/lib/heroSlides.ts
-export interface HeroSlide {
-  id: string;
-  imageUrl: string;
-  alt: string;
-  title: string;
-  description: string;
-  ctaText: string;
-  ctaHref: string;
-  blurDataURL?: string; // optional precomputed placeholder
+import rawSlides from "@/data/heroSlides.json";
+import type { HeroSlide } from "./heroSlides.types";
+import { isValidSlide } from "./heroSlides.types";
+
+let _cache: HeroSlide[] | null = null;
+
+export function getHeroSlides(): HeroSlide[] {
+  if (_cache) {
+    return _cache;
+  }
+
+  // Filter & validate
+  const valid = (rawSlides as unknown as any[]).filter(isValidSlide);
+  if (valid.length !== (rawSlides as any[]).length) {
+    console.warn("Some heroSlides.json entries failed validation");
+  }
+
+  _cache = valid;
+  return valid;
 }
 
-// Basic runtime validation (you can swap in zod later)
-export function isValidSlide(obj: any): obj is HeroSlide {
-  return (
-    obj &&
-    typeof obj.id === "string" &&
-    typeof obj.imageUrl === "string" &&
-    typeof obj.alt === "string" &&
-    typeof obj.title === "string" &&
-    typeof obj.description === "string" &&
-    typeof obj.ctaText === "string" &&
-    typeof obj.ctaHref === "string"
-  );
-}
+export type { HeroSlide };

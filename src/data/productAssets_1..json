@@ -1,0 +1,380 @@
+{
+    "booklet": {
+        "imageId": "a615befd-f218-497b-8736-2e1169297700",
+        "variant": "public",
+        "imageUrl": "/images/sub-booklet.jpg",
+        "description": "Multi-page booklets for every purpose: catalogs, programs, and more."
+    },
+    "magnets": {
+        "imageId": "70b76533-cca5-4335-009a-30d9bf8c4a00",
+        "variant": "public",
+        "imageUrl": "/images/sub-magnets.jpg",
+        "description": "Custom magnets for fridges, vehicles, and every promo need."
+    },
+    "greeting-cards": {
+        "imageId": "78986742-6d0c-4ef2-4fc7-e505af27fe00",
+        "variant": "public",
+        "imageUrl": "/images/sub-greeting-cards.jpg",
+        "description": "Premium greeting cards—perfect for events, holidays, and businesses."
+    },
+    "invitations-announcements": {
+        "imageId": "b18156e4-05e3-4385-4b50-a1e0e4adbd00",
+        "variant": "public",
+        "imageUrl": "/images/sub-invitations.jpg",
+        "description": "Elegant invitations and announcements for any occasion."
+    },
+    "numbered-tickets": {
+        "imageId": "9b24c8e5-2901-480f-d775-f0269eac6b00",
+        "variant": "public",
+        "imageUrl": "/images/sub-tickets.jpg",
+        "description": "Secure, custom-numbered event tickets."
+    },
+    "wall-calendars": {
+        "imageId": "38bbb570-dfd9-4c83-a679-20d06d488d00",
+        "variant": "public",
+        "imageUrl": "/images/sub-wall-calendars.jpg",
+        "description": "Branded wall calendars for year-round visibility."
+    },
+    "variable-printing": {
+        "imageId": "f6cea140-e2e6-4336-0cca-d82afae85700",
+        "variant": "public",
+        "imageUrl": "/images/sub-variable-printing.jpg",
+        "description": "Personalized printing—one-of-a-kind for each recipient."
+    },
+    "posters": {
+        "imageId": "125382a4-e37c-42fb-ed8f-300b29a27c00",
+        "variant": "public",
+        "imageUrl": "/images/sub-posters.jpg",
+        "description": "Make a statement with vivid, large-format posters."
+    },
+    "door-hangers": {
+        "imageId": "a6cbc4fe-9f97-475e-8bc5-91da167fac00",
+        "variant": "public",
+        "imageUrl": "/images/sub-door-hangers.jpg",
+        "description": "Marketing that gets seen—on every door."
+    },
+    "digital-sheets": {
+        "imageId": "b5360f5f-fafe-4bf4-565b-3769544c7200",
+        "variant": "public",
+        "imageUrl": "/images/sub-digital-sheets.jpg",
+        "description": "Versatile digital print sheets for any application."
+    },
+    "folded-business-cards": {
+        "imageId": "b1529575-2f23-4c70-2fda-2eb9a9067100",
+        "variant": "public",
+        "imageUrl": "/images/sub-folded-cards.jpg",
+        "description": "Business cards with a twist—folded for extra info."
+    },
+    "tent-cards": {
+        "imageId": "c5cc030c-31e9-43a4-fd10-1e0c0ba01100",
+        "variant": "public",
+        "imageUrl": "/images/sub-tent-cards.jpg",
+        "description": "Perfect for events, place cards, and branding."
+    },
+    "plastics": {
+        "imageId": "117784e4-8634-4bec-cfa9-728959b52e00",
+        "variant": "public",
+        "imageUrl": "/images/sub-plastics.jpg",
+        "description": "Durable plastic prints for long-lasting impact."
+    },
+    "tear-cards": {
+        "imageId": "86533fbd-8284-4a27-79ff-cc3afc226b00",
+        "variant": "public",
+        "imageUrl": "/images/sub-tear-cards.jpg",
+        "description": "Perforated tear cards for coupons and offers."
+    },
+    "clings": {
+        "imageId": "8d25dafa-0871-4063-a3fc-388b11e63900",
+        "variant": "public",
+        "imageUrl": "/images/sub-clings.jpg",
+        "description": "Window clings: transparent, opaque, and eye-catching."
+    },
+    "letterhead": {
+        "imageId": "01200ab8-587e-4a4d-ff8e-740922373300",
+        "variant": "public",
+        "imageUrl": "/images/sub-letterhead.jpg",
+        "description": "Professional letterhead for branded communication."
+    },
+    "envelopes": {
+        "imageId": "0f796450-1aac-489f-c5cd-0234f7312900",
+        "variant": "public",
+        "imageUrl": "/images/sub-envelopes.jpg",
+        "description": "Custom envelopes for every mail-out."
+    },
+    "notepads": {
+        "imageId": "61a48b0a-e537-4b40-f9a8-441948fe2600",
+        "variant": "public",
+        "imageUrl": "/images/sub-notepads.jpg",
+        "description": "Handy branded notepads for notes and giveaways."
+    },
+    "ncr-forms": {
+        "imageId": "d7743249-b86b-41a0-25af-0d3b679b0300",
+        "variant": "public",
+        "imageUrl": "/images/sub-ncr-forms.jpg",
+        "description": "Multi-part NCR forms for receipts and more."
+    },
+    "supply-boxes": {
+        "imageId": "b88a362a-fb86-4f6c-6a1c-998039a8f500",
+        "variant": "public",
+        "imageUrl": "/images/sub-supply-boxes.jpg",
+        "description": "Boxes and supplies to organize and ship."
+    },
+    "mugs": {
+        "imageId": "973a78b3-f021-4847-3389-c026a8091b00",
+        "variant": "public",
+        "imageUrl": "/images/sub-mugs.jpg",
+        "description": "Ceramic, stainless, frosted, and more—custom mugs for everyone."
+    },
+    "bottles": {
+        "imageId": "273466d0-43cf-48e1-c890-c5cb5ea23a00",
+        "variant": "public",
+        "imageUrl": "/images/sub-bottles.jpg",
+        "description": "Branded bottles for drinks on the go."
+    },
+    "puzzles": {
+        "imageId": "7f7355f1-8bf7-496d-df1d-3312f2b8c900",
+        "variant": "public",
+        "imageUrl": "/images/sub-puzzles.jpg",
+        "description": "Custom puzzles—unique promotional gifts."
+    },
+    "canvas": {
+        "imageId": "7e71909e-8188-48af-50da-02b8e71b3900",
+        "variant": "public",
+        "imageUrl": "/images/sub-canvas.jpg",
+        "description": "Art and photo canvas prints."
+    },
+    "tumblers": {
+        "imageId": "15fcfd22-89ad-4d71-b545-4cb8fc028700",
+        "variant": "public",
+        "imageUrl": "/images/sub-tumblers.jpg",
+        "description": "Durable tumblers for daily use."
+    },
+    "mason-jars": {
+        "imageId": "95e56e2d-da0d-4374-88ff-a1e81b82e000",
+        "variant": "public",
+        "imageUrl": "/images/sub-mason-jars.jpg",
+        "description": "Fun and functional mason jars."
+    },
+    "keychains": {
+        "imageId": "1ac55088-d194-4c32-9ae7-43fe8ca30600",
+        "variant": "public",
+        "imageUrl": "/images/sub-keychains.jpg",
+        "description": "Promotional keychains in bulk."
+    },
+    "coasters": {
+        "imageId": "223f0213-d820-4e33-dc2b-54aee41ee700",
+        "variant": "public",
+        "imageUrl": "/images/sub-coasters.jpg",
+        "description": "Custom coasters to protect every surface."
+    },
+    "mouse-pads": {
+        "imageId": "a9fd3d77-949b-4f0a-48ed-3fe9275af300",
+        "variant": "public",
+        "imageUrl": "/images/sub-mouse-pads.jpg",
+        "description": "Personalized mouse pads."
+    },
+    "photo-panels": {
+        "imageId": "f560c73a-f905-496a-fbab-e1be72ff8400",
+        "variant": "public",
+        "imageUrl": "/images/sub-photo-panels.jpg",
+        "description": "High-definition photo panels."
+    },
+    "labels": {
+        "imageId": "",
+        "variant": "public",
+        "imageUrl": "/images/sub-labels.jpg",
+        "description": "BOPP, poly, paper, and cut-to-shape labels."
+    },
+    "product-boxes": {
+        "imageId": "bd3e3239-f9f7-46bf-b29e-2503368a6c00",
+        "variant": "public",
+        "imageUrl": "/images/sub-product-boxes.jpg",
+        "description": "Custom product boxes: tuck end, auto-lock, sleeves, and more."
+    },
+    "corrugated-boxes": {
+        "imageId": "d093f05e-100e-484a-04bb-4186b8b5f400",
+        "variant": "public",
+        "imageUrl": "/images/sub-corrugated-boxes.jpg",
+        "description": "Durable mailer and shipping boxes."
+    },
+    "flexible-packaging": {
+        "imageId": "7e5653c8-d664-4fad-422c-40544d01c500",
+        "variant": "public",
+        "imageUrl": "/images/sub-flexible-packaging.jpg",
+        "description": "Pouches and roll stock for any product."
+    },
+    "cut-to-shape-decal": {
+        "imageId": "0a82c3fd-1c37-4ce6-6321-46b7a9b73c00",
+        "variant": "public",
+        "imageUrl": "/images/sub-cut-to-shape-decal.jpg",
+        "description": "Vinyl decals: permanent or removable."
+    },
+    "mens-clothing": {
+        "imageId": "c09ad8a0-d3f2-4dba-9c83-3f4c5e9d0200",
+        "variant": "public",
+        "imageUrl": "/images/sub-mens-clothing.jpg",
+        "description": "T-shirts, polos, sweatshirts, and more for men."
+    },
+    "womens-clothing": {
+        "imageId": "b2b0ed7c-fdbe-4c80-3780-23b22195a700",
+        "variant": "public",
+        "imageUrl": "/images/sub-womens-clothing.jpg",
+        "description": "T-shirts, tanks, and polos for women."
+    },
+    "kids-youth-clothing": {
+        "imageId": "6b6f7196-1b3e-4ee2-926d-3c162dfcb800",
+        "variant": "public",
+        "imageUrl": "/images/sub-kids-youth-clothing.jpg",
+        "description": "Shirts, hoodies, and more for kids & youth."
+    },
+    "headwear": {
+        "imageId": "4418f6c2-8d26-4f80-4ef5-2319634f5f00",
+        "variant": "public",
+        "imageUrl": "/images/sub-headwear.jpg",
+        "description": "Hats and beanies, embroidered for quality."
+    },
+    "accessories": {
+        "imageId": "0102573e-1ef9-4252-6bd6-0d9300d06b00",
+        "variant": "public",
+        "imageUrl": "/images/sub-accessories.jpg",
+        "description": "Tote bags and more accessories."
+    },
+    "standard-business-cards": {
+        "imageId": "2f02c057-f6a8-4980-6a59-040d7133cf00",
+        "variant": "public",
+        "imageUrl": "/images/sub-standard-business-cards.jpg",
+        "description": "Classic and quick-ship business cards."
+    },
+    "specialty-business-cards": {
+        "imageId": "752a1ace-e53e-47b2-607d-f697cdefc400",
+        "variant": "public",
+        "imageUrl": "/images/sub-specialty-business-cards.jpg",
+        "description": "Foil, kraft, spot UV, suede, and more."
+    },
+    "sample-kits": {
+        "imageId": "aac5b0d1-b175-437b-0701-ee2da82c4300",
+        "variant": "public",
+        "imageUrl": "/images/sub-sample-kits.jpg",
+        "description": "Explore stocks, finishes, and formats first-hand."
+    },
+    "coroplast-signs": {
+        "imageId": "c3a3e19c-9a7a-4d66-914a-692358dc8900",
+        "variant": "public",
+        "imageUrl": "/images/sub-coroplast-signs.jpg",
+        "description": "Coroplast yard signs in every thickness."
+    },
+    "floor-graphics": {
+        "imageId": "1fa9a06f-4c86-4282-6097-c5b1e2b95000",
+        "variant": "public",
+        "imageUrl": "/images/sub-floor-graphics.jpg",
+        "description": "Floor and social distancing graphics."
+    },
+    "foam-board": {
+        "imageId": "e02bbfd1-7096-4c3b-9c50-61b5a7d26100",
+        "variant": "public",
+        "imageUrl": "/images/sub-foam-board.jpg",
+        "description": "High-impact foam board displays."
+    },
+    "aluminum-signs": {
+        "imageId": "15ba1060-80d5-41be-b7cd-47fd69152100",
+        "variant": "public",
+        "imageUrl": "/images/sub-aluminum-signs.jpg",
+        "description": "3mm aluminum signage for longevity."
+    },
+    "banners": {
+        "imageId": "d7f2b017-fc6d-4109-7dca-94f12e091d00",
+        "variant": "public",
+        "imageUrl": "/images/sub-banners.jpg",
+        "description": "Vinyl banners—glossy, matte, mesh, and more."
+    },
+    "pull-up-banners": {
+        "imageId": "baa9c8ee-47dc-4076-1945-f8915cbf9600",
+        "variant": "public",
+        "imageUrl": "/images/sub-pull-up-banners.jpg",
+        "description": "Roll-up and tabletop pull up banners."
+    },
+    "car-magnets": {
+        "imageId": "fc0d9f3e-b7a3-441c-4684-309e4167bf00",
+        "variant": "public",
+        "imageUrl": "/images/sub-car-magnets.jpg",
+        "description": "Heavy-duty car magnets."
+    },
+    "table-covers": {
+        "imageId": "ce28b598-515c-4b12-b725-7756cfa05500",
+        "variant": "public",
+        "imageUrl": "/images/sub-table-covers.jpg",
+        "description": "Printed table covers for 6ft and 8ft tables."
+    },
+    "adhesive-vinyl": {
+        "imageId": "b7145b4f-5a3a-4fb7-b7da-88c13a290d00",
+        "variant": "public",
+        "imageUrl": "/images/sub-adhesive-vinyl.jpg",
+        "description": "Glossy and durable adhesive vinyl."
+    },
+    "window-graphics": {
+        "imageId": "fc0d9f3e-b7a3-441c-4684-309e4167bf00",
+        "variant": "public",
+        "imageUrl": "/images/sub-window-graphics.jpg",
+        "description": "Perforated window vinyl."
+    },
+    "large-format-posters": {
+        "imageId": "e399a14d-16c7-450f-14fa-c5a98e289600",
+        "variant": "public",
+        "imageUrl": "/images/sub-large-format-posters.jpg",
+        "description": "Giant posters for maximum impact."
+    },
+    "styrene-signs": {
+        "imageId": "2835f4bd-553f-4c4d-fee1-807bf61e3000",
+        "variant": "public",
+        "imageUrl": "/images/sub-styrene-signs.jpg",
+        "description": "Tough, flexible styrene signage."
+    },
+    "display-board-pop": {
+        "imageId": "88f8165e-15f1-436e-5f02-e410644af200",
+        "variant": "public",
+        "imageUrl": "/images/sub-display-board-pop.jpg",
+        "description": "24pt & 40pt display and POP boards."
+    },
+    "canvas-large-format": {
+        "imageId": "7e71909e-8188-48af-50da-02b8e71b3900",
+        "variant": "public",
+        "imageUrl": "/images/sub-canvas-large-format.jpg",
+        "description": "Canvas rolls and stretched prints."
+    },
+    "sintra-pvc": {
+        "imageId": "f0c34ad2-263d-4462-f524-bc6bdbf36e00",
+        "variant": "public",
+        "imageUrl": "/images/sub-sintra-pvc.jpg",
+        "description": "Durable PVC boards for signage."
+    },
+    "x-frame-banners": {
+        "imageId": "81d01ba0-c56e-4446-1a74-92f419067e00",
+        "variant": "public",
+        "imageUrl": "/images/sub-x-frame-banners.jpg",
+        "description": "Portable X-frame banners."
+    },
+    "a-frame-signs": {
+        "imageId": "08acd48a-7733-4bcb-45e8-2857b3572400",
+        "variant": "public",
+        "imageUrl": "/images/sub-a-frame-signs.jpg",
+        "description": "Sturdy A-frame sidewalk signs."
+    },
+    "wall-decals": {
+        "imageId": "2a41b602-0408-4715-6d5b-a001aa265e00",
+        "variant": "public",
+        "imageUrl": "/images/sub-wall-decals.jpg",
+        "description": "Removable wall decals."
+    },
+    "a-frame-stands": {
+        "imageId": "eb789bdb-189b-4d3c-04e4-adca794d2500",
+        "variant": "public",
+        "imageUrl": "/images/sub-a-frame-stands.jpg",
+        "description": "A-frame sign stands."
+    },
+    "h-stands-for-signs": {
+        "imageId": "97c83f82-d15b-4731-fd41-60bb90385e00",
+        "variant": "public",
+        "imageUrl": "/images/sub-h-stands.jpg",
+        "description": "H stands for coroplast signs."
+    }
+}

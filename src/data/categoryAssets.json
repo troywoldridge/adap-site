@@ -1,0 +1,50 @@
+{
+  "print-products": {
+    "imageId": "887ba93e-5783-49c5-4ac1-36ccfb880100",
+    "variant": "public",
+    "imageUrl": "/images/cat-print-products.jpg",
+    "description": "Booklets, magnets, cards, posters, and all your premium print essentials."
+  },
+  "stationery": {
+    "imageId": "4342be75-8fd0-4f30-3d18-6d58ab24f600",
+    "variant": "public",
+    "imageUrl": "/images/cat-stationery.jpg",
+    "description": "Letterhead, envelopes, notepads, and premium paper products."
+  },
+  "promotional": {
+    "imageId": "0fb1e21b-a3ad-4b1a-dcda-431ff3d46a00",
+    "variant": "public",
+    "imageUrl": "/images/cat-promotional.jpg",
+    "description": "Mugs, bottles, apparel, and branded promo items for your business."
+  },
+  "labels-and-packaging": {
+    "imageId": "ff83ec93-8a8c-4d00-18b1-12cb9ba9d800",
+    "variant": "public",
+    "imageUrl": "/images/cat-labels-packaging.jpg",
+    "description": "Custom labels, boxes, flexible packaging, and decals."
+  },
+  "apparel": {
+    "imageId": "159f309b-8e95-446a-fb23-cfedeccc8b00",
+    "variant": "public",
+    "imageUrl": "/images/cat-apparel.jpg",
+    "description": "Men's, women's, and kids' clothing, headwear, accessories, and more."
+  },
+  "business-cards": {
+    "imageId": "2aa88aca-a10a-446b-d7a4-a46cc24cfc00",
+    "variant": "public",
+    "imageUrl": "/images/cat-business-cards.jpg",
+    "description": "Business cards for every style: standard, specialty, and quick ship."
+  },
+  "sample-kits": {
+    "imageId": "aac5b0d1-b175-437b-0701-ee2da82c4300",
+    "variant": "public",
+    "imageUrl": "/images/cat-sample-kits.jpg",
+    "description": "See and feel our quality with print, large format, and specialty sample kits."
+  },
+  "large-format": {
+    "imageId": "24d0027f-5014-4a8c-da91-419cb36cdf00",
+    "variant": "public",
+    "imageUrl": "/images/cat-large-format.jpg",
+    "description": "Banners, coroplast signs, displays, and anything BIG for your message."
+  }
+}

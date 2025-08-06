@@ -1,0 +1,4412 @@
+[
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-18pt-matte-silk-lamination_1.webp",
+    "cloudflare_id": "0053681e-2792-4571-ef75-b844fd438400",
+    "product_id": "9.0",
+    "matched_sku": "businesscard_16pt_matte_silk_lamination"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "3",
+    "name": "specialty_invitations",
+    "image_name": "metallic-foil-invitations_1.webp",
+    "cloudflare_id": "caa3a630-5829-45fa-823e-78ddf7a75a00",
+    "product_id": "15011.0",
+    "matched_sku": "metallic-foil-invitations"
+  },
+  {
+    "category_id": "5",
+    "subcategory_id": "130",
+    "name": "promotional_main",
+    "image_name": "promo-group-1.png",
+    "cloudflare_id": "0102573e-1ef9-4252-6bd6-0d9300d06b00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "37",
+    "name": "number_tickets",
+    "image_name": "mesh-banner-8oz-polyester-mesh_2.webp",
+    "cloudflare_id": "13501c1b-0fec-4518-ffb2-6d4b3958e000",
+    "product_id": "7554.0",
+    "matched_sku": "mesh_banners_8oz_polyester"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "5",
+    "name": "wall_calendars",
+    "image_name": "wall-calendars-100lb-gloss-text_2.webp",
+    "cloudflare_id": "01109c36-2304-4a9b-5abe-b578bd213000",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "101",
+    "name": "letterhead",
+    "image_name": "letterheads-60lb-uncoated_2.webp",
+    "cloudflare_id": "3f91b67f-e173-4f85-029c-17e37d30c400",
+    "product_id": "80.0",
+    "matched_sku": "letterheads_60lb"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-30mil_2.webp",
+    "cloudflare_id": "3a272009-bbbe-4818-2a2f-d700d0282500",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "53",
+    "name": "4mm_foam_board",
+    "image_name": "4mm-foam-board_1.png",
+    "cloudflare_id": "e02bbfd1-7096-4c3b-9c50-61b5a7d26100",
+    "product_id": "100.0",
+    "matched_sku": "4mm_foam"
+  },
+  {
+    "category_id": "5",
+    "subcategory_id": "130",
+    "name": "promotional_main",
+    "image_name": "invitations-14pt-matte-finish_1.png",
+    "cloudflare_id": "0530fc7a-8bd9-40b4-ba35-feacafc9e600",
+    "product_id": "15005.0",
+    "matched_sku": "invitations-14pt-matte-finish"
+  },
+  {
+    "category_id": "5",
+    "subcategory_id": "130",
+    "name": "promotional_main",
+    "image_name": "promo-group-2.png",
+    "cloudflare_id": "069fd024-4097-4b06-99e5-9656ec5fb600",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "50",
+    "name": "number_tickets",
+    "image_name": "banners-13oz-glossy-vinyl_1.webp",
+    "cloudflare_id": "074bbe9f-3ae2-4b23-125f-eb2703903400",
+    "product_id": "101.0",
+    "matched_sku": "banners_13oz"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-20mil_1.webp",
+    "cloudflare_id": "c52382bf-2dfc-4d8b-9d91-9db30e0b6500",
+    "product_id": "14985.0",
+    "matched_sku": "cut-to-shape-magnets-20mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "standard_flyers",
+    "image_name": "flyers-100lb-uv-high-gloss_1.webp",
+    "cloudflare_id": "ec9ed1ea-8488-469e-0136-cd32ff62a600",
+    "product_id": "37.0",
+    "matched_sku": "flyers_100lb_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-13pt-enviro-uncoated_2.webp",
+    "cloudflare_id": "08801307-2f47-4e24-ca5f-4ac581a5a900",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "pearl-business-cards_1.webp",
+    "cloudflare_id": "a221a984-a39c-44f5-940e-dd8634a25400",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "54",
+    "name": "a_frame_signs",
+    "image_name": "a-frame-signs-4mm-coroplast.jpg",
+    "cloudflare_id": "db112b92-b7a1-461e-9697-33f9e299a700",
+    "product_id": "97.0",
+    "matched_sku": "4mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-18pt-matte-silk-lamination_1.webp",
+    "cloudflare_id": "0a4b40cb-16c3-4c82-28bf-f0b0e7066d00",
+    "product_id": "9.0",
+    "matched_sku": "businesscard_16pt_matte_silk_lamination"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "55",
+    "name": "cut-to-shape-permanent-decals_1.webp",
+    "image_name": "cut-to-shape-permanent-decals_1.webp",
+    "cloudflare_id": "1cd233e9-63ad-4f3c-cc00-b51e5afecf00",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-profit-maximizer_1.webp",
+    "cloudflare_id": "0d476f2c-b3fc-45d2-7e5a-7089bb3c6b00",
+    "product_id": "1.0",
+    "matched_sku": "businesscard_14pt_profit_maximizer"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-14pt-aq_1.webp",
+    "cloudflare_id": "c0fbf79d-de83-49ef-1605-a262bbe7d800",
+    "product_id": "18.0",
+    "matched_sku": "postcards14pt_aq"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "53fedea7-6e81-4874-938a-2a5311fc4a00",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "100",
+    "name": "envelopes",
+    "image_name": "envelopes-60lb-self-adhesive_1.webp",
+    "cloudflare_id": "4e6fa4fe-2579-40b9-db01-bb0555a3d400",
+    "product_id": "5585.0",
+    "matched_sku": "envelopes_60lb_self_adhesive"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "spot-uv-greeting-cards_1.png",
+    "cloudflare_id": "0fa33564-6097-4e89-7938-0bdd83171600",
+    "product_id": "7551.0",
+    "matched_sku": "spot_uv_greeting_cards"
+  },
+  {
+    "category_id": "5",
+    "subcategory_id": "130",
+    "name": "promotional_main",
+    "image_name": "promo-group-3.webp",
+    "cloudflare_id": "0fb1e21b-a3ad-4b1a-dcda-431ff3d46a00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "100",
+    "name": "envelopes",
+    "image_name": "security-envelopes-60lb-uncoated_1.webp",
+    "cloudflare_id": "0fd732f6-068b-4c18-7b57-6cc7d8522b00",
+    "product_id": "4165.0",
+    "matched_sku": "security_envelopes"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "standard-rack-cards_1.png",
+    "cloudflare_id": "e254459d-35d4-448a-2777-8860defcf500",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-16pt-aq_1.webp",
+    "cloudflare_id": "1019de5d-9c19-4345-7449-b9b9c3764300",
+    "product_id": "15.0",
+    "matched_sku": "businesscard_16pt_aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-silverbase_1.png",
+    "cloudflare_id": "12421810-8f0b-4505-b6c8-97f2499a2b00",
+    "product_id": "15193.0",
+    "matched_sku": "pullupbanner_13oz_v2"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-100lb-matte-finish_2.webp",
+    "cloudflare_id": "1dd3f461-9d68-4b5a-3200-c5a3b3dfd400",
+    "product_id": "66.0",
+    "matched_sku": "posters_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-18pt-matte-lam-spot-uv_1.webp",
+    "cloudflare_id": "1280a8dd-eb36-43a0-dd2b-067c2fd21b00",
+    "product_id": "5546.0",
+    "matched_sku": "bookmark_16PT_matte_lam_spot_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "50",
+    "name": "number_tickets",
+    "image_name": "mesh-banner-8oz-polyester-mesh_2.webp",
+    "cloudflare_id": "13501c1b-0fec-4518-ffb2-6d4b3958e000",
+    "product_id": "7554.0",
+    "matched_sku": "mesh_banners_8oz_polyester"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "durable-business-cards_1.webp",
+    "cloudflare_id": "7709dc61-30dd-43e1-1bbb-95ccf140c300",
+    "product_id": "7326.0",
+    "matched_sku": "durable-business-cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "standard_postcards",
+    "image_name": "metallic-foil-business-cards_1.webp",
+    "cloudflare_id": "1405f0f3-6359-45dd-8017-8ac36a324800",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "52",
+    "name": "x_frame_banners",
+    "image_name": "x-frame-banners-13oz-matte-vinyl_2.jpg",
+    "cloudflare_id": "ba3aa403-05fe-402f-700a-0456c7d3cd00",
+    "product_id": "111.0",
+    "matched_sku": "xframe_13oz_matte"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "9",
+    "name": "standard_greeting_cards",
+    "image_name": "greeting-cards-14pt-aq_1.webp",
+    "cloudflare_id": "9a0b6cc1-dd20-4f8b-c704-722ec387db00",
+    "product_id": "48.0",
+    "matched_sku": "greetingcards_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "9",
+    "name": "standard_greeting_cards",
+    "image_name": "greeting-cards-14pt-uv-high-gloss_1.webp",
+    "cloudflare_id": "145b2d8f-d683-4ae7-05df-7542b0022b00",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "19",
+    "name": "standard_tear_cards",
+    "image_name": "tear-cards-14pt-uv_1.jpg",
+    "cloudflare_id": "14658982-2eec-47d4-2a08-029bb8cefe00",
+    "product_id": "129.0",
+    "matched_sku": "tearcards-14pt+uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "kraft-paper-greeting-cards_3.webp",
+    "cloudflare_id": "14e1cea7-f604-42df-d401-5a162da49600",
+    "product_id": "7553.0",
+    "matched_sku": "kraft_paper_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "57",
+    "name": "3mm-aluminum-signs_1",
+    "image_name": "3mm-aluminum-signs_1.png",
+    "cloudflare_id": "15ba1060-80d5-41be-b7cd-47fd69152100",
+    "product_id": "14978.0",
+    "matched_sku": "3mm-aluminum-signs"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "5c3dd436-7a59-4c7f-7543-c10f781fbe00",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-14pt-matte-finish_1.webp",
+    "cloudflare_id": "16537873-dd7a-4fe8-14a8-a1555b3a9c00",
+    "product_id": "71.0",
+    "matched_sku": "doorhangers_14pt_matteaq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_4.png",
+    "cloudflare_id": "17607643-00db-4ff5-29c6-7a12ac640500",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "59",
+    "name": "car-magnets-30mil_2",
+    "image_name": "car-magnets-30mil_2.webp",
+    "cloudflare_id": "17fba3c0-8cb2-4244-22bb-b37673518400",
+    "product_id": "104.0",
+    "matched_sku": "carmagnets_30mil"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_2.png",
+    "cloudflare_id": "18fc991e-044a-40a2-f796-cc899624a200",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "die-cut-business-cards_3.webp",
+    "cloudflare_id": "8ac604d0-8554-442a-32f5-1cc8989d3900",
+    "product_id": "7557.0",
+    "matched_sku": "die_cut_business_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_4.png",
+    "cloudflare_id": "1afebe72-ec4a-4251-fd30-1a2ec2c29e00",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-13pt-linen-uncoated_1.webp",
+    "cloudflare_id": "733829ac-218f-46e0-6e59-9297120eea00",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-14pt-writable-aq-c1s_1.webp",
+    "cloudflare_id": "1b2e72a5-9554-48fc-9360-52bb91a64900",
+    "product_id": "15006.0",
+    "matched_sku": "invitations-14pt-writable-aq-C1S"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-80lb-enviro-uncoated_1.png",
+    "cloudflare_id": "3c8e3f19-fb43-46b6-de77-48ef716b8900",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "55",
+    "name": "Cut-to-shape-permanent-decals",
+    "image_name": "cut-to-shape-permanent-decals_1.webp",
+    "cloudflare_id": "1cd233e9-63ad-4f3c-cc00-b51e5afecf00",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-100lb-matte-finish_2.webp",
+    "cloudflare_id": "1dd3f461-9d68-4b5a-3200-c5a3b3dfd400",
+    "product_id": "66.0",
+    "matched_sku": "posters_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "2154e822-9e1b-4c94-aa06-b95b2e435800",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-18pt-gloss-lamination_1.webp",
+    "cloudflare_id": "9a4d89e3-e4ec-4ea5-84ad-53092b698200",
+    "product_id": "25.0",
+    "matched_sku": "postcards_16pt_glosslam"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "63",
+    "name": "floor_graphics",
+    "image_name": "floor-graphics_1.png",
+    "cloudflare_id": "572a63a0-ce1b-4e3b-d785-946e8b416500",
+    "product_id": "14676.0",
+    "matched_sku": "floor-graphics"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-runner_1.png",
+    "cloudflare_id": "2008a505-641b-4e42-7df8-993118c77d00",
+    "product_id": "7547.0",
+    "matched_sku": "table_top_pull-up_banners"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-18pt-matte-silk-lamination_1.webp",
+    "cloudflare_id": "20e3bcfe-7170-4cf4-f475-a45d14dfcc00",
+    "product_id": "9.0",
+    "matched_sku": "businesscard_16pt_matte_silk_lamination"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "poly-roll-labels_1.webp",
+    "cloudflare_id": "2124445c-4995-477d-7f1a-9634ca52c500",
+    "product_id": "7029.0",
+    "matched_sku": "poly_labels"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "2154e822-9e1b-4c94-aa06-b95b2e435800",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_1.webp",
+    "cloudflare_id": "21ce474e-cd1a-494b-5bc4-7537aee80a00",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-100lb-gloss-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "22253f75-78e0-4ea8-1e75-297128d29d00",
+    "product_id": "14982.0",
+    "matched_sku": "booklets_100lb_silk_text_85x55"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "52",
+    "name": "x_frame_banners",
+    "image_name": "x-frame-banners-13oz-matte-vinyl_1.jpg",
+    "cloudflare_id": "22a58b30-7ffa-402b-bce8-bb76c832af00",
+    "product_id": "111.0",
+    "matched_sku": "xframe_13oz_matte"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-16pt-matte-finish_1.png",
+    "cloudflare_id": "43665c57-0b10-44e8-3894-6a392ecde000",
+    "product_id": "17.0",
+    "matched_sku": "businesscard_16pt_matte_satin_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-60lb-offset-text-8-5-x-11_1.jpg",
+    "cloudflare_id": "a6c68962-2ad0-451f-914a-14aa76a4a800",
+    "product_id": "14980.0",
+    "matched_sku": "booklets_80lb_silk_text_85x11"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-13pt-enviro-uncoated_1.png",
+    "cloudflare_id": "c5832609-67cb-4530-f299-8a83fd7e5c00",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-100lb-matte-finish_1.webp",
+    "cloudflare_id": "2b5398b8-b6f1-42e7-fd22-bd9dc6509700",
+    "product_id": "66.0",
+    "matched_sku": "posters_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "durable-postcards_1.webp",
+    "cloudflare_id": "50f95913-3723-498f-ee75-a7ded0f63f00",
+    "product_id": "7546.0",
+    "matched_sku": "durable_postcards"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "121",
+    "name": "packaging",
+    "image_name": "lay-flat-pouch_1.png",
+    "cloudflare_id": "8e988900-f3a0-48f8-ee26-3fef68655500",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-silk-text-8-5-x-11_1.png",
+    "cloudflare_id": "282db84c-7f94-44b5-ff85-27c1d7a6ef00",
+    "product_id": "14980.0",
+    "matched_sku": "booklets_80lb_silk_text_85x11"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "64",
+    "name": "20pt_styrene",
+    "image_name": "20pt-styrene_1.jpg",
+    "cloudflare_id": "2835f4bd-553f-4c4d-fee1-807bf61e3000",
+    "product_id": "106.0",
+    "matched_sku": "styrene_20pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "5",
+    "name": "wall_calendars",
+    "image_name": "wall-calendars-100lb-gloss-text_2.webp",
+    "cloudflare_id": "01109c36-2304-4a9b-5abe-b578bd213000",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "high-gloss-rack-cards_1.jpg",
+    "cloudflare_id": "28dc95b5-20a9-48b8-1856-3859b2028600",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_2.webp",
+    "cloudflare_id": "ce0fbcf9-8f68-4585-cea3-d01e044d3200",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "kraft-paper-postcards_2.webp",
+    "cloudflare_id": "f6392024-e97b-48e2-1546-b67db69f4300",
+    "product_id": "7544.0",
+    "matched_sku": "kraft_paper_postcards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_1.jpg",
+    "cloudflare_id": "d15e75eb-b355-46f0-9b78-00a078779400",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-13pt-linen-uncoated_1.webp",
+    "cloudflare_id": "2a4bdca9-4fac-459e-0f15-1713a62c5200",
+    "product_id": "31.0",
+    "matched_sku": "businesscard_13pt_linen_uncoated"
+  },
+  {
+    "category_id": "11",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-18pt-matte-lam-spot-uv_1.webp",
+    "cloudflare_id": "d8edb3b3-1d0c-4ea7-5042-85331445e200",
+    "product_id": "30.0",
+    "matched_sku": "businesscard_16pt_matte_lam_spot_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-14pt-matte-finish_1.jpg",
+    "cloudflare_id": "2b01163e-1083-462e-0a8e-c98bbd1ec000",
+    "product_id": "15005.0",
+    "matched_sku": "invitations-14pt-matte-finish"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "6mm-coroplast.png",
+    "cloudflare_id": "e91660f9-a189-4bc4-9f76-2e257ef3db00",
+    "product_id": "98.0",
+    "matched_sku": "6mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-100lb-matte-finish_1.webp",
+    "cloudflare_id": "2b5398b8-b6f1-42e7-fd22-bd9dc6509700",
+    "product_id": "66.0",
+    "matched_sku": "posters_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "kraft-paper-postcards_1.webp",
+    "cloudflare_id": "2cb5bf54-f306-4606-d835-f49345067400",
+    "product_id": "7544.0",
+    "matched_sku": "kraft_paper_postcards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "premium-wide-pull-up-banners-13-oz-matte-vinyl_1.png",
+    "cloudflare_id": "2d26d758-fb69-45b3-3a5c-80fab421ed00",
+    "product_id": "7548.0",
+    "matched_sku": "premium_wide_pull_up_banners"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-10pt-matte-finish_1.webp",
+    "cloudflare_id": "2d91ec63-91aa-4b25-708f-f08359fb5600",
+    "product_id": "4904.0",
+    "matched_sku": "postcards_10pt_matte_finish"
+  },
+  {
+    "category_id": "5",
+    "subcategory_id": "130",
+    "name": "promotional_main",
+    "image_name": "promo-group-4.webp",
+    "cloudflare_id": "2de59e99-69b3-4943-5291-b26c5e03ef00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "metallic-foil-business-cards_1.webp",
+    "cloudflare_id": "1405f0f3-6359-45dd-8017-8ac36a324800",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-100lb-silk-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "2eb59b70-76eb-484f-4d81-04e203856900",
+    "product_id": "14982.0",
+    "matched_sku": "booklets_100lb_silk_text_85x55"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "8mm-coroplast.png",
+    "cloudflare_id": "f6beba2e-b0ff-4ec5-1c76-0ffd71c19700",
+    "product_id": "99.0",
+    "matched_sku": "8mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "kraft-paper-postcards_4.webp",
+    "cloudflare_id": "643fd7de-474c-4b1c-9974-0b14913aa700",
+    "product_id": "7544.0",
+    "matched_sku": "kraft_paper_postcards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-18pt-gloss-lamination_1.webp",
+    "cloudflare_id": "ebf253aa-b41d-42c9-3e80-ae3483c4b900",
+    "product_id": "10.0",
+    "matched_sku": "businesscard_16pt_gloss_lamination"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-80lb-enviro-uncoated_1.jpg",
+    "cloudflare_id": "f0873f84-c04b-493b-2f3f-6284ea03e000",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-covers-6-ft-table_2.png",
+    "cloudflare_id": "302ab339-05b8-41e1-527e-691e08385c00",
+    "product_id": "14987.0",
+    "matched_sku": "table-covers-6-ft-table"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "50",
+    "name": "number_tickets",
+    "image_name": "banners-13oz-glossy-vinyl_1.webp",
+    "cloudflare_id": "074bbe9f-3ae2-4b23-125f-eb2703903400",
+    "product_id": "101.0",
+    "matched_sku": "banners_13oz"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "paper-roll-labels_1.webp",
+    "cloudflare_id": "311ff1ee-a1aa-4d44-2052-4d9da988ae00",
+    "product_id": "7030.0",
+    "matched_sku": "paper_labels"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "willowpack-roll-labels_1.webp",
+    "cloudflare_id": "32cd978d-48d4-4502-218b-525aa3342500",
+    "product_id": "16930.0",
+    "matched_sku": "willow_labels"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_4.jpg",
+    "cloudflare_id": "336ad0a1-1a27-4b80-55f5-9e64f815b700",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "50",
+    "name": "number_tickets",
+    "image_name": "banners-13oz-matte-vinyl_1.jpg",
+    "cloudflare_id": "33beb2a1-1aff-439d-2ec6-97956ed1e100",
+    "product_id": "102.0",
+    "matched_sku": "banner_matte_13oz"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-matte-finish_1.png",
+    "cloudflare_id": "34e39b6e-0421-4454-ef8e-36c43e3c8d00",
+    "product_id": "59.0",
+    "matched_sku": "presentationfolders_14pt_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-30mil_1.webp",
+    "cloudflare_id": "8a334bb2-748f-4586-6171-78477b81a700",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-uv-high-gloss_1.png",
+    "cloudflare_id": "354f6377-d20d-48b9-3fab-951278f4db00",
+    "product_id": "7.0",
+    "matched_sku": "businesscard_14pt_uv_high_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "19",
+    "name": "standard_tear_cards",
+    "image_name": "tear-cards-13pt-enviro-uncoated_1.jpg",
+    "cloudflare_id": "",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-100lb-silk-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "2eb59b70-76eb-484f-4d81-04e203856900",
+    "product_id": "14982.0",
+    "matched_sku": "booklets_100lb_silk_text_85x55"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "soft-touch-business-cards_1.png",
+    "cloudflare_id": "36cb66e2-a2cf-4826-b814-c640a23d9700",
+    "product_id": "7567.0",
+    "matched_sku": "soft_touch_business_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "pearl-paper-postcards_1.webp",
+    "cloudflare_id": "778ca443-c0e3-46d8-555c-a87b41f2ab00",
+    "product_id": "7543.0",
+    "matched_sku": "pearl_paper_postcards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-10pt-matte-finish_1.webp",
+    "cloudflare_id": "37c042e0-bb3e-499c-c6b6-1343f100b300",
+    "product_id": "5541.0",
+    "matched_sku": "bookmarks_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "2",
+    "name": "wall_calendars",
+    "image_name": "wall-calendars-100lb-gloss-text_1.webp",
+    "cloudflare_id": "589be5fe-4d88-4b26-bf5b-2a6503d17700",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-10pt-aq_1.webp",
+    "cloudflare_id": "3931d440-bb69-4112-d2c1-c2721e05a100",
+    "product_id": "26.0",
+    "matched_sku": "postcards_10pt_aq"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "100",
+    "name": "envelopes",
+    "image_name": "envelopes-60lb-uncoated_1.webp",
+    "cloudflare_id": "397c4380-4d49-44f9-6737-2548e6ccdd00",
+    "product_id": "81.0",
+    "matched_sku": "envelopes_60lb"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "table-top-pull-up-banner-13-oz-matte-vinyl_1.png",
+    "cloudflare_id": "39aea9f2-58c3-4dec-fa56-670ac2082800",
+    "product_id": "7547.0",
+    "matched_sku": "table_top_pull-up_banners"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-30mil_2.webp",
+    "cloudflare_id": "3a272009-bbbe-4818-2a2f-d700d0282500",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-covers-8-ft-table_1.png",
+    "cloudflare_id": "f30c0e56-d1c3-4840-ba08-9991ca391500",
+    "product_id": "14988.0",
+    "matched_sku": "table-covers-8-ft-table"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "30",
+    "name": "Canvas",
+    "image_name": "canvas-roll_1.webp",
+    "cloudflare_id": "3a908847-f0ed-456b-c0c3-3002b1c6ad00",
+    "product_id": "109.0",
+    "matched_sku": "canvasroll"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-uv-high-gloss_1.png",
+    "cloudflare_id": "3af07c7a-000f-42fc-6c07-d05d63804400",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-aq_1.png",
+    "cloudflare_id": "3b1b2f10-3807-483d-d703-e74678a3e600",
+    "product_id": "2.0",
+    "matched_sku": "businesscard_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "matte-laminated-rack-cards_1.png",
+    "cloudflare_id": "3bc62eea-95bf-46a7-43b0-54bb6fe53700",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-16pt-uv_1.webp",
+    "cloudflare_id": "3bff9b13-f33c-4971-8a53-3131e6338100",
+    "product_id": "5537.0",
+    "matched_sku": "bookmarks_16pt_uv"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "121",
+    "name": "packaging",
+    "image_name": "stand-up-pouch_1.png",
+    "cloudflare_id": "3c2efbeb-ad0a-459a-61a0-92e6c3f85c00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-80lb-enviro-uncoated_1.png",
+    "cloudflare_id": "3c8e3f19-fb43-46b6-de77-48ef716b8900",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "greeting-cards-14pt-writable-aq-c1s_1.webp",
+    "cloudflare_id": "d1d69bd2-d5df-4425-1e3f-882e78628300",
+    "product_id": "52.0",
+    "matched_sku": "greetingcards_14ptc1s_uv"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "63",
+    "name": "floor_graphics",
+    "image_name": "social-distancing-floor-stickers_1.png",
+    "cloudflare_id": "3d32584b-aa5c-464e-db4a-6fe32b98e800",
+    "product_id": "14672.0",
+    "matched_sku": "social-distancing-floor-stickers"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "uncoated-rack-cards_1.png",
+    "cloudflare_id": "9bcb3fd9-da9c-46ad-56c7-47645d150a00",
+    "product_id": "64.0",
+    "matched_sku": "calendars_100lb"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_1.jpg",
+    "cloudflare_id": "9b70635b-0d77-4bb7-daac-4da06e130400",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "die-cut-business-cards_2.webp",
+    "cloudflare_id": "3e93000c-af45-49f0-4f5d-30fc925b1400",
+    "product_id": "7557.0",
+    "matched_sku": "die_cut_business_cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-18pt-writable-c1s_1.webp",
+    "cloudflare_id": "3eed07e2-8178-425c-1215-96dcd383c200",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "101",
+    "name": "envelopes",
+    "image_name": "letterheads-60lb-uncoated_2.webp",
+    "cloudflare_id": "3f91b67f-e173-4f85-029c-17e37d30c400",
+    "product_id": "80.0",
+    "matched_sku": "letterheads_60lb"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-16pt-aq_1.webp",
+    "cloudflare_id": "3fa17549-4c3f-4058-f3c1-fcd0d8747100",
+    "product_id": "32.0",
+    "matched_sku": "postcards_16pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "32",
+    "name": "clings_transparent",
+    "image_name": "clings-transparent_1.jpg",
+    "cloudflare_id": "923c826b-06c2-457b-af41-9500a3ee3a00",
+    "product_id": "77.0",
+    "matched_sku": "clings_transparent"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "13",
+    "name": "Postcard-addressed-postage-due",
+    "image_name": "postcard-addressed-postage-due_1.png",
+    "cloudflare_id": "5f4c5a42-2c92-412d-cc4f-b76669d1e600",
+    "product_id": "149.0",
+    "matched_sku": "postcard-addressed-postage-due"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-runner_1.png",
+    "cloudflare_id": "2008a505-641b-4e42-7df8-993118c77d00",
+    "product_id": "7547.0",
+    "matched_sku": "table_top_pull-up_banners"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-18pt-matte-silk-lamination_1.webp",
+    "cloudflare_id": "0053681e-2792-4571-ef75-b844fd438400",
+    "product_id": "9.0",
+    "matched_sku": "businesscard_16pt_matte_silk_lamination"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "101",
+    "name": "envelopes",
+    "image_name": "letterheads-60lb-uncoated_1.webp",
+    "cloudflare_id": "dc8a547b-ea57-4249-f7c7-e91bbc0a2400",
+    "product_id": "80.0",
+    "matched_sku": "letterheads_60lb"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-100lb-gloss-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "22253f75-78e0-4ea8-1e75-297128d29d00",
+    "product_id": "14982.0",
+    "matched_sku": "booklets_100lb_silk_text_85x55"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-16pt-matte-finish_1.png",
+    "cloudflare_id": "43665c57-0b10-44e8-3894-6a392ecde000",
+    "product_id": "17.0",
+    "matched_sku": "businesscard_16pt_matte_satin_aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "50",
+    "name": "banners",
+    "image_name": "mesh-banner-8oz-polyester-mesh_1.webp",
+    "cloudflare_id": "fa52923b-ae1d-4a2c-3f19-557560d33400",
+    "product_id": "7554.0",
+    "matched_sku": "mesh_banners_8oz_polyester"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "4mm-coroplast-canadian.png",
+    "cloudflare_id": "43d83ca2-7902-4a47-f056-c24a3fedf200",
+    "product_id": "97.0",
+    "matched_sku": "4mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-writable-aq-c1s_1.png",
+    "cloudflare_id": "78b9b8f4-ed2e-456a-baf0-f6114e166b00",
+    "product_id": "15006.0",
+    "matched_sku": "invitations-14pt-writable-aq-C1S"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "23",
+    "name": "Brochure-enveloped-and-addressed-postage-due",
+    "image_name": "brochure-enveloped-and-addressed-postage-due_1.png",
+    "cloudflare_id": "c9418c0d-6a36-4954-a091-ce3ff7765d00",
+    "product_id": "151.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-due"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-14pt-uv-high-gloss_1.webp",
+    "cloudflare_id": "49701951-43d8-4abc-5dcc-2101ef4cdd00",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-linen-uncoated_1.webp",
+    "cloudflare_id": "497344d8-fa32-4088-4d29-ce685c496800",
+    "product_id": "5539.0",
+    "matched_sku": "bookmarks_13pt_linen"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "59",
+    "name": "car-magnets-30mil",
+    "image_name": "car-magnets-30mil_2.webp",
+    "cloudflare_id": "17fba3c0-8cb2-4244-22bb-b37673518400",
+    "product_id": "104.0",
+    "matched_sku": "carmagnets_30mil"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "kraft-business-cards_2.webp",
+    "cloudflare_id": "4c097082-c2e0-4303-be72-623736f21000",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_2.webp",
+    "cloudflare_id": "a12ec413-6500-4e1d-b7ef-c284d561ae00",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_4.webp",
+    "cloudflare_id": "57fe7d12-c22d-4bf3-959e-098f47945600",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "65",
+    "name": "glossy_adhesive_vinyl",
+    "image_name": "glossy-adhesive-vinyl_1.jpg",
+    "cloudflare_id": "4db5d1b4-dcf8-4b66-8fb2-8385f48f7e00",
+    "product_id": "4139.0",
+    "matched_sku": "glossy_adhesive_vinyl"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "13",
+    "name": "Postcard-addressed-postage-due",
+    "image_name": "postcard-addressed-postage-included_1.png",
+    "cloudflare_id": "4e0ab629-bcbc-41a7-ea6c-5b3b0b0bc500",
+    "product_id": "148.0",
+    "matched_sku": "postcard-addressed-postage-included"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "premium-pull-up-banners-13oz-matte-vinyl_1.png",
+    "cloudflare_id": "4e311a1a-a962-4aed-a565-3812aa5f5300",
+    "product_id": "202.0",
+    "matched_sku": "premium_pullupbanner"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "100",
+    "name": "envelopes",
+    "image_name": "envelopes-60lb-self-adhesive_1.webp",
+    "cloudflare_id": "4e6fa4fe-2579-40b9-db01-bb0555a3d400",
+    "product_id": "5585.0",
+    "matched_sku": "envelopes_60lb_self_adhesive"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "d42ed603-0ae3-47b2-c5bd-3df062fbc700",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "durable-postcards_1.webp",
+    "cloudflare_id": "50f95913-3723-498f-ee75-a7ded0f63f00",
+    "product_id": "7546.0",
+    "matched_sku": "durable_postcards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-14pt-uv_1.webp",
+    "cloudflare_id": "c18511a4-529c-451e-cf86-7845925b4c00",
+    "product_id": "20.0",
+    "matched_sku": "postcards14pt_uv"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_5.png",
+    "cloudflare_id": "c80676c0-403a-46c4-ce79-a7f54e8e0f00",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "double-sided-pull-up-banners-13-oz-matte-vinyl_1.png",
+    "cloudflare_id": "b1feed9b-5de6-4846-ab7b-b94899ef5900",
+    "product_id": "7549.0",
+    "matched_sku": "double_sided_pull_up_banners"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "19",
+    "name": "standard_tear_cards",
+    "image_name": "tear-cards-14pt-matte-finish_1.png",
+    "cloudflare_id": "52194f4f-6993-4bc1-035a-c3b240ec2900",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "67",
+    "name": "window_perforated_vinyl",
+    "image_name": "window-perforated-vinyl_2.webp",
+    "cloudflare_id": "827ed94c-6443-4cd9-68bb-6fdf6676d300",
+    "product_id": "206.0",
+    "matched_sku": "window_perforated_vinyl"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-16pt-uv_1.webp",
+    "cloudflare_id": "3bff9b13-f33c-4971-8a53-3131e6338100",
+    "product_id": "5537.0",
+    "matched_sku": "bookmarks_16pt_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-linen-uncoated_1.webp",
+    "cloudflare_id": "497344d8-fa32-4088-4d29-ce685c496800",
+    "product_id": "5539.0",
+    "matched_sku": "bookmarks_13pt_linen"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "53fedea7-6e81-4874-938a-2a5311fc4a00",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_1.jpg",
+    "cloudflare_id": "8def8dd8-19cf-423d-cf84-e18ab7d8ff00",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "15",
+    "name": "Unaddressed-postcard",
+    "image_name": "unaddressed-postcard_1.png",
+    "cloudflare_id": "ff2a6c5b-6f8b-4632-7fdd-f919af60d500",
+    "product_id": "147.0",
+    "matched_sku": "unaddressed-postcard"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-16pt-matte-finish_1.webp",
+    "cloudflare_id": "5633b2b7-288a-43cc-1d6c-7017af0b5800",
+    "product_id": "4904.0",
+    "matched_sku": "postcards_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "14",
+    "name": "postcard-enveloped-and-addressed-postage-included",
+    "image_name": "postcard-enveloped-and-addressed-postage-included_1.png",
+    "cloudflare_id": "68fb81ba-ce21-4bcb-f620-34c9d0a19600",
+    "product_id": "150.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-included"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_3.png",
+    "cloudflare_id": "5663da65-7e09-4858-9d82-9038b92b0c00",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-14pt-matte-finish_1.webp",
+    "cloudflare_id": "16537873-dd7a-4fe8-14a8-a1555b3a9c00",
+    "product_id": "71.0",
+    "matched_sku": "doorhangers_14pt_matteaq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "63",
+    "name": "floor_graphics",
+    "image_name": "floor-graphics_1.png",
+    "cloudflare_id": "572a63a0-ce1b-4e3b-d785-946e8b416500",
+    "product_id": "14676.0",
+    "matched_sku": "floor-graphics"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "kraft-business-cards_2.webp",
+    "cloudflare_id": "4c097082-c2e0-4303-be72-623736f21000",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_4.webp",
+    "cloudflare_id": "57fe7d12-c22d-4bf3-959e-098f47945600",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_3.webp",
+    "cloudflare_id": "c3751940-0c31-4728-e16b-6f27769dfb00",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "5",
+    "name": "wall_calendars",
+    "image_name": "wall-calendars-100lb-gloss-text_1.webp",
+    "cloudflare_id": "589be5fe-4d88-4b26-bf5b-2a6503d17700",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-14pt-matte-finish_1.webp",
+    "cloudflare_id": "58db0189-8f70-4fce-1e83-df872c57eb00",
+    "product_id": "5541.0",
+    "matched_sku": "bookmarks_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-100lb-matte-finish_1.jpg",
+    "cloudflare_id": "59736187-4045-4e32-51d2-855d81978000",
+    "product_id": "141.0",
+    "matched_sku": "digitalsheets-100lb+matte-aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "high-gloss-rack-cards_1.jpg",
+    "cloudflare_id": "28dc95b5-20a9-48b8-1856-3859b2028600",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "5c3dd436-7a59-4c7f-7543-c10f781fbe00",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "kraft-business-cards_1.webp",
+    "cloudflare_id": "5e533360-4ef9-471f-d828-8813f6a71900",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "9",
+    "name": "standard_greeting_cards",
+    "image_name": "greeting-cards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "5e0f8e15-70b3-46e7-f600-b074aa6e3300",
+    "product_id": "50.0",
+    "matched_sku": "greetingcards_14pt_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "35",
+    "name": "notepads_50_pages",
+    "image_name": "notepads-60lb-uncoated-50-pages_1.webp",
+    "cloudflare_id": "61a48b0a-e537-4b40-f9a8-441948fe2600",
+    "product_id": "83.0",
+    "matched_sku": "notepads_60lb_50pg"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "kraft-business-cards_1.webp",
+    "cloudflare_id": "5e533360-4ef9-471f-d828-8813f6a71900",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-matte-laminated_1.png",
+    "cloudflare_id": "92f8db32-70a4-41c1-2e95-8c855d925200",
+    "product_id": "4137.0",
+    "matched_sku": "presentation_folders_14pt_matte_lam"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "13",
+    "name": "Postcard-addressed-postage-due",
+    "image_name": "postcard-addressed-postage-due_1.png",
+    "cloudflare_id": "5f4c5a42-2c92-412d-cc4f-b76669d1e600",
+    "product_id": "149.0",
+    "matched_sku": "postcard-addressed-postage-due"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "19",
+    "name": "standard_tear_cards",
+    "image_name": "tear-cards-13pt-enviro-uncoated_1.jpg",
+    "cloudflare_id": "",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "greeting-cards-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "7457f880-e5c7-458e-1c3e-3abae8faec00",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-60lb-offset-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "6a1a23dc-4ef5-4c8d-030d-e1706e661d00",
+    "product_id": "14979.0",
+    "matched_sku": "booklets_80lb_silk_text_85x55"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-gloss-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "617c54a2-26b3-45df-a8ac-059eb2263000",
+    "product_id": "14979.0",
+    "matched_sku": "booklets_80lb_silk_text_85x55"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "35",
+    "name": "notepads_50_pages",
+    "image_name": "notepads-60lb-uncoated-50-pages_1.webp",
+    "cloudflare_id": "61a48b0a-e537-4b40-f9a8-441948fe2600",
+    "product_id": "83.0",
+    "matched_sku": "notepads_60lb_50pg"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "8",
+    "name": "specialty_flyers",
+    "image_name": "flyers-80lb-enviro-uncoated_1.webp",
+    "cloudflare_id": "da699814-4445-45a4-6d99-382177fd7200",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "bopp-roll-labels_1.webp",
+    "cloudflare_id": "624c1e0f-1ca6-4dce-4bf4-8d523874b500",
+    "product_id": "7028.0",
+    "matched_sku": "bopp_labels"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "removable_wall_decals",
+    "image_name": "10mm-coroplast_2.png",
+    "cloudflare_id": "8ea5d74e-69fc-4b26-4997-70db5b225000",
+    "product_id": "14975.0",
+    "matched_sku": "10mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_4.webp",
+    "cloudflare_id": "632f882e-78c2-42f5-a632-3b05865bc800",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "kraft-paper-postcards_4.webp",
+    "cloudflare_id": "643fd7de-474c-4b1c-9974-0b14913aa700",
+    "product_id": "7544.0",
+    "matched_sku": "kraft_paper_postcards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "removable_wall_decals",
+    "image_name": "quick-ship-coroplast-signs_4.png",
+    "cloudflare_id": "66b2a3bd-4034-4c24-7228-6fe35d902c00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "14",
+    "name": "postcard-enveloped-and-addressed-postage-included",
+    "image_name": "postcard-enveloped-and-addressed-postage-included_1.png",
+    "cloudflare_id": "68fb81ba-ce21-4bcb-f620-34c9d0a19600",
+    "product_id": "150.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-included"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-100lb-uv-high-gloss_1.png",
+    "cloudflare_id": "d1d83f37-b7a2-4be3-9c7c-d24a7f246700",
+    "product_id": "43.0",
+    "matched_sku": "brochures_100lb_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-60lb-offset-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "6a1a23dc-4ef5-4c8d-030d-e1706e661d00",
+    "product_id": "14979.0",
+    "matched_sku": "booklets_80lb_silk_text_85x55"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_1.webp",
+    "cloudflare_id": "819289a0-9593-45f5-2f49-62f4581a7300",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "removable_wall_decals",
+    "image_name": "4mm-coroplast-yard-signs_1.png",
+    "cloudflare_id": "6a56d6de-13fc-415c-ccc5-4b785c777c00",
+    "product_id": "97.0",
+    "matched_sku": "4mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-silk-text-8-5-x-11_1.png",
+    "cloudflare_id": "282db84c-7f94-44b5-ff85-27c1d7a6ef00",
+    "product_id": "14980.0",
+    "matched_sku": "booklets_80lb_silk_text_85x11"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-14pt-writable-aq-c1s_1.webp",
+    "cloudflare_id": "6cffd7bb-61cf-4bbf-99c6-8a9336c92300",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "d4c1b55e-c44b-4412-6ca2-59826e067300",
+    "product_id": "5534.0",
+    "matched_sku": "bookmarks_14ptc1s_uv"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "100",
+    "name": "envelopes",
+    "image_name": "security-envelopes-60lb-uncoated_1.webp",
+    "cloudflare_id": "0fd732f6-068b-4c18-7b57-6cc7d8522b00",
+    "product_id": "4165.0",
+    "matched_sku": "security_envelopes"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "premium-wide-pull-up-banners-13-oz-matte-vinyl_1.png",
+    "cloudflare_id": "2d26d758-fb69-45b3-3a5c-80fab421ed00",
+    "product_id": "7548.0",
+    "matched_sku": "premium_wide_pull_up_banners"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_1.webp",
+    "cloudflare_id": "21ce474e-cd1a-494b-5bc4-7537aee80a00",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "9",
+    "name": "standard_greeting_cards",
+    "image_name": "greeting-cards-14pt-uv-high-gloss_1.webp",
+    "cloudflare_id": "145b2d8f-d683-4ae7-05df-7542b0022b00",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-13pt-linen-uncoated_1.webp",
+    "cloudflare_id": "733829ac-218f-46e0-6e59-9297120eea00",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-14pt-matte-finish_1.jpg",
+    "cloudflare_id": "2b01163e-1083-462e-0a8e-c98bbd1ec000",
+    "product_id": "15005.0",
+    "matched_sku": "invitations-14pt-matte-finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "greeting-cards-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "7457f880-e5c7-458e-1c3e-3abae8faec00",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "metallic-foil-business-cards_2.webp",
+    "cloudflare_id": "752a1ace-e53e-47b2-607d-f697cdefc400",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "durable-business-cards_1.webp",
+    "cloudflare_id": "7709dc61-30dd-43e1-1bbb-95ccf140c300",
+    "product_id": "7326.0",
+    "matched_sku": "durable-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "pearl-paper-postcards_1.webp",
+    "cloudflare_id": "778ca443-c0e3-46d8-555c-a87b41f2ab00",
+    "product_id": "7543.0",
+    "matched_sku": "pearl_paper_postcards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "metallic-foil-postcards_2.webp",
+    "cloudflare_id": "c80cd7e8-68f7-413e-3906-df14ecefa400",
+    "product_id": "7545.0",
+    "matched_sku": "metallic_foil_postcards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "3",
+    "name": "specialty_invitations",
+    "image_name": "pearl-paperl-invitations_1.png",
+    "cloudflare_id": "e1f8f559-8f9e-4f19-aeb4-31a9ea9e3200",
+    "product_id": "15010.0",
+    "matched_sku": "pearl-paper-invitations"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "greeting-cards-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "a2f16677-ab5b-4946-ffec-0fba3a7f4500",
+    "product_id": "52.0",
+    "matched_sku": "greetingcards_14ptc1s_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-writable-aq-c1s_1.png",
+    "cloudflare_id": "78b9b8f4-ed2e-456a-baf0-f6114e166b00",
+    "product_id": "15006.0",
+    "matched_sku": "invitations-14pt-writable-aq-C1S"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-10pt-matte-finish_1.webp",
+    "cloudflare_id": "37c042e0-bb3e-499c-c6b6-1343f100b300",
+    "product_id": "5541.0",
+    "matched_sku": "bookmarks_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_2.webp",
+    "cloudflare_id": "796c60e1-2b1e-440f-a5c2-ecf51ad4a200",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_3.webp",
+    "cloudflare_id": "d39e8fe4-50a5-43a8-f995-9e3060334900",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-matte-finish_1.png",
+    "cloudflare_id": "0530fc7a-8bd9-40b4-ba35-feacafc9e600",
+    "product_id": "15005.0",
+    "matched_sku": "invitations-14pt-matte-finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "kraft-paper-greeting-cards_2.webp",
+    "cloudflare_id": "ca6b3fac-e948-4422-68be-1770070bb600",
+    "product_id": "7553.0",
+    "matched_sku": "kraft_paper_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-silk-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "875a74a9-2904-499d-4a8f-03cb4977ac00",
+    "product_id": "14979.0",
+    "matched_sku": "booklets_80lb_silk_text_85x55"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "28",
+    "name": "variable_printing",
+    "image_name": "variable-printing-14pt_1.jpg",
+    "cloudflare_id": "7c7343f5-c386-40d1-7a31-c5cd8993b800",
+    "product_id": "127.0",
+    "matched_sku": "variableprinting_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Standard-rack-cards",
+    "image_name": "digital-sheets-13pt-enviro-uncoated_1.jpg",
+    "cloudflare_id": "7ca51f23-6d04-4549-e0b8-408bd6c70d00",
+    "product_id": "138.0",
+    "matched_sku": "digitalsheets-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-80lb-enviro-uncoated_1.webp",
+    "cloudflare_id": "7d491e33-a034-4d8c-f6c8-bcfbfd0f6400",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "66",
+    "name": "large-format-posters",
+    "image_name": "large-format-posters-8pt-c2s_1.webp",
+    "cloudflare_id": "81b1cf21-2b07-4ebb-2973-e3d949577200",
+    "product_id": "105.0",
+    "matched_sku": "largeformatposters_8pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "67",
+    "name": "window_perforated_vinyl",
+    "image_name": "window-perforated-vinyl_1.jpg",
+    "cloudflare_id": "7dc2d6c9-d75a-401f-694a-7f503064af00",
+    "product_id": "206.0",
+    "matched_sku": "window_perforated_vinyl"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "122",
+    "name": "stickers",
+    "image_name": "60lb-slit-back-label-stickers_1.png",
+    "cloudflare_id": "7de68e74-482a-4427-8f74-cd7987378100",
+    "product_id": "14672.0",
+    "matched_sku": "social-distancing-floor-stickers"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_2.jpg",
+    "cloudflare_id": "7e1b9e0e-4cfc-4d2f-c145-669bf82c8000",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "30",
+    "name": "Canvas",
+    "image_name": "canvas-roll_1.webp",
+    "cloudflare_id": "3a908847-f0ed-456b-c0c3-3002b1c6ad00",
+    "product_id": "109.0",
+    "matched_sku": "canvasroll"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "folded-business-cards-13pt-enviro-uncoated_1.jpg",
+    "cloudflare_id": "7eb17659-63e7-4708-14cd-d271884b7900",
+    "product_id": "126.0",
+    "matched_sku": "foldedbusinesscards-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-aq_1.png",
+    "cloudflare_id": "7f27c12e-9b57-4f5d-5bdb-2fff07967e00",
+    "product_id": "15007.0",
+    "matched_sku": "invitations-14pt-aq"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "quick-ship-business-cards_1.png",
+    "cloudflare_id": "7f4df4ef-d1f6-4091-fbfd-45d721e26a00",
+    "product_id": "15022.0",
+    "matched_sku": "ultra-smooth-business-cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "80918162-ec09-435a-42f3-d1ce705d0b00",
+    "product_id": "8.0",
+    "matched_sku": "businesscard_14pt_matte_satin_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-100lb-gloss-text_1.png",
+    "cloudflare_id": "c9f37118-18b2-431a-fba0-78039a859200",
+    "product_id": "43.0",
+    "matched_sku": "brochures_100lb_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_1.webp",
+    "cloudflare_id": "819289a0-9593-45f5-2f49-62f4581a7300",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "66",
+    "name": "large-format-posters",
+    "image_name": "large-format-posters-8pt-c2s_1.webp",
+    "cloudflare_id": "81b1cf21-2b07-4ebb-2973-e3d949577200",
+    "product_id": "105.0",
+    "matched_sku": "largeformatposters_8pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "52",
+    "name": "x_frame_banners",
+    "image_name": "x-frame-banners-13oz-matte-vinyl_1.jpg",
+    "cloudflare_id": "22a58b30-7ffa-402b-bce8-bb76c832af00",
+    "product_id": "111.0",
+    "matched_sku": "xframe_13oz_matte"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "67",
+    "name": "window_perforated_vinyl",
+    "image_name": "window-perforated-vinyl_2.webp",
+    "cloudflare_id": "827ed94c-6443-4cd9-68bb-6fdf6676d300",
+    "product_id": "206.0",
+    "matched_sku": "window_perforated_vinyl"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_1.png",
+    "cloudflare_id": "82e722f7-83fe-4a8e-64c9-ebb3954c4400",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-aq_1.png",
+    "cloudflare_id": "3b1b2f10-3807-483d-d703-e74678a3e600",
+    "product_id": "2.0",
+    "matched_sku": "businesscard_14pt_aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "pull_up_banners",
+    "image_name": "table-covers-8-ft-table_2.png",
+    "cloudflare_id": "836753aa-234c-4d4c-2f00-719a1fe27f00",
+    "product_id": "14988.0",
+    "matched_sku": "table-covers-8-ft-table"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "coroplast-group-1.png",
+    "cloudflare_id": "84be504f-f1c9-45c0-6e48-6b91bf533100",
+    "product_id": "98.0",
+    "matched_sku": "6mm_coroplast"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "121",
+    "name": "packaging",
+    "image_name": "stand-up-pouch_1.png",
+    "cloudflare_id": "3c2efbeb-ad0a-459a-61a0-92e6c3f85c00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-13pt-enviro-uncoated_2.webp",
+    "cloudflare_id": "851f5acb-e633-4eda-a497-99ed93c4d300",
+    "product_id": "126.0",
+    "matched_sku": "foldedbusinesscards-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "ultra-smooth-business-cards_1.webp",
+    "cloudflare_id": "86426195-3953-4158-6923-bc7698c85b00",
+    "product_id": "15022.0",
+    "matched_sku": "ultra-smooth-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "19",
+    "name": "standard_tear_cards",
+    "image_name": "tear-cards-14pt-matte-finish_1.png",
+    "cloudflare_id": "52194f4f-6993-4bc1-035a-c3b240ec2900",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "pull_up_banners",
+    "image_name": "table-covers-6-ft-table_1.png",
+    "cloudflare_id": "874b2cc3-5a29-49d5-3d02-434fe708a700",
+    "product_id": "14987.0",
+    "matched_sku": "table-covers-6-ft-table"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-silk-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "875a74a9-2904-499d-4a8f-03cb4977ac00",
+    "product_id": "14979.0",
+    "matched_sku": "booklets_80lb_silk_text_85x55"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Standard-rack-cards",
+    "image_name": "digital-sheets-13pt-enviro-uncoated_1.jpg",
+    "cloudflare_id": "7ca51f23-6d04-4549-e0b8-408bd6c70d00",
+    "product_id": "138.0",
+    "matched_sku": "digitalsheets-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "spot-uv-greeting-cards_1.png",
+    "cloudflare_id": "0fa33564-6097-4e89-7938-0bdd83171600",
+    "product_id": "7551.0",
+    "matched_sku": "spot_uv_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_3.png",
+    "cloudflare_id": "889e704b-4865-4725-d922-d9cdaa2f8c00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "69",
+    "name": "display_board_24pt",
+    "image_name": "display-board-24pt_1.jpg",
+    "cloudflare_id": "88f8165e-15f1-436e-5f02-e410644af200",
+    "product_id": "107.0",
+    "matched_sku": "displayboard_24pt"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "soft-touch-business-cards_1.png",
+    "cloudflare_id": "36cb66e2-a2cf-4826-b814-c640a23d9700",
+    "product_id": "7567.0",
+    "matched_sku": "soft_touch_business_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_3.jpg",
+    "cloudflare_id": "a8a4ea61-2536-4bd2-de51-324f6d976300",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-30mil_1.webp",
+    "cloudflare_id": "8a334bb2-748f-4586-6171-78477b81a700",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "die-cut-business-cards_3.webp",
+    "cloudflare_id": "8ac604d0-8554-442a-32f5-1cc8989d3900",
+    "product_id": "7557.0",
+    "matched_sku": "die_cut_business_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "5",
+    "name": "wall_calendars",
+    "image_name": "wall-calendars-80lb-gloss-text_1.webp",
+    "cloudflare_id": "8acb1be0-5cb1-4cf2-b13e-288cbe788500",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-18pt-gloss-lamination_1.webp",
+    "cloudflare_id": "d4ff6fdb-42ed-4fa5-5c82-416a75828400",
+    "product_id": "5531.0",
+    "matched_sku": "bookmarks_16pt_glosslam"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "8c862f83-d709-413c-9202-39eb93acd300",
+    "product_id": "4904.0",
+    "matched_sku": "postcards_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "pearl-paper-greeting-cards_2.webp",
+    "cloudflare_id": "8cfc22a2-fe9d-4049-7f62-909aa7380a00",
+    "product_id": "7552.0",
+    "matched_sku": "pearl_paper_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "standard_flyers",
+    "image_name": "flyers-100lb-gloss-text_1.png",
+    "cloudflare_id": "c43e1f45-4f34-49cc-706a-33756782be00",
+    "product_id": "37.0",
+    "matched_sku": "flyers_100lb_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "32",
+    "name": "clings_transparent",
+    "image_name": "clings-transparent_2.jpg",
+    "cloudflare_id": "935bf68f-225d-4c80-9265-6308622c8a00",
+    "product_id": "77.0",
+    "matched_sku": "clings_transparent"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_1.jpg",
+    "cloudflare_id": "8def8dd8-19cf-423d-cf84-e18ab7d8ff00",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "122",
+    "name": "stickers",
+    "image_name": "60lb-slit-back-label-stickers_1.png",
+    "cloudflare_id": "7de68e74-482a-4427-8f74-cd7987378100",
+    "product_id": "14672.0",
+    "matched_sku": "social-distancing-floor-stickers"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "121",
+    "name": "packaging",
+    "image_name": "lay-flat-pouch_1.png",
+    "cloudflare_id": "8e988900-f3a0-48f8-ee26-3fef68655500",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "10mm-coroplast_2.png",
+    "cloudflare_id": "8ea5d74e-69fc-4b26-4997-70db5b225000",
+    "product_id": "14975.0",
+    "matched_sku": "10mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "kraft-paper-greeting-cards_3.webp",
+    "cloudflare_id": "14e1cea7-f604-42df-d401-5a162da49600",
+    "product_id": "7553.0",
+    "matched_sku": "kraft_paper_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "4mm-coroplast-yard-signs_1.png",
+    "cloudflare_id": "6a56d6de-13fc-415c-ccc5-4b785c777c00",
+    "product_id": "97.0",
+    "matched_sku": "4mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-10pt-matte-finish_1.webp",
+    "cloudflare_id": "2d91ec63-91aa-4b25-708f-f08359fb5600",
+    "product_id": "4904.0",
+    "matched_sku": "postcards_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-20mil_3.webp",
+    "cloudflare_id": "905fb7e0-d4e6-4304-e638-d7c1d4ec2f00",
+    "product_id": "14985.0",
+    "matched_sku": "cut-to-shape-magnets-20mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "specialty_flyers",
+    "image_name": "flyers-70lb-linen-uncoated_1.jpg",
+    "cloudflare_id": "9211fa82-dd86-41ab-1ea7-73c7c218b600",
+    "product_id": "41.0",
+    "matched_sku": "flyers_70lb_linen"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_2.webp",
+    "cloudflare_id": "796c60e1-2b1e-440f-a5c2-ecf51ad4a200",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "32",
+    "name": "clings_transparent",
+    "image_name": "clings-transparent_1.jpg",
+    "cloudflare_id": "923c826b-06c2-457b-af41-9500a3ee3a00",
+    "product_id": "77.0",
+    "matched_sku": "clings_transparent"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-14pt-profit-maximizer_1.webp",
+    "cloudflare_id": "0d476f2c-b3fc-45d2-7e5a-7089bb3c6b00",
+    "product_id": "1.0",
+    "matched_sku": "businesscard_14pt_profit_maximizer"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "50",
+    "name": "banners",
+    "image_name": "banners-13oz-matte-vinyl_1.jpg",
+    "cloudflare_id": "33beb2a1-1aff-439d-2ec6-97956ed1e100",
+    "product_id": "102.0",
+    "matched_sku": "banner_matte_13oz"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-matte-laminated_1.png",
+    "cloudflare_id": "92f8db32-70a4-41c1-2e95-8c855d925200",
+    "product_id": "4137.0",
+    "matched_sku": "presentation_folders_14pt_matte_lam"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcard-18pt-matte-lam-spot-uv_1.webp",
+    "cloudflare_id": "9327ba13-e055-4ddf-9edc-86e158b0eb00",
+    "product_id": "163.0",
+    "matched_sku": "postcard_16PT_matte_lam_spot_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "32",
+    "name": "clings_transparent",
+    "image_name": "clings-transparent_2.jpg",
+    "cloudflare_id": "935bf68f-225d-4c80-9265-6308622c8a00",
+    "product_id": "77.0",
+    "matched_sku": "clings_transparent"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "57",
+    "name": "3mm-aluminum-signs_1",
+    "image_name": "3mm-aluminum-signs_1.png",
+    "cloudflare_id": "15ba1060-80d5-41be-b7cd-47fd69152100",
+    "product_id": "14978.0",
+    "matched_sku": "3mm-aluminum-signs"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "9",
+    "name": "standard_greeting_cards",
+    "image_name": "greeting-cards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "5e0f8e15-70b3-46e7-f600-b074aa6e3300",
+    "product_id": "50.0",
+    "matched_sku": "greetingcards_14pt_matteaq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_1.png",
+    "cloudflare_id": "9b975313-7d7c-448e-d658-bdfc19c9b200",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "32pt-painted-edge-business-cards_1.png",
+    "cloudflare_id": "cd2e8cda-403e-492a-a5f5-0e709d5a4100",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "f94e0ae0-6079-4fff-7667-b22e9393e000",
+    "product_id": "126.0",
+    "matched_sku": "foldedbusinesscards-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-18pt-matte-silk-lamination_1.webp",
+    "cloudflare_id": "0a4b40cb-16c3-4c82-28bf-f0b0e7066d00",
+    "product_id": "9.0",
+    "matched_sku": "businesscard_16pt_matte_silk_lamination"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-13pt-linen-uncoated_1.webp",
+    "cloudflare_id": "2a4bdca9-4fac-459e-0f15-1713a62c5200",
+    "product_id": "31.0",
+    "matched_sku": "businesscard_13pt_linen_uncoated"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "metallic-foil-business-cards_3.webp",
+    "cloudflare_id": "f2bddd86-3031-4b86-9696-c264083cdc00",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "68",
+    "name": "h_stands",
+    "image_name": "h-stand-for-signs_1.jpg",
+    "cloudflare_id": "97c83f82-d15b-4731-fd41-60bb90385e00",
+    "product_id": "14672.0",
+    "matched_sku": "social-distancing-floor-stickers"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_3.webp",
+    "cloudflare_id": "980819b0-1b41-4162-55c1-fe1ba75f9b00",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-gloss-text-8-5-x-11_1.jpg",
+    "cloudflare_id": "ce58ba91-3e2d-432a-fb5e-0afab8051b00",
+    "product_id": "14980.0",
+    "matched_sku": "booklets_80lb_silk_text_85x11"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "9",
+    "name": "standard_greeting_cards",
+    "image_name": "greeting-cards-14pt-aq_1.webp",
+    "cloudflare_id": "9a0b6cc1-dd20-4f8b-c704-722ec387db00",
+    "product_id": "48.0",
+    "matched_sku": "greetingcards_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-18pt-gloss-lamination_1.webp",
+    "cloudflare_id": "9a4d89e3-e4ec-4ea5-84ad-53092b698200",
+    "product_id": "25.0",
+    "matched_sku": "postcards_16pt_glosslam"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-18pt-matte-silk-lamination_1.webp",
+    "cloudflare_id": "20e3bcfe-7170-4cf4-f475-a45d14dfcc00",
+    "product_id": "9.0",
+    "matched_sku": "businesscard_16pt_matte_silk_lamination"
+  },
+  {
+    "category_id": "6",
+    "subcategory_id": "150",
+    "name": "sample_pack",
+    "image_name": "profit-pak-samples_1.png",
+    "cloudflare_id": "a1c59b20-31cf-4f40-82b1-39a3fec93b00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "metallic-foil-postcards_1.webp",
+    "cloudflare_id": "9d7f96d8-331b-4d6b-158f-f931113c5400",
+    "product_id": "7545.0",
+    "matched_sku": "metallic_foil_postcards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "37",
+    "name": "number_tickets",
+    "image_name": "numbered-tickets-14pt_1.png",
+    "cloudflare_id": "e535f925-cda8-495c-e5ee-71202574f600",
+    "product_id": "117.0",
+    "matched_sku": "numberedtickets_14pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_1.jpg",
+    "cloudflare_id": "9b70635b-0d77-4bb7-daac-4da06e130400",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_1.png",
+    "cloudflare_id": "9b975313-7d7c-448e-d658-bdfc19c9b200",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "32pt-painted-edge-business-cards_2.jpg",
+    "cloudflare_id": "9bb57cab-2ccf-4580-b99c-ff937ae5bf00",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-metallic-foil_1.png",
+    "cloudflare_id": "edd6a453-4f11-44eb-f457-be234c545500",
+    "product_id": "59.0",
+    "matched_sku": "presentationfolders_14pt_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "presentation_folders",
+    "image_name": "uncoated-rack-cards_1.png",
+    "cloudflare_id": "9bcb3fd9-da9c-46ad-56c7-47645d150a00",
+    "product_id": "64.0",
+    "matched_sku": "calendars_100lb"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "metallic-foil-postcards_1.webp",
+    "cloudflare_id": "9d7f96d8-331b-4d6b-158f-f931113c5400",
+    "product_id": "7545.0",
+    "matched_sku": "metallic_foil_postcards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "folded-business-cards-13pt-enviro-uncoated_1.jpg",
+    "cloudflare_id": "7eb17659-63e7-4708-14cd-d271884b7900",
+    "product_id": "126.0",
+    "matched_sku": "foldedbusinesscards-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-uv-high-gloss_1.png",
+    "cloudflare_id": "a00bfabe-92b2-448e-0b32-fe608d6d6100",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_2.webp",
+    "cloudflare_id": "a12ec413-6500-4e1d-b7ef-c284d561ae00",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-100lb-silk-text-8-5-x-11_1.jpg",
+    "cloudflare_id": "a13dd19c-93b6-4fbd-6b59-e951324c3d00",
+    "product_id": "14983.0",
+    "matched_sku": "booklets_100lb_silk_text_85x11"
+  },
+  {
+    "category_id": "6",
+    "subcategory_id": "150",
+    "name": "sample_pack",
+    "image_name": "profit-pak-samples_1.png",
+    "cloudflare_id": "a1c59b20-31cf-4f40-82b1-39a3fec93b00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "5",
+    "name": "wall_calendars",
+    "image_name": "wall-calendars-80lb-gloss-text_1.webp",
+    "cloudflare_id": "8acb1be0-5cb1-4cf2-b13e-288cbe788500",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "13",
+    "name": "Postcard-addressed-postage-due",
+    "image_name": "postcard-enveloped-and-addressed-postage-due_1.png",
+    "cloudflare_id": "a1f7ffba-8c3d-48c3-cd94-bd53eb50be00",
+    "product_id": "151.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-due"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "pearl-business-cards_1.webp",
+    "cloudflare_id": "a221a984-a39c-44f5-940e-dd8634a25400",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "greeting-cards-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "a2f16677-ab5b-4946-ffec-0fba3a7f4500",
+    "product_id": "52.0",
+    "matched_sku": "greetingcards_14ptc1s_uv"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "64",
+    "name": "20pt_styrene",
+    "image_name": "20pt-styrene_1.jpg",
+    "cloudflare_id": "2835f4bd-553f-4c4d-fee1-807bf61e3000",
+    "product_id": "106.0",
+    "matched_sku": "styrene_20pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_1.png",
+    "cloudflare_id": "82e722f7-83fe-4a8e-64c9-ebb3954c4400",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "32pt-painted-edge-business-cards_2.jpg",
+    "cloudflare_id": "9bb57cab-2ccf-4580-b99c-ff937ae5bf00",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "kraft-business-cards_3.webp",
+    "cloudflare_id": "f0c443cf-8559-4741-6865-c9f19600ca00",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-100lb-silk-text-8-5-x-11_1.jpg",
+    "cloudflare_id": "a13dd19c-93b6-4fbd-6b59-e951324c3d00",
+    "product_id": "14983.0",
+    "matched_sku": "booklets_100lb_silk_text_85x11"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-60lb-offset-text-8-5-x-11_1.jpg",
+    "cloudflare_id": "a6c68962-2ad0-451f-914a-14aa76a4a800",
+    "product_id": "14980.0",
+    "matched_sku": "booklets_80lb_silk_text_85x11"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-14pt-uv-high-gloss_1.webp",
+    "cloudflare_id": "49701951-43d8-4abc-5dcc-2101ef4cdd00",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-uv-high-gloss_1.png",
+    "cloudflare_id": "3af07c7a-000f-42fc-6c07-d05d63804400",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "pearl-paper-greeting-cards_2.webp",
+    "cloudflare_id": "8cfc22a2-fe9d-4049-7f62-909aa7380a00",
+    "product_id": "7552.0",
+    "matched_sku": "pearl_paper_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "8c862f83-d709-413c-9202-39eb93acd300",
+    "product_id": "4904.0",
+    "matched_sku": "postcards_10pt_matte_finish"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_3.jpg",
+    "cloudflare_id": "a8a4ea61-2536-4bd2-de51-324f6d976300",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "10mm-coroplast_1.png",
+    "cloudflare_id": "a95b20a6-05e9-43ac-facf-4a2b39a3c000",
+    "product_id": "14975.0",
+    "matched_sku": "10mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_4.webp",
+    "cloudflare_id": "a987108a-f791-4ed5-d71f-b9296bc88500",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-16pt-aq_1.webp",
+    "cloudflare_id": "1019de5d-9c19-4345-7449-b9b9c3764300",
+    "product_id": "15.0",
+    "matched_sku": "businesscard_16pt_aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_4.png",
+    "cloudflare_id": "1afebe72-ec4a-4251-fd30-1a2ec2c29e00",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-100lb-matte-finish_1.jpg",
+    "cloudflare_id": "59736187-4045-4e32-51d2-855d81978000",
+    "product_id": "141.0",
+    "matched_sku": "digitalsheets-100lb+matte-aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_2.png",
+    "cloudflare_id": "f1231c38-1c43-4ce7-c94e-959bcb77d600",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "24",
+    "name": "Brochure-enveloped-and-addressed-postage-included",
+    "image_name": "brochure-enveloped-and-addressed-postage-included_1.png",
+    "cloudflare_id": "e237fe56-2775-4d12-d86e-4b4f7b559300",
+    "product_id": "150.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-included"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-20mil_3.webp",
+    "cloudflare_id": "905fb7e0-d4e6-4304-e638-d7c1d4ec2f00",
+    "product_id": "14985.0",
+    "matched_sku": "cut-to-shape-magnets-20mil"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_4.png",
+    "cloudflare_id": "66b2a3bd-4034-4c24-7228-6fe35d902c00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_3.webp",
+    "cloudflare_id": "980819b0-1b41-4162-55c1-fe1ba75f9b00",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "die-cut-business-cards_2.webp",
+    "cloudflare_id": "3e93000c-af45-49f0-4f5d-30fc925b1400",
+    "product_id": "7557.0",
+    "matched_sku": "die_cut_business_cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "folded-business-cards-14pt-matte-finish_1.jpg",
+    "cloudflare_id": "ae5f4463-b25c-4953-1ffe-70b8d22e5a00",
+    "product_id": "125.0",
+    "matched_sku": "foldedbusinesscards-14pt+matte/satin-aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "19",
+    "name": "standard_tear_cards",
+    "image_name": "tear-cards-14pt-uv_1.jpg",
+    "cloudflare_id": "14658982-2eec-47d4-2a08-029bb8cefe00",
+    "product_id": "129.0",
+    "matched_sku": "tearcards-14pt+uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "kraft-paper-greeting-cards_1.webp",
+    "cloudflare_id": "af4853d4-c17f-46e1-36dd-93bbe0f3e300",
+    "product_id": "7553.0",
+    "matched_sku": "kraft_paper_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_4.png",
+    "cloudflare_id": "17607643-00db-4ff5-29c6-7a12ac640500",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "folded-business-cards-14pt-matte-finish_1.jpg",
+    "cloudflare_id": "ae5f4463-b25c-4953-1ffe-70b8d22e5a00",
+    "product_id": "125.0",
+    "matched_sku": "foldedbusinesscards-14pt+matte/satin-aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-100lb-uv-high-gloss_1.webp",
+    "cloudflare_id": "b17b286c-397a-4ebf-b128-202a6b008b00",
+    "product_id": "67.0",
+    "matched_sku": "posters_100lb_uv"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "double-sided-pull-up-banners-13-oz-matte-vinyl_1.png",
+    "cloudflare_id": "b1feed9b-5de6-4846-ab7b-b94899ef5900",
+    "product_id": "7549.0",
+    "matched_sku": "double_sided_pull_up_banners"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-16pt-matte-finish_1.webp",
+    "cloudflare_id": "5633b2b7-288a-43cc-1d6c-7017af0b5800",
+    "product_id": "4904.0",
+    "matched_sku": "postcards_10pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-matte-finish_1.png",
+    "cloudflare_id": "34e39b6e-0421-4454-ef8e-36c43e3c8d00",
+    "product_id": "59.0",
+    "matched_sku": "presentationfolders_14pt_matteaq"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "metallic-foil-business-cards_2.webp",
+    "cloudflare_id": "752a1ace-e53e-47b2-607d-f697cdefc400",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-100lb-gloss-text_1.jpg",
+    "cloudflare_id": "f3062ace-635a-4cc6-48cc-b3164fb73d00",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_4.webp",
+    "cloudflare_id": "a987108a-f791-4ed5-d71f-b9296bc88500",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "die-cut-business-cards_1.webp",
+    "cloudflare_id": "e54c1739-895e-4c69-040e-07ac3641c700",
+    "product_id": "7557.0",
+    "matched_sku": "die_cut_business_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_2.png",
+    "cloudflare_id": "b6c10f9d-ad41-4ae0-0e48-ae2159456800",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "65",
+    "name": "glossy_adhesive_vinyl",
+    "image_name": "glossy-adhesive-vinyl_1.jpg",
+    "cloudflare_id": "4db5d1b4-dcf8-4b66-8fb2-8385f48f7e00",
+    "product_id": "4139.0",
+    "matched_sku": "glossy_adhesive_vinyl"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "121",
+    "name": "packaging",
+    "image_name": "supply-boxes_1.jpg",
+    "cloudflare_id": "c648e044-cf32-43f0-1ac2-03b89e0e2400",
+    "product_id": "120.0",
+    "matched_sku": "supplyboxes_office"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-aq_1.png",
+    "cloudflare_id": "7f27c12e-9b57-4f5d-5bdb-2fff07967e00",
+    "product_id": "15007.0",
+    "matched_sku": "invitations-14pt-aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "55",
+    "name": "cut_shape_removable_decals",
+    "image_name": "cut-to-shape-removable-decals_1.webp",
+    "cloudflare_id": "eff5f62a-349e-424a-31a8-3db3a87da800",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "52",
+    "name": "x_frame_banners",
+    "image_name": "x-frame-banners-13oz-matte-vinyl_2.jpg",
+    "cloudflare_id": "ba3aa403-05fe-402f-700a-0456c7d3cd00",
+    "product_id": "111.0",
+    "matched_sku": "xframe_13oz_matte"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-silverbase_1.png",
+    "cloudflare_id": "12421810-8f0b-4505-b6c8-97f2499a2b00",
+    "product_id": "15193.0",
+    "matched_sku": "pullupbanner_13oz_v2"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "pearl-paper-greeting-cards_1.webp",
+    "cloudflare_id": "bab06098-952f-47f4-07fc-12a3d45c6f00",
+    "product_id": "7552.0",
+    "matched_sku": "pearl_paper_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "68",
+    "name": "h_stands",
+    "image_name": "h-stand-for-signs_1.jpg",
+    "cloudflare_id": "97c83f82-d15b-4731-fd41-60bb90385e00",
+    "product_id": "14672.0",
+    "matched_sku": "social-distancing-floor-stickers"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "table-top-pull-up-banner-13-oz-matte-vinyl_1.png",
+    "cloudflare_id": "39aea9f2-58c3-4dec-fa56-670ac2082800",
+    "product_id": "7547.0",
+    "matched_sku": "table_top_pull-up_banners"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_5.png",
+    "cloudflare_id": "bc82b667-2405-4403-06e3-907cd6994700",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "willowpack-roll-labels_1.webp",
+    "cloudflare_id": "32cd978d-48d4-4502-218b-525aa3342500",
+    "product_id": "16930.0",
+    "matched_sku": "willow_labels"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "standard_flyers",
+    "image_name": "flyers-100lb-matte-finish_1.png",
+    "cloudflare_id": "bdc27819-7bb8-493a-c232-d5d080ec5c00",
+    "product_id": "39.0",
+    "matched_sku": "flyers_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "30",
+    "name": "Canvas",
+    "image_name": "canvas-roll_2.webp",
+    "cloudflare_id": "e714c22d-78fd-44ea-c2b8-759f7c608500",
+    "product_id": "109.0",
+    "matched_sku": "canvasroll"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-14pt-writable-aq-c1s_1.webp",
+    "cloudflare_id": "6cffd7bb-61cf-4bbf-99c6-8a9336c92300",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-18pt-matte-lam-spot-uv_1.webp",
+    "cloudflare_id": "1280a8dd-eb36-43a0-dd2b-067c2fd21b00",
+    "product_id": "5546.0",
+    "matched_sku": "bookmark_16PT_matte_lam_spot_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-14pt-aq_1.webp",
+    "cloudflare_id": "c0fbf79d-de83-49ef-1605-a262bbe7d800",
+    "product_id": "18.0",
+    "matched_sku": "postcards14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-14pt-uv_1.webp",
+    "cloudflare_id": "c18511a4-529c-451e-cf86-7845925b4c00",
+    "product_id": "20.0",
+    "matched_sku": "postcards14pt_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-aq_1.png",
+    "cloudflare_id": "c9a9de9b-566f-43dc-806d-3dce9cf2d200",
+    "product_id": "58.0",
+    "matched_sku": "presentationfolders_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-20mil_2.webp",
+    "cloudflare_id": "c1d0ad66-b9f6-47e5-3c04-2605ebdff700",
+    "product_id": "14985.0",
+    "matched_sku": "cut-to-shape-magnets-20mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "36",
+    "name": "Notepads_25_pages",
+    "image_name": "notepads-60lb-uncoated-25-pages_1.webp",
+    "cloudflare_id": "c2020f11-d426-433a-dc1c-a55d9a282b00",
+    "product_id": "82.0",
+    "matched_sku": "notepads_60lb_25pg"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_5.png",
+    "cloudflare_id": "bc82b667-2405-4403-06e3-907cd6994700",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_2.jpg",
+    "cloudflare_id": "7e1b9e0e-4cfc-4d2f-c145-669bf82c8000",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "59",
+    "name": "car-magnets-30mil_2",
+    "image_name": "car-magnets-30mil_1.webp",
+    "cloudflare_id": "c2cd52ce-99fb-4e92-b45d-218e12878900",
+    "product_id": "104.0",
+    "matched_sku": "carmagnets_30mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "13",
+    "name": "standard_postcards",
+    "image_name": "postcard-enveloped-and-addressed-postage-due_1.png",
+    "cloudflare_id": "a1f7ffba-8c3d-48c3-cd94-bd53eb50be00",
+    "product_id": "151.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-due"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "67",
+    "name": "window_perforated_vinyl",
+    "image_name": "window-perforated-vinyl_1.jpg",
+    "cloudflare_id": "7dc2d6c9-d75a-401f-694a-7f503064af00",
+    "product_id": "206.0",
+    "matched_sku": "window_perforated_vinyl"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "metallic-foil-greeting-cards_3.webp",
+    "cloudflare_id": "c3751940-0c31-4728-e16b-6f27769dfb00",
+    "product_id": "7550.0",
+    "matched_sku": "metallic_foil_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "coroplast-group-1.png",
+    "cloudflare_id": "84be504f-f1c9-45c0-6e48-6b91bf533100",
+    "product_id": "98.0",
+    "matched_sku": "6mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "standard_flyers",
+    "image_name": "flyers-100lb-gloss-text_1.png",
+    "cloudflare_id": "c43e1f45-4f34-49cc-706a-33756782be00",
+    "product_id": "37.0",
+    "matched_sku": "flyers_100lb_gloss"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_2.png",
+    "cloudflare_id": "18fc991e-044a-40a2-f796-cc899624a200",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-20mil_1.webp",
+    "cloudflare_id": "c52382bf-2dfc-4d8b-9d91-9db30e0b6500",
+    "product_id": "14985.0",
+    "matched_sku": "cut-to-shape-magnets-20mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-13pt-enviro-uncoated_1.png",
+    "cloudflare_id": "c5832609-67cb-4530-f299-8a83fd7e5c00",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "c5cc030c-31e9-43a4-fd10-1e0c0ba01100",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "121",
+    "name": "packaging",
+    "image_name": "supply-boxes_1.jpg",
+    "cloudflare_id": "c648e044-cf32-43f0-1ac2-03b89e0e2400",
+    "product_id": "120.0",
+    "matched_sku": "supplyboxes_office"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "69",
+    "name": "display_board_24pt",
+    "image_name": "display-board-24pt_2.jpg",
+    "cloudflare_id": "c79f8d11-6058-48e8-25aa-03def4d41d00",
+    "product_id": "107.0",
+    "matched_sku": "displayboard_24pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_5.png",
+    "cloudflare_id": "c80676c0-403a-46c4-ce79-a7f54e8e0f00",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "metallic-foil-postcards_2.webp",
+    "cloudflare_id": "c80cd7e8-68f7-413e-3906-df14ecefa400",
+    "product_id": "7545.0",
+    "matched_sku": "metallic_foil_postcards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-14pt-aq_1.webp",
+    "cloudflare_id": "c857d589-68f8-4202-07da-bb8c3cb7f400",
+    "product_id": "69.0",
+    "matched_sku": "doorhangers_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-16pt-uv_1.webp",
+    "cloudflare_id": "c92552c4-30d7-497c-60a6-3b1264c8dc00",
+    "product_id": "33.0",
+    "matched_sku": "postcards_16pt_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "23",
+    "name": "Brochure-enveloped-and-addressed-postage-due",
+    "image_name": "brochure-enveloped-and-addressed-postage-due_1.png",
+    "cloudflare_id": "c9418c0d-6a36-4954-a091-ce3ff7765d00",
+    "product_id": "151.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-due"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-aq_1.png",
+    "cloudflare_id": "c9a9de9b-566f-43dc-806d-3dce9cf2d200",
+    "product_id": "58.0",
+    "matched_sku": "presentationfolders_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-100lb-gloss-text_1.png",
+    "cloudflare_id": "c9f37118-18b2-431a-fba0-78039a859200",
+    "product_id": "43.0",
+    "matched_sku": "brochures_100lb_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "kraft-paper-greeting-cards_2.webp",
+    "cloudflare_id": "ca6b3fac-e948-4422-68be-1770070bb600",
+    "product_id": "7553.0",
+    "matched_sku": "kraft_paper_greeting_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "3",
+    "name": "specialty_invitations",
+    "image_name": "metallic-foil-invitations_1.webp",
+    "cloudflare_id": "caa3a630-5829-45fa-823e-78ddf7a75a00",
+    "product_id": "15011.0",
+    "matched_sku": "metallic-foil-invitations"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "102",
+    "name": "ncr_forms",
+    "image_name": "ncr-forms-20lb-uncoated_1.webp",
+    "cloudflare_id": "d7743249-b86b-41a0-25af-0d3b679b0300",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-enviro-uncoated_3.webp",
+    "cloudflare_id": "cc28b984-3ea2-42be-3b4c-67af9f2f9400",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "36",
+    "name": "Notepads_25_pages",
+    "image_name": "notepads-60lb-uncoated-25-pages_1.webp",
+    "cloudflare_id": "c2020f11-d426-433a-dc1c-a55d9a282b00",
+    "product_id": "82.0",
+    "matched_sku": "notepads_60lb_25pg"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "32pt-painted-edge-business-cards_1.png",
+    "cloudflare_id": "cd2e8cda-403e-492a-a5f5-0e709d5a4100",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "paper-roll-labels_1.webp",
+    "cloudflare_id": "311ff1ee-a1aa-4d44-2052-4d9da988ae00",
+    "product_id": "7030.0",
+    "matched_sku": "paper_labels"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-covers-6-ft-table_1.png",
+    "cloudflare_id": "874b2cc3-5a29-49d5-3d02-434fe708a700",
+    "product_id": "14987.0",
+    "matched_sku": "table-covers-6-ft-table"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_2.webp",
+    "cloudflare_id": "ce0fbcf9-8f68-4585-cea3-d01e044d3200",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "31",
+    "name": "plastic",
+    "image_name": "plastic-14pt_1.webp",
+    "cloudflare_id": "ce17b197-d632-44da-fc19-7805442cfe00",
+    "product_id": "75.0",
+    "matched_sku": "plastic_14pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-covers-8-ft-table_2.png",
+    "cloudflare_id": "836753aa-234c-4d4c-2f00-719a1fe27f00",
+    "product_id": "14988.0",
+    "matched_sku": "table-covers-8-ft-table"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-gloss-text-8-5-x-11_1.jpg",
+    "cloudflare_id": "ce58ba91-3e2d-432a-fb5e-0afab8051b00",
+    "product_id": "14980.0",
+    "matched_sku": "booklets_80lb_silk_text_85x11"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "pearl-paper-greeting-cards_1.webp",
+    "cloudflare_id": "bab06098-952f-47f4-07fc-12a3d45c6f00",
+    "product_id": "7552.0",
+    "matched_sku": "pearl_paper_greeting_cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-16pt-uv_1.webp",
+    "cloudflare_id": "d10203f0-8e1f-4d44-c552-c652ea6d4d00",
+    "product_id": "16.0",
+    "matched_sku": "businesscard_16pt_uv"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_1.jpg",
+    "cloudflare_id": "d15e75eb-b355-46f0-9b78-00a078779400",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-14pt-uv_1.webp",
+    "cloudflare_id": "e645acbc-a4ea-4cbf-08c7-c6541d0df000",
+    "product_id": "5528.0",
+    "matched_sku": "bookmarks14pt_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "greeting-cards-14pt-writable-aq-c1s_1.webp",
+    "cloudflare_id": "d1d69bd2-d5df-4425-1e3f-882e78628300",
+    "product_id": "52.0",
+    "matched_sku": "greetingcards_14ptc1s_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-100lb-uv-high-gloss_1.png",
+    "cloudflare_id": "d1d83f37-b7a2-4be3-9c7c-d24a7f246700",
+    "product_id": "43.0",
+    "matched_sku": "brochures_100lb_gloss"
+  },
+  {
+    "category_id": "9",
+    "subcategory_id": "",
+    "name": "apparel",
+    "image_name": "apparel.jpeg",
+    "cloudflare_id": "",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_3.webp",
+    "cloudflare_id": "d39e8fe4-50a5-43a8-f995-9e3060334900",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "6",
+    "name": "cut_to_shape_magnets",
+    "image_name": "cut-to-shape-magnets-20mil_2.webp",
+    "cloudflare_id": "c1d0ad66-b9f6-47e5-3c04-2605ebdff700",
+    "product_id": "14985.0",
+    "matched_sku": "cut-to-shape-magnets-20mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "d42ed603-0ae3-47b2-c5bd-3df062fbc700",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcard-18pt-matte-lam-spot-uv_1.webp",
+    "cloudflare_id": "9327ba13-e055-4ddf-9edc-86e158b0eb00",
+    "product_id": "163.0",
+    "matched_sku": "postcard_16PT_matte_lam_spot_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-14pt-writable-uv-c1s_1.webp",
+    "cloudflare_id": "d4c1b55e-c44b-4412-6ca2-59826e067300",
+    "product_id": "5534.0",
+    "matched_sku": "bookmarks_14ptc1s_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "4",
+    "name": "standard_invitations",
+    "image_name": "invitations-14pt-uv-high-gloss_1.png",
+    "cloudflare_id": "a00bfabe-92b2-448e-0b32-fe608d6d6100",
+    "product_id": "15008.0",
+    "matched_sku": "invitations-14pt-uv-high-gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-18pt-gloss-lamination_1.webp",
+    "cloudflare_id": "d4ff6fdb-42ed-4fa5-5c82-416a75828400",
+    "product_id": "5531.0",
+    "matched_sku": "bookmarks_16pt_glosslam"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "34",
+    "name": "tent_cards",
+    "image_name": "tent-cards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "c5cc030c-31e9-43a4-fd10-1e0c0ba01100",
+    "product_id": "4902.0",
+    "matched_sku": "tentcards_14pt_matte_finish"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "kraft-paper-postcards_1.webp",
+    "cloudflare_id": "2cb5bf54-f306-4606-d835-f49345067400",
+    "product_id": "7544.0",
+    "matched_sku": "kraft_paper_postcards"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "102",
+    "name": "envelopes",
+    "image_name": "ncr-forms-20lb-uncoated_1.webp",
+    "cloudflare_id": "d7743249-b86b-41a0-25af-0d3b679b0300",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "10mm-coroplast_1.png",
+    "cloudflare_id": "a95b20a6-05e9-43ac-facf-4a2b39a3c000",
+    "product_id": "14975.0",
+    "matched_sku": "10mm_coroplast"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "poly-roll-labels_1.webp",
+    "cloudflare_id": "2124445c-4995-477d-7f1a-9634ca52c500",
+    "product_id": "7029.0",
+    "matched_sku": "poly_labels"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "4mm-coroplast-canadian.png",
+    "cloudflare_id": "43d83ca2-7902-4a47-f056-c24a3fedf200",
+    "product_id": "97.0",
+    "matched_sku": "4mm_coroplast"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-100lb-matte-finish_1.png",
+    "cloudflare_id": "d9695576-7190-492a-5346-3205bf855f00",
+    "product_id": "45.0",
+    "matched_sku": "brochures_100lb_matteaq"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-18pt-matte-lam-spot-uv_1.webp",
+    "cloudflare_id": "d8edb3b3-1d0c-4ea7-5042-85331445e200",
+    "product_id": "30.0",
+    "matched_sku": "businesscard_16pt_matte_lam_spot_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "22",
+    "name": "brochures",
+    "image_name": "brochures-100lb-matte-finish_1.png",
+    "cloudflare_id": "d9695576-7190-492a-5346-3205bf855f00",
+    "product_id": "45.0",
+    "matched_sku": "brochures_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "3",
+    "name": "specialty_invitations",
+    "image_name": "invitations-18pt-kraft-paper_1.png",
+    "cloudflare_id": "d99d3573-0481-4966-9d41-725a06fe5000",
+    "product_id": "15007.0",
+    "matched_sku": "invitations-14pt-aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "8",
+    "name": "specialty_flyers",
+    "image_name": "flyers-80lb-enviro-uncoated_1.webp",
+    "cloudflare_id": "da699814-4445-45a4-6d99-382177fd7200",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "quick-ship-coroplast-signs_3.png",
+    "cloudflare_id": "889e704b-4865-4725-d922-d9cdaa2f8c00",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "54",
+    "name": "a_frame_signs",
+    "image_name": "a-frame-signs-4mm-coroplast.jpg",
+    "cloudflare_id": "db112b92-b7a1-461e-9697-33f9e299a700",
+    "product_id": "97.0",
+    "matched_sku": "4mm_coroplast"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-matte-finish_1.webp",
+    "cloudflare_id": "80918162-ec09-435a-42f3-d1ce705d0b00",
+    "product_id": "8.0",
+    "matched_sku": "businesscard_14pt_matte_satin_aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-covers-6-ft-table_2.png",
+    "cloudflare_id": "302ab339-05b8-41e1-527e-691e08385c00",
+    "product_id": "14987.0",
+    "matched_sku": "table-covers-6-ft-table"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "101",
+    "name": "envelopes",
+    "image_name": "letterheads-60lb-uncoated_1.webp",
+    "cloudflare_id": "dc8a547b-ea57-4249-f7c7-e91bbc0a2400",
+    "product_id": "80.0",
+    "matched_sku": "letterheads_60lb"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-16pt-uv_1.webp",
+    "cloudflare_id": "c92552c4-30d7-497c-60a6-3b1264c8dc00",
+    "product_id": "33.0",
+    "matched_sku": "postcards_16pt_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "14",
+    "name": "postcard-enveloped-and-addressed-postage-included",
+    "image_name": "postcard-addressed-postage-included_1.png",
+    "cloudflare_id": "4e0ab629-bcbc-41a7-ea6c-5b3b0b0bc500",
+    "product_id": "148.0",
+    "matched_sku": "postcard-addressed-postage-included"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-14pt-uv-high-gloss_1.png",
+    "cloudflare_id": "354f6377-d20d-48b9-3fab-951278f4db00",
+    "product_id": "7.0",
+    "matched_sku": "businesscard_14pt_uv_high_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "26",
+    "name": "booklets",
+    "image_name": "booklets-80lb-gloss-text-8-5-x-5-5_1.jpg",
+    "cloudflare_id": "617c54a2-26b3-45df-a8ac-059eb2263000",
+    "product_id": "14979.0",
+    "matched_sku": "booklets_80lb_silk_text_85x55"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "53",
+    "name": "4mm_foam_board",
+    "image_name": "4mm-foam-board_1.png",
+    "cloudflare_id": "e02bbfd1-7096-4c3b-9c50-61b5a7d26100",
+    "product_id": "100.0",
+    "matched_sku": "4mm_foam"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "quick-ship-business-cards_1.png",
+    "cloudflare_id": "7f4df4ef-d1f6-4091-fbfd-45d721e26a00",
+    "product_id": "15022.0",
+    "matched_sku": "ultra-smooth-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "10",
+    "name": "specialty_greeting_cards",
+    "image_name": "kraft-paper-greeting-cards_1.webp",
+    "cloudflare_id": "af4853d4-c17f-46e1-36dd-93bbe0f3e300",
+    "product_id": "7553.0",
+    "matched_sku": "kraft_paper_greeting_cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_3.png",
+    "cloudflare_id": "5663da65-7e09-4858-9d82-9038b92b0c00",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "3",
+    "name": "specialty_invitations",
+    "image_name": "pearl-paperl-invitations_1.png",
+    "cloudflare_id": "e1f8f559-8f9e-4f19-aeb4-31a9ea9e3200",
+    "product_id": "15010.0",
+    "matched_sku": "pearl-paper-invitations"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "33",
+    "name": "clings_opaque",
+    "image_name": "clings-opaque_1.jpg",
+    "cloudflare_id": "fdb31ce4-89f6-4d67-8ee2-9165b64c0500",
+    "product_id": "78.0",
+    "matched_sku": "clings_opaque"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "24",
+    "name": "brochures",
+    "image_name": "brochure-enveloped-and-addressed-postage-included_1.png",
+    "cloudflare_id": "e237fe56-2775-4d12-d86e-4b4f7b559300",
+    "product_id": "150.0",
+    "matched_sku": "postcard-enveloped-addressed-postage-included"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "63",
+    "name": "floor_graphics",
+    "image_name": "social-distancing-floor-stickers_1.png",
+    "cloudflare_id": "3d32584b-aa5c-464e-db4a-6fe32b98e800",
+    "product_id": "14672.0",
+    "matched_sku": "social-distancing-floor-stickers"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "standard-rack-cards_1.png",
+    "cloudflare_id": "e254459d-35d4-448a-2777-8860defcf500",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-100lb-uv-high-gloss_1.webp",
+    "cloudflare_id": "b17b286c-397a-4ebf-b128-202a6b008b00",
+    "product_id": "67.0",
+    "matched_sku": "posters_100lb_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "20",
+    "name": "posters",
+    "image_name": "posters-80lb-enviro-uncoated_1.webp",
+    "cloudflare_id": "7d491e33-a034-4d8c-f6c8-bcfbfd0f6400",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "standard_flyers",
+    "image_name": "flyers-100lb-matte-finish_1.png",
+    "cloudflare_id": "bdc27819-7bb8-493a-c232-d5d080ec5c00",
+    "product_id": "39.0",
+    "matched_sku": "flyers_100lb_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "37",
+    "name": "number_tickets",
+    "image_name": "numbered-tickets-14pt_1.png",
+    "cloudflare_id": "e535f925-cda8-495c-e5ee-71202574f600",
+    "product_id": "117.0",
+    "matched_sku": "numberedtickets_14pt"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "die-cut-business-cards_1.webp",
+    "cloudflare_id": "e54c1739-895e-4c69-040e-07ac3641c700",
+    "product_id": "7557.0",
+    "matched_sku": "die_cut_business_cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-enviro-uncoated_3.webp",
+    "cloudflare_id": "cc28b984-3ea2-42be-3b4c-67af9f2f9400",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "postcards-14pt-writable-aq-c1s_1.webp",
+    "cloudflare_id": "1b2e72a5-9554-48fc-9360-52bb91a64900",
+    "product_id": "15006.0",
+    "matched_sku": "invitations-14pt-writable-aq-C1S"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "16",
+    "name": "standard_bookmark",
+    "image_name": "bookmark-14pt-uv_1.webp",
+    "cloudflare_id": "e645acbc-a4ea-4cbf-08c7-c6541d0df000",
+    "product_id": "5528.0",
+    "matched_sku": "bookmarks14pt_uv"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "30",
+    "name": "Canvas",
+    "image_name": "canvas-roll_2.webp",
+    "cloudflare_id": "e714c22d-78fd-44ea-c2b8-759f7c608500",
+    "product_id": "109.0",
+    "matched_sku": "canvasroll"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "8",
+    "name": "specialty_flyers",
+    "image_name": "flyers-70lb-linen-uncoated_1.jpg",
+    "cloudflare_id": "9211fa82-dd86-41ab-1ea7-73c7c218b600",
+    "product_id": "41.0",
+    "matched_sku": "flyers_70lb_linen"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-10pt-aq_1.webp",
+    "cloudflare_id": "3931d440-bb69-4112-d2c1-c2721e05a100",
+    "product_id": "26.0",
+    "matched_sku": "postcards_10pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "11",
+    "name": "standard_postcards",
+    "image_name": "postcards-16pt-aq_1.webp",
+    "cloudflare_id": "3fa17549-4c3f-4058-f3c1-fcd0d8747100",
+    "product_id": "32.0",
+    "matched_sku": "postcards_16pt_aq"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "6mm-coroplast.png",
+    "cloudflare_id": "e91660f9-a189-4bc4-9f76-2e257ef3db00",
+    "product_id": "98.0",
+    "matched_sku": "6mm_coroplast"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "70",
+    "name": "a_frame_stands",
+    "image_name": "a-frame-stands_1.jpg",
+    "cloudflare_id": "ea3ebf64-09d1-4bb0-6d26-2a3c4d2a5900",
+    "product_id": "122.0",
+    "matched_sku": "aframestands_office"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "pull-up-banners-13oz-matte-vinyl-blackbase-31-5-x-78-75_2.png",
+    "cloudflare_id": "b6c10f9d-ad41-4ae0-0e48-ae2159456800",
+    "product_id": "",
+    "matched_sku": ""
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "69",
+    "name": "display_board_24pt",
+    "image_name": "display-board-24pt_2.jpg",
+    "cloudflare_id": "c79f8d11-6058-48e8-25aa-03def4d41d00",
+    "product_id": "107.0",
+    "matched_sku": "displayboard_24pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "70",
+    "name": "a_frame_stands",
+    "image_name": "a-frame-stands_1.jpg",
+    "cloudflare_id": "ea3ebf64-09d1-4bb0-6d26-2a3c4d2a5900",
+    "product_id": "122.0",
+    "matched_sku": "aframestands_office"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-18pt-gloss-lamination_1.webp",
+    "cloudflare_id": "ebf253aa-b41d-42c9-3e80-ae3483c4b900",
+    "product_id": "10.0",
+    "matched_sku": "businesscard_16pt_gloss_lamination"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-13pt-enviro-uncoated_2.webp",
+    "cloudflare_id": "851f5acb-e633-4eda-a497-99ed93c4d300",
+    "product_id": "126.0",
+    "matched_sku": "foldedbusinesscards-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "7",
+    "name": "standard_flyers",
+    "image_name": "flyers-100lb-uv-high-gloss_1.webp",
+    "cloudflare_id": "ec9ed1ea-8488-469e-0136-cd32ff62a600",
+    "product_id": "37.0",
+    "matched_sku": "flyers_100lb_gloss"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "29",
+    "name": "presentation_folders",
+    "image_name": "presentation-folders-14pt-metallic-foil_1.png",
+    "cloudflare_id": "edd6a453-4f11-44eb-f457-be234c545500",
+    "product_id": "59.0",
+    "matched_sku": "presentationfolders_14pt_matteaq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "28",
+    "name": "variable_printing",
+    "image_name": "variable-printing-14pt_1.jpg",
+    "cloudflare_id": "7c7343f5-c386-40d1-7a31-c5cd8993b800",
+    "product_id": "127.0",
+    "matched_sku": "variableprinting_14pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "56",
+    "name": "cut_shape_removable_decals",
+    "image_name": "cut-to-shape-removable-decals_1.webp",
+    "cloudflare_id": "eff5f62a-349e-424a-31a8-3db3a87da800",
+    "product_id": "14981.0",
+    "matched_sku": "cut-to-shape-magnets-30mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-80lb-enviro-uncoated_1.jpg",
+    "cloudflare_id": "f0873f84-c04b-493b-2f3f-6284ea03e000",
+    "product_id": "142.0",
+    "matched_sku": "digitalsheets-80lb-enviro-uncoated"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "69",
+    "name": "display_board_24pt",
+    "image_name": "display-board-24pt_1.jpg",
+    "cloudflare_id": "88f8165e-15f1-436e-5f02-e410644af200",
+    "product_id": "107.0",
+    "matched_sku": "displayboard_24pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_3.png",
+    "cloudflare_id": "f0c34ad2-263d-4462-f524-bc6bdbf36e00",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "kraft-business-cards_3.webp",
+    "cloudflare_id": "f0c443cf-8559-4741-6865-c9f19600ca00",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_2.png",
+    "cloudflare_id": "f1231c38-1c43-4ce7-c94e-959bcb77d600",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "folded-business-card-14pt-uv-high-gloss_1.jpg",
+    "cloudflare_id": "f227e577-5464-4182-3a47-8dd8d5bebe00",
+    "product_id": "124.0",
+    "matched_sku": "foldedbusinesscards_14pt+uv(highgloss)"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "folded-business-card-14pt-uv-high-gloss_1.jpg",
+    "cloudflare_id": "f227e577-5464-4182-3a47-8dd8d5bebe00",
+    "product_id": "124.0",
+    "matched_sku": "foldedbusinesscards_14pt+uv(highgloss)"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "metallic-foil-business-cards_3.webp",
+    "cloudflare_id": "f2bddd86-3031-4b86-9696-c264083cdc00",
+    "product_id": "7334.0",
+    "matched_sku": "pearl-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "27",
+    "name": "Digital-sheets",
+    "image_name": "digital-sheets-100lb-gloss-text_1.jpg",
+    "cloudflare_id": "f3062ace-635a-4cc6-48cc-b3164fb73d00",
+    "product_id": "139.0",
+    "matched_sku": "digitalsheets-100lb-gloss-text"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "58",
+    "name": "table_covers",
+    "image_name": "table-covers-8-ft-table_1.png",
+    "cloudflare_id": "f30c0e56-d1c3-4840-ba08-9991ca391500",
+    "product_id": "14988.0",
+    "matched_sku": "table-covers-8-ft-table"
+  },
+  {
+    "category_id": "7",
+    "subcategory_id": "100",
+    "name": "envelopes",
+    "image_name": "envelopes-60lb-uncoated_1.webp",
+    "cloudflare_id": "397c4380-4d49-44f9-6737-2548e6ccdd00",
+    "product_id": "81.0",
+    "matched_sku": "envelopes_60lb"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "17",
+    "name": "specialty_bookmark",
+    "image_name": "bookmark-13pt-enviro-uncoated_2.webp",
+    "cloudflare_id": "08801307-2f47-4e24-ca5f-4ac581a5a900",
+    "product_id": "132.0",
+    "matched_sku": "tearcards-13pt+enviro-uncoated"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-18pt-writable-c1s_1.webp",
+    "cloudflare_id": "3eed07e2-8178-425c-1215-96dcd383c200",
+    "product_id": "12.0",
+    "matched_sku": "businesscard_14pt_writable_uv_c1s"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "12",
+    "name": "specialty_postcards",
+    "image_name": "kraft-paper-postcards_2.webp",
+    "cloudflare_id": "f6392024-e97b-48e2-1546-b67db69f4300",
+    "product_id": "7544.0",
+    "matched_sku": "kraft_paper_postcards"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "60",
+    "name": "coroplast",
+    "image_name": "8mm-coroplast.png",
+    "cloudflare_id": "f6beba2e-b0ff-4ec5-1c76-0ffd71c19700",
+    "product_id": "99.0",
+    "matched_sku": "8mm_coroplast"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "ultra-smooth-business-cards_1.webp",
+    "cloudflare_id": "86426195-3953-4158-6923-bc7698c85b00",
+    "product_id": "15022.0",
+    "matched_sku": "ultra-smooth-business-cards"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "18",
+    "name": "Standard-rack-cards",
+    "image_name": "matte-laminated-rack-cards_1.png",
+    "cloudflare_id": "3bc62eea-95bf-46a7-43b0-54bb6fe53700",
+    "product_id": "7332.0",
+    "matched_sku": "kraft-business-cards"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "2",
+    "name": "specialty_business-cards",
+    "image_name": "business-cards-13pt-enviro-uncoated_1.webp",
+    "cloudflare_id": "f94e0ae0-6079-4fff-7667-b22e9393e000",
+    "product_id": "126.0",
+    "matched_sku": "foldedbusinesscards-13pt-enviro-uncoated"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "50",
+    "name": "banners",
+    "image_name": "mesh-banner-8oz-polyester-mesh_1.webp",
+    "cloudflare_id": "fa52923b-ae1d-4a2c-3f19-557560d33400",
+    "product_id": "7554.0",
+    "matched_sku": "mesh_banners_8oz_polyester"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "25",
+    "name": "magnets",
+    "image_name": "magnets-14pt_4.webp",
+    "cloudflare_id": "632f882e-78c2-42f5-a632-3b05865bc800",
+    "product_id": "62.0",
+    "matched_sku": "magnets_14pt"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "3",
+    "name": "specialty_invitations",
+    "image_name": "invitations-18pt-kraft-paper_1.png",
+    "cloudflare_id": "d99d3573-0481-4966-9d41-725a06fe5000",
+    "product_id": "15007.0",
+    "matched_sku": "invitations-14pt-aq"
+  },
+  {
+    "category_id": "1",
+    "subcategory_id": "1",
+    "name": "standard_business_cards",
+    "image_name": "business-cards-16pt-uv_1.webp",
+    "cloudflare_id": "d10203f0-8e1f-4d44-c552-c652ea6d4d00",
+    "product_id": "16.0",
+    "matched_sku": "businesscard_16pt_uv"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "59",
+    "name": "car-magnets-30mil_2",
+    "image_name": "car-magnets-30mil_1.webp",
+    "cloudflare_id": "c2cd52ce-99fb-4e92-b45d-218e12878900",
+    "product_id": "104.0",
+    "matched_sku": "carmagnets_30mil"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "21",
+    "name": "door_hangers",
+    "image_name": "door-hangers-14pt-aq_1.webp",
+    "cloudflare_id": "c857d589-68f8-4202-07da-bb8c3cb7f400",
+    "product_id": "69.0",
+    "matched_sku": "doorhangers_14pt_aq"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "33",
+    "name": "clings_opaque",
+    "image_name": "clings-opaque_1.jpg",
+    "cloudflare_id": "fdb31ce4-89f6-4d67-8ee2-9165b64c0500",
+    "product_id": "78.0",
+    "matched_sku": "clings_opaque"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "62",
+    "name": "3mm-sintra",
+    "image_name": "3mm-sintra_3.png",
+    "cloudflare_id": "f0c34ad2-263d-4462-f524-bc6bdbf36e00",
+    "product_id": "110.0",
+    "matched_sku": "sintra_3mm"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "31",
+    "name": "plastic",
+    "image_name": "plastic-14pt_1.webp",
+    "cloudflare_id": "ce17b197-d632-44da-fc19-7805442cfe00",
+    "product_id": "75.0",
+    "matched_sku": "plastic_14pt"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "51",
+    "name": "pull_up_banners",
+    "image_name": "premium-pull-up-banners-13oz-matte-vinyl_1.png",
+    "cloudflare_id": "4e311a1a-a962-4aed-a565-3812aa5f5300",
+    "product_id": "202.0",
+    "matched_sku": "premium_pullupbanner"
+  },
+  {
+    "category_id": "4",
+    "subcategory_id": "13",
+    "name": "Unaddressed-postcard",
+    "image_name": "unaddressed-postcard_1.png",
+    "cloudflare_id": "ff2a6c5b-6f8b-4632-7fdd-f919af60d500",
+    "product_id": "147.0",
+    "matched_sku": "unaddressed-postcard"
+  },
+  {
+    "category_id": "2",
+    "subcategory_id": "120",
+    "name": "roll_labels",
+    "image_name": "bopp-roll-labels_1.webp",
+    "cloudflare_id": "624c1e0f-1ca6-4dce-4bf4-8d523874b500",
+    "product_id": "7028.0",
+    "matched_sku": "bopp_labels"
+  },
+  {
+    "category_id": "3",
+    "subcategory_id": "61",
+    "name": "removable_wall_decals",
+    "image_name": "removable-wall-decals-7-mil_4.jpg",
+    "cloudflare_id": "336ad0a1-1a27-4b80-55f5-9e64f815b700",
+    "product_id": "7555.0",
+    "matched_sku": "removable-wall_decals_7_mil"
+  }
+]

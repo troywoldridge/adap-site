@@ -23,7 +23,7 @@ function cartesian<T>(groups: T[][]): T[][] {
 function groupOptionsByGroup(options: any[]): Map<string, any[]> {
   const map = new Map<string, any[]>();
   for (const opt of options) {
-    const {group} = opt;
+    const { group } = opt;
     if (!map.has(group)) {
       map.set(group, []);
     }

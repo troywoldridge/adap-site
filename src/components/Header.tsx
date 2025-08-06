@@ -1,13 +1,35 @@
-// src/components/Header.tsx
 "use client";
 
-import "@/globals.css";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import SearchBar from "@/components/SearchBar"; // your Algolia search bar component
+import SearchBar from "@/components/SearchBar";
+
+const SITE_BRAND = "ADAP";
+const SITE_TAGLINE = "Custom Print Experts";
+const DEFAULT_DESCRIPTION =
+  "Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.";
+const LOGO_CLOUDFLARE_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
+const LOGO_URL = `https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/${LOGO_CLOUDFLARE_ID}/public`;
+const DEFAULT_SOCIAL_SHARE_IMAGE =
+  "https://imagedelivery.net/pJ0fKvjCAbyoF8aQ/5b703aad-e904-4d2b-1bf4-13c0fecd2f00/public";
+
+function buildDynamicShareImageUrl(
+  primaryImageId?: string,
+  productName?: string,
+  priceDisplay?: string
+): string {
+  if (!primaryImageId) {
+    return DEFAULT_SOCIAL_SHARE_IMAGE;
+  }
+  const params = new URLSearchParams();
+  params.set("imageId", primaryImageId);
+  productName && params.set("title", productName);
+  priceDisplay && params.set("price", priceDisplay);
+  return `/api/share-image?${params.toString()}`;
+}
 
 interface HeaderProps {
   title?: string;
@@ -18,31 +40,6 @@ interface HeaderProps {
   priceDisplay?: string;
   primaryImageId?: string;
 }
-
-const SITE_BRAND = "ADAP";
-const SITE_TAGLINE = "Custom Print Experts";
-const DEFAULT_DESCRIPTION =
-  "Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.";
-
-// Hardcoded logo image (Cloudflare)
-const LOGO_URL =
-  "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/a90ba357-76ea-48ed-1c65-44fff4401600/public";
-// Fallback share image
-const DEFAULT_SOCIAL_SHARE_IMAGE =
-  "https://imagedelivery.net/pJ0fKvjCAbyoF8aQ/5b703aad-e904-4d2b-1bf4-13c0fecd2f00/public";
-
-const buildDynamicShareImageUrl = (
-  primaryImageId?: string,
-  productName?: string,
-  priceDisplay?: string
-): string => {
-  if (!primaryImageId) return DEFAULT_SOCIAL_SHARE_IMAGE;
-  const params = new URLSearchParams();
-  params.set("imageId", primaryImageId);
-  if (productName) params.set("title", productName);
-  if (priceDisplay) params.set("price", priceDisplay);
-  return `/api/share-image?${params.toString()}`;
-};
 
 export default function Header({
   title,
@@ -63,13 +60,15 @@ export default function Header({
   );
 
   const pagePath = useMemo(() => {
-    const clean = pathname.startsWith("/") ? pathname : `/${pathname}`;
+    const base = pathname.startsWith("/") ? pathname : `/${pathname}`;
     const qs = searchParams?.toString();
-    return qs ? `${clean}?${qs}` : clean;
+    return qs ? `${base}?${qs}` : base;
   }, [pathname, searchParams]);
 
   const computedCanonical = useMemo(() => {
-    if (canonicalUrl) return canonicalUrl.replace(/\/+$/, "");
+    if (canonicalUrl) {
+      return canonicalUrl.replace(/\/+$/, "");
+    }
     if (typeof window !== "undefined") {
       return `${window.location.origin}${pagePath}`;
     }
@@ -77,11 +76,14 @@ export default function Header({
   }, [canonicalUrl, pagePath]);
 
   const computedOgImage = useMemo(() => {
-    if (ogImage) return ogImage;
-    return buildDynamicShareImageUrl(primaryImageId, productName, priceDisplay);
+    return ogImage ?? buildDynamicShareImageUrl(
+      primaryImageId,
+      productName,
+      priceDisplay
+    );
   }, [ogImage, primaryImageId, productName, priceDisplay]);
 
-  const toggleMenu = useCallback(() => setMenuOpen((o) => !o), []);
+  const toggleMenu = useCallback(() => setMenuOpen(o => !o), []);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
@@ -115,250 +117,60 @@ export default function Header({
         <link rel="icon" type="image/webp" href="/adap_favicon.webp" />
         <meta name="theme-color" content="#c62828" />
 
-        {/* Preconnect / preload */}
+        {/* Preconnect & preload */}
         <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="anonymous" />
         {computedOgImage && <link rel="preload" as="image" href={computedOgImage} />}
       </Head>
 
-      <header
-        className="site-header"
-        aria-label="Main header"
-        style={{
-          background: "#c62828",
-          color: "white",
-          borderBottom: "2px solid #1f3f7a",
-          position: "relative",
-          zIndex: 10,
-        }}
-      >
-        <div
-          className="container header-content"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            padding: "8px 0",
-            position: "relative",
-            flexWrap: "nowrap",
-          }}
-        >
-          {/* logo + brand */}
-          <Link
-            href="/"
-            aria-label="Home"
-            onClick={closeMenu}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              textDecoration: "none",
-              flexShrink: 0,
-              color: "white",
-            }}
-          >
-            <div
-              className="logo-wrapper"
-              style={{
-                position: "relative",
-                width: 140,
-                height: 84,
-                flexShrink: 0,
-              }}
-            >
-              <Image
-                src={LOGO_URL}
-                alt={`${SITE_BRAND} logo`}
-                fill
-                sizes="140px"
-                priority
-                style={{ objectFit: "contain" }}
-              />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-              <span style={{ fontWeight: 700, fontSize: "1.25rem" }}>{SITE_BRAND}</span>
-              <span style={{ fontSize: "0.65rem", marginTop: 2 }}>{SITE_TAGLINE}</span>
+      <header className="site-header">
+        <div className="site-header__inner container">
+          {/* Logo / Brand */}
+          <Link href="/" onClick={closeMenu} className="site-header__logo" aria-label="Home">
+            <Image
+              src={LOGO_URL}
+              alt={`${SITE_BRAND} logo`}
+              width={140}
+              height={80}
+              priority
+              className="site-header__logo-image"
+            />
+            <div>
+              <strong>{SITE_BRAND}</strong>
+              <div className="text-xs">{SITE_TAGLINE}</div>
             </div>
           </Link>
 
-          {/* spacer */}
-          <div style={{ flex: 1, minWidth: 120 }} />
-
-          {/* Algolia search bar component */}
-          <div style={{ flex: "0 1 300px", marginRight: 16 }}>
+          {/* Search */}
+          <div className="site-header__search">
             <SearchBar />
           </div>
 
-          {/* action icons */}
-          <div
-            className="nav-actions"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              fontSize: 0,
-            }}
-          >
-            <Link
-              href="/shipping-info"
-              aria-label="Shipping Info"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                padding: "8px 12px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.15)",
-                textDecoration: "none",
-                color: "white",
-                fontSize: "0.85rem",
-              }}
-            >
-              🚚 Shipping Info
-            </Link>
-            <Link
-              href="#"
-              aria-label="Instagram"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.15)",
-                textDecoration: "none",
-                color: "white",
-                fontSize: "1rem",
-              }}
-            >
-              📸
-            </Link>
-            <Link
-              href="#"
-              aria-label="Twitter"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.15)",
-                textDecoration: "none",
-                color: "white",
-                fontSize: "1rem",
-              }}
-            >
-              🐦
-            </Link>
-            <Link
-              href="/search"
-              aria-label="Search"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.15)",
-                textDecoration: "none",
-                color: "white",
-                fontSize: "1rem",
-              }}
-            >
-              🔍
-            </Link>
-            <Link
-              href="/cart"
-              aria-label="Cart"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.15)",
-                textDecoration: "none",
-                color: "white",
-                fontSize: "1rem",
-              }}
-            >
-              🛒
-            </Link>
-            <Link
-              href="/account"
-              aria-label="Account"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "10px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.15)",
-                textDecoration: "none",
-                color: "white",
-                fontSize: "1rem",
-              }}
-            >
-              👤
-            </Link>
+          {/* Icons & Menu Toggle */}
+          <div className="site-header__icons">
+            <Link href="/shipping-info" title="Shipping Info">🚚</Link>
+            <Link href="/search" title="Search">🔍</Link>
+            <Link href="/cart" title="Cart">🛒</Link>
+            <Link href="/account" title="Account">👤</Link>
             <button
-              aria-label="Toggle menu"
-              aria-expanded={menuOpen}
+              className="toggle-btn"
               onClick={toggleMenu}
-              type="button"
-              style={{
-                background: "none",
-                border: "1px solid rgba(255,255,255,0.3)",
-                borderRadius: 6,
-                padding: "8px 12px",
-                cursor: "pointer",
-                color: "white",
-                fontSize: "1rem",
-              }}
+              aria-label="Toggle menu"
             >
               {menuOpen ? "✕" : "☰"}
             </button>
+
           </div>
         </div>
 
-        {/* mobile menu */}
+        {/* Mobile nav */}
         {menuOpen && (
-          <div
-            role="dialog"
-            aria-label="Expanded menu"
-            style={{
-              background: "#ffe5e5",
-              padding: "1rem 1.25rem",
-              borderTop: "1px solid rgba(0,0,0,0.08)",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div
-              className="mobile-links"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                maxWidth: 600,
-                margin: "0 auto",
-              }}
-            >
-              <Link href="/search" onClick={closeMenu} style={{ textDecoration: "none" }}>
-                🔍 Search
-              </Link>
-              <Link href="/cart" onClick={closeMenu} style={{ textDecoration: "none" }}>
-                🛒 Cart
-              </Link>
-              <Link href="/account" onClick={closeMenu} style={{ textDecoration: "none" }}>
-                👤 Account
-              </Link>
-              <Link
-                href="/shipping-info"
-                onClick={closeMenu}
-                style={{ textDecoration: "none" }}
-              >
-                🚚 Shipping Info
-              </Link>
-            </div>
+          <div className="mobile-menu">
+            <nav>
+              <Link href="/search" onClick={closeMenu}>🔍 Search</Link>
+              <Link href="/cart" onClick={closeMenu}>🛒 Cart</Link>
+              <Link href="/account" onClick={closeMenu}>👤 Account</Link>
+              <Link href="/shipping-info" onClick={closeMenu}>🚚 Shipping Info</Link>
+            </nav>
           </div>
         )}
       </header>

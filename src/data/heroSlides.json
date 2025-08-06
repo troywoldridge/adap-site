@@ -1,0 +1,30 @@
+
+[
+  {
+    "id": "1",
+    "imageUrl": "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/f2bddd86-3031-4b86-9696-c264083cdc00/public",
+    "alt": "Premium Business Cards",
+    "title": "Premium Business Cards",
+    "description": "Stand out with our top-quality, full-color business cards.",
+    "ctaText": "Shop Now",
+    "ctaHref": "/products/business-cards"
+  },
+  {
+    "id": "2",
+    "imageUrl": "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/d7a106f9-fa3e-4285-3586-ba4b9baf7500/public",
+    "alt": "Labels & Packaging",
+    "title": "Labels & Packaging",
+    "description": "Custom labels, stickers, and packaging solutions.",
+    "ctaText": "Explore Labels",
+    "ctaHref": "/products/labels-and-packaging"
+  },
+  {
+    "id": "3",
+    "imageUrl": "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/e515858d-13ab-407e-d9c0-882445317400/public",
+    "alt": "Large Format Printing",
+    "title": "Large Format Printing",
+    "description": "Banners, posters & wall graphics that get noticed.",
+    "ctaText": "Go Large",
+    "ctaHref": "/products/large-format"
+  }
+]
