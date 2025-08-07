@@ -1,19 +1,19 @@
+// ─────────────────────────────────────────
 // src/app/page.tsx
-import FeaturedHighlights from "@/components/FeaturedHighlights";
-import FeaturedCategories, { FeaturedCategory } from "@/components/FeaturedCategories";
-import categoryAssets from "@/data/categoryAssets.json";
+// ─────────────────────────────────────────
 import Hero from "@/components/Hero";
+import FeaturedHighlights from "@/components/FeaturedHighlights";
+import FeaturedCategories, {
+  FeaturedCategory,
+} from "@/components/FeaturedCategories";
+
+import categoryAssets from "@/data/categoryAssets.json";
 import {
   PiggyBankIcon,
   RibbonIcon,
   ClockIcon,
   CheckIcon,
 } from "@/components/Icons";
-
- <>
-      <Hero />        {/*  ← should be here, near the top */}
-      {/* …rest of your sections… */}
-    </>
 
 export const metadata = {
   title: "Home",
@@ -22,14 +22,14 @@ export const metadata = {
 };
 
 export default function HomePage() {
-  /* ------- Build “Shop by Category” cards (first 3) ------- */
+  /* Build “Shop by Category” cards (first 3) */
   const categories: FeaturedCategory[] = Object.entries(categoryAssets)
-    .slice(0, 3) // limit to three
+    .slice(0, 3)
     .map(([slug, asset]: any) => ({
       slug,
       name: slug
         .split("-")
-        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .map((w: string) => w[0].toUpperCase() + w.slice(1))
         .join(" "),
       imageUrl: `https://imagedelivery.net/${process.env.NEXT_PUBLIC_CF_ACCOUNT}/${asset.imageId}/${asset.variant}`,
       href: `/category/${slug}`,
@@ -38,19 +38,23 @@ export default function HomePage() {
 
   return (
     <div className="homepage">
-      {/* 1) FEATURED HIGHLIGHTS  */}
+      {/* ─── 0) HERO ─────────────────────────────────────────── */}
+      <Hero />
+
+      {/* ─── 1) FEATURED HIGHLIGHTS ─────────────────────────── */}
       <section className="featured-highlights container">
         <FeaturedHighlights maxItems={3} />
       </section>
 
-      {/* 2) SHOP BY CATEGORY */}
+      {/* ─── 2) SHOP BY CATEGORY ────────────────────────────── */}
       <section className="shop-by-category container">
-        <h2 className="section-title">Shop By Category</h2>
+        <h2 className="section-title">Shop By Featured Categories</h2>
         <FeaturedCategories categories={categories} />
       </section>
 
-      {/* 3) WHY CHOOSE US */}
+      {/* ─── 3) WHY CHOOSE US ───────────────────────────────── */}
       <section className="why-choose-us">
+        <h2 className="section-title">Why Choose Us</h2>
         <div className="container grid-3">
           <div className="why-item">
             <PiggyBankIcon className="why-icon" />
@@ -70,7 +74,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4) OUR PROMISE */}
+      {/* ─── 4) OUR PROMISE ─────────────────────────────────── */}
       <section className="our-promise container">
         <h2 className="section-title">Our Promise To You</h2>
         <div className="promise-grid">

@@ -1,0 +1,1248 @@
+[
+  {
+    "id": 1,
+    "sku": "businesscard_14pt_profit_maximizer",
+    "name": "Business cards 14pt (Profit Maximizer)",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 2,
+    "sku": "businesscard_14pt_aq",
+    "name": "Business Cards 14pt + AQ ",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7,
+    "sku": "businesscard_14pt_uv_high_gloss",
+    "name": "Business Cards 14pt + UV (High Gloss)",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 8,
+    "sku": "businesscard_14pt_matte_satin_aq",
+    "name": "Business cards 14pt + Matte Finish",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 9,
+    "sku": "businesscard_16pt_matte_silk_lamination",
+    "name": "Business cards 18pt Matte / Silk Lamination",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 10,
+    "sku": "businesscard_16pt_gloss_lamination",
+    "name": "Business cards 18pt Gloss Lamination",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 11,
+    "sku": "businesscard_14pt_writable _aq_c1s",
+    "name": "Business cards 14pt Writable + AQ (C1S)",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 12,
+    "sku": "businesscard_14pt_writable_uv_c1s",
+    "name": "Business cards 14pt Writable + UV (C1S)",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 13,
+    "sku": "businesscard_13pt_enviro_uncoated",
+    "name": "Business cards 13pt Enviro Uncoated",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 15,
+    "sku": "businesscard_16pt_aq",
+    "name": "Business cards 16pt + AQ",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 16,
+    "sku": "businesscard_16pt_uv",
+    "name": "Business cards 16pt + UV",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 17,
+    "sku": "businesscard_16pt_matte_satin_aq",
+    "name": "Business cards 16pt + Matte Finish",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 18,
+    "sku": "postcards14pt_aq",
+    "name": "Postcards 14PT + AQ",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 20,
+    "sku": "postcards14pt_uv",
+    "name": "Postcards 14PT + UV",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 23,
+    "sku": "postcards_14pt_matteaq",
+    "name": "Postcards 14PT + Matte Finish",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 24,
+    "sku": "postcards_16pt_mattelam",
+    "name": "Postcards 18PT Matte / Silk Lamination",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 25,
+    "sku": "postcards_16pt_glosslam",
+    "name": "Postcards 18PT Gloss Lamination",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 26,
+    "sku": "postcards_10pt_aq",
+    "name": "Postcards 10PT + AQ",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 27,
+    "sku": "postcards_14ptc1s_aq",
+    "name": "Postcards 14pt Writable + AQ (C1S)",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 28,
+    "sku": "postcards_14ptc1s_uv",
+    "name": "Postcards 14pt Writable + UV (C1S)",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 29,
+    "sku": "postcards_13pt_enviro",
+    "name": "Postcards 13pt Enviro Uncoated",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 30,
+    "sku": "businesscard_16pt_matte_lam_spot_uv",
+    "name": "Business cards 18pt Matte Lam + SPOT UV",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 31,
+    "sku": "businesscard_13pt_linen_uncoated",
+    "name": "Business cards 13pt Linen Uncoated",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 32,
+    "sku": "postcards_16pt_aq",
+    "name": "Postcards 16pt + AQ",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 33,
+    "sku": "postcards_16pt_uv",
+    "name": "Postcards 16pt + UV",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 34,
+    "sku": "postcards_16pt_matteaq",
+    "name": "Postcards 16pt + Matte Finish",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 35,
+    "sku": "postcards_13pt_linen",
+    "name": "Postcards 13pt Linen Uncoated",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 37,
+    "sku": "flyers_100lb_gloss",
+    "name": "Flyers 100lb Gloss Text",
+    "category": "Flyers",
+    "enabled": 1
+  },
+  {
+    "id": 38,
+    "sku": "flyers_100lb_uv",
+    "name": "Flyers 100LB + UV (High Gloss)",
+    "category": "Flyers",
+    "enabled": 1
+  },
+  {
+    "id": 39,
+    "sku": "flyers_100lb_matteaq",
+    "name": "Flyers 100lb + Matte Finish",
+    "category": "Flyers",
+    "enabled": 1
+  },
+  {
+    "id": 40,
+    "sku": "flyers_80lb_enviro",
+    "name": "Flyers 80LB Enviro Uncoated",
+    "category": "Flyers",
+    "enabled": 1
+  },
+  {
+    "id": 41,
+    "sku": "flyers_70lb_linen",
+    "name": "Flyers 70LB Linen Uncoated",
+    "category": "Flyers",
+    "enabled": 1
+  },
+  {
+    "id": 43,
+    "sku": "brochures_100lb_gloss",
+    "name": "Brochures 100LB Gloss Text",
+    "category": "Brochures",
+    "enabled": 1
+  },
+  {
+    "id": 44,
+    "sku": "brochures_100lb_uv",
+    "name": "Brochures 100lb + UV (High Gloss)",
+    "category": "Brochures",
+    "enabled": 1
+  },
+  {
+    "id": 45,
+    "sku": "brochures_100lb_matteaq",
+    "name": "Brochures 100lb + Matte Finish",
+    "category": "Brochures",
+    "enabled": 1
+  },
+  {
+    "id": 46,
+    "sku": "brochures_80lb_enviro",
+    "name": "Brochures 80lb Enviro Uncoated",
+    "category": "Brochures",
+    "enabled": 1
+  },
+  {
+    "id": 48,
+    "sku": "greetingcards_14pt_aq",
+    "name": "Greeting Cards 14pt + AQ",
+    "category": "Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 49,
+    "sku": "greetingcards_14pt_uv",
+    "name": "Greeting Cards 14pt + UV (High Gloss)",
+    "category": "Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 50,
+    "sku": "greetingcards_14pt_matteaq",
+    "name": "Greeting Cards 14pt + Matte Finish",
+    "category": "Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 51,
+    "sku": "greetingcards_14c1s_aq",
+    "name": "Greeting Cards 14pt Writable + AQ (C1S)",
+    "category": "Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 52,
+    "sku": "greetingcards_14ptc1s_uv",
+    "name": "Greeting Cards 14pt Writable + UV (C1S)",
+    "category": "Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 53,
+    "sku": "greetingcards_13pt_enviro",
+    "name": "Greeting Cards 13pt Enviro Uncoated",
+    "category": "Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 54,
+    "sku": "booklets_80lb_85x55",
+    "name": "Booklets 80lb Gloss Text (8.5 x 5.5)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 55,
+    "sku": "booklets_80lb_85x11",
+    "name": "Booklets 80lb Gloss Text (8.5 x 11)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 56,
+    "sku": "booklets_100lb_85x55",
+    "name": "Booklets 100lb Gloss Text (8.5 x 5.5)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 57,
+    "sku": "booklets_100lb_85x11",
+    "name": "Booklets 100lb Gloss Text (8.5 x 11)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 58,
+    "sku": "presentationfolders_14pt_aq",
+    "name": "Presentation Folders 14PT + AQ",
+    "category": "Presentation Folders",
+    "enabled": 1
+  },
+  {
+    "id": 59,
+    "sku": "presentationfolders_14pt_matteaq",
+    "name": "Presentation Folders 14PT + Matte Finish",
+    "category": "Presentation Folders",
+    "enabled": 1
+  },
+  {
+    "id": 60,
+    "sku": "presentationfolders_14pt_uv",
+    "name": "Presentation Folders 14PT + UV (High Gloss)",
+    "category": "Presentation Folders",
+    "enabled": 1
+  },
+  {
+    "id": 62,
+    "sku": "magnets_14pt",
+    "name": "Magnets 14PT",
+    "category": "Magnets",
+    "enabled": 1
+  },
+  {
+    "id": 63,
+    "sku": "calendars_80lb",
+    "name": "Wall Calendars 80LB Gloss Text",
+    "category": "Wall Calendars",
+    "enabled": 1
+  },
+  {
+    "id": 64,
+    "sku": "calendars_100lb",
+    "name": "Wall Calendars 100LB Gloss Text",
+    "category": "Wall Calendars",
+    "enabled": 1
+  },
+  {
+    "id": 65,
+    "sku": "posters_100lb",
+    "name": "Posters 100LB Gloss Text",
+    "category": "Posters",
+    "enabled": 1
+  },
+  {
+    "id": 66,
+    "sku": "posters_100lb_matteaq",
+    "name": "Posters 100LB + Matte Finish",
+    "category": "Posters",
+    "enabled": 1
+  },
+  {
+    "id": 67,
+    "sku": "posters_100lb_uv",
+    "name": "Posters 100LB + UV (High Gloss)",
+    "category": "Posters",
+    "enabled": 1
+  },
+  {
+    "id": 68,
+    "sku": "posters_80lb_enviro",
+    "name": "Posters 80LB Enviro Uncoated",
+    "category": "Posters",
+    "enabled": 1
+  },
+  {
+    "id": 69,
+    "sku": "doorhangers_14pt_aq",
+    "name": "Door Hangers 14PT + AQ",
+    "category": "Door Hangers",
+    "enabled": 1
+  },
+  {
+    "id": 70,
+    "sku": "doorhangers_14pt_uv",
+    "name": "Door Hangers 14PT + UV (High Gloss)",
+    "category": "Door Hangers",
+    "enabled": 1
+  },
+  {
+    "id": 71,
+    "sku": "doorhangers_14pt_matteaq",
+    "name": "Door Hangers 14PT + Matte Finish",
+    "category": "Door Hangers",
+    "enabled": 1
+  },
+  {
+    "id": 72,
+    "sku": "doorhangers_13pt_enviro",
+    "name": "Door Hangers 13PT Enviro Uncoated",
+    "category": "Door Hangers",
+    "enabled": 1
+  },
+  {
+    "id": 75,
+    "sku": "plastic_14pt",
+    "name": "Plastic 14PT",
+    "category": "Plastics",
+    "enabled": 1
+  },
+  {
+    "id": 77,
+    "sku": "clings_transparent",
+    "name": "Clings Transparent",
+    "category": "Clings",
+    "enabled": 1
+  },
+  {
+    "id": 78,
+    "sku": "clings_opaque",
+    "name": "Clings Opaque",
+    "category": "Clings",
+    "enabled": 1
+  },
+  {
+    "id": 80,
+    "sku": "letterheads_60lb",
+    "name": "Letterheads 60LB Uncoated",
+    "category": "Letterhead",
+    "enabled": 1
+  },
+  {
+    "id": 81,
+    "sku": "envelopes_60lb",
+    "name": "Envelopes 60LB Uncoated",
+    "category": "Envelopes",
+    "enabled": 1
+  },
+  {
+    "id": 82,
+    "sku": "notepads_60lb_25pg",
+    "name": "Notepads 60LB Uncoated (25 pages)",
+    "category": "Notepads",
+    "enabled": 1
+  },
+  {
+    "id": 83,
+    "sku": "notepads_60lb_50pg",
+    "name": "Notepads 60LB Uncoated (50 pages)",
+    "category": "Notepads",
+    "enabled": 1
+  },
+  {
+    "id": 96,
+    "sku": "labels_60lb",
+    "name": "60lb slit back label / Stickers",
+    "category": "Square Cut Labels / Stickers",
+    "enabled": 1
+  },
+  {
+    "id": 97,
+    "sku": "4mm_coroplast",
+    "name": "4mm Coroplast (Yard Signs)",
+    "category": "Coroplast Signs & Yard Signs-",
+    "enabled": 1
+  },
+  {
+    "id": 98,
+    "sku": "6mm_coroplast",
+    "name": "6mm Coroplast",
+    "category": "Coroplast Signs & Yard Signs",
+    "enabled": 1
+  },
+  {
+    "id": 99,
+    "sku": "8mm_coroplast",
+    "name": "8mm Coroplast",
+    "category": "Coroplast Signs & Yard Signs",
+    "enabled": 1
+  },
+  {
+    "id": 100,
+    "sku": "4mm_foam",
+    "name": "4mm Foam Board",
+    "category": "Foam Board",
+    "enabled": 1
+  },
+  {
+    "id": 101,
+    "sku": "banners_13oz",
+    "name": "Banners 13oz Glossy Vinyl",
+    "category": "Vinyl Banners",
+    "enabled": 1
+  },
+  {
+    "id": 102,
+    "sku": "banner_matte_13oz",
+    "name": "Banners 13oz Matte Vinyl",
+    "category": "Vinyl Banners",
+    "enabled": 1
+  },
+  {
+    "id": 103,
+    "sku": "pullupbanner_13oz",
+    "name": "Pull Up Banners 13oz Matte Vinyl Silverbase",
+    "category": "Pull Up Banners-",
+    "enabled": 1
+  },
+  {
+    "id": 104,
+    "sku": "carmagnets_30mil",
+    "name": "Car Magnets (30mil)",
+    "category": "Car Magnets",
+    "enabled": 1
+  },
+  {
+    "id": 105,
+    "sku": "largeformatposters_8pt",
+    "name": "Large Format Posters 8pt C2S",
+    "category": "Large Format Posters",
+    "enabled": 1
+  },
+  {
+    "id": 106,
+    "sku": "styrene_20pt",
+    "name": "20pt Styrene",
+    "category": "Styrene Signs",
+    "enabled": 1
+  },
+  {
+    "id": 107,
+    "sku": "displayboard_24pt",
+    "name": "Display Board 24PT",
+    "category": "Display Board / POP",
+    "enabled": 1
+  },
+  {
+    "id": 108,
+    "sku": "displayboard_40pt",
+    "name": "Display Board 40PT",
+    "category": "Display Board / POP",
+    "enabled": 1
+  },
+  {
+    "id": 109,
+    "sku": "canvasroll",
+    "name": "Canvas Roll",
+    "category": "Canvas",
+    "enabled": 1
+  },
+  {
+    "id": 110,
+    "sku": "sintra_3mm",
+    "name": "3mm Sintra",
+    "category": "Sintra/Rigid Board",
+    "enabled": 1
+  },
+  {
+    "id": 111,
+    "sku": "xframe_13oz_matte",
+    "name": "X-Frame Banners 13oz Matte Vinyl",
+    "category": "X-Frame Banners",
+    "enabled": 1
+  },
+  {
+    "id": 112,
+    "sku": "aframe_4mm",
+    "name": "A-Frame Signs 4mm Coroplast",
+    "category": "A-Frame Signs",
+    "enabled": 1
+  },
+  {
+    "id": 117,
+    "sku": "numberedtickets_14pt",
+    "name": "Numbered Tickets 14pt",
+    "category": "Numbered Tickets",
+    "enabled": 0
+  },
+  {
+    "id": 120,
+    "sku": "supplyboxes_office",
+    "name": "Supply Boxes",
+    "category": "Supply Boxes",
+    "enabled": 1
+  },
+  {
+    "id": 121,
+    "sku": "hstand_office",
+    "name": "H Stand ( for signs)",
+    "category": "H Stands for Signs",
+    "enabled": 1
+  },
+  {
+    "id": 122,
+    "sku": "aframestands_office",
+    "name": "A Frame Stands",
+    "category": "A Frame Stands",
+    "enabled": 1
+  },
+  {
+    "id": 123,
+    "sku": "samplekits_office",
+    "name": "Profit Pak (Samples)",
+    "category": "Sample Kits",
+    "enabled": 0
+  },
+  {
+    "id": 124,
+    "sku": "foldedbusinesscards_14pt+uv(highgloss)",
+    "name": "Folded Business Card 14pt + UV (High Gloss)",
+    "category": "Folded Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 125,
+    "sku": "foldedbusinesscards-14pt+matte/satin-aq",
+    "name": "Folded Business Cards 14PT + Matte Finish",
+    "category": "Folded Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 126,
+    "sku": "foldedbusinesscards-13pt-enviro-uncoated",
+    "name": "Folded Business Cards 13PT Enviro Uncoated",
+    "category": "Folded Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 127,
+    "sku": "variableprinting_14pt",
+    "name": "Variable Printing 14PT",
+    "category": "Variable Printing",
+    "enabled": 0
+  },
+  {
+    "id": 129,
+    "sku": "tearcards-14pt+uv",
+    "name": "Tear Cards 14PT + UV",
+    "category": "Tear Cards",
+    "enabled": 1
+  },
+  {
+    "id": 130,
+    "sku": "tearcards-14pt+matte/satin-aq",
+    "name": "Tear Cards 14PT + Matte Finish",
+    "category": "Tear Cards",
+    "enabled": 1
+  },
+  {
+    "id": 132,
+    "sku": "tearcards-13pt+enviro-uncoated",
+    "name": "Tear Cards 13PT + Enviro Uncoated",
+    "category": "Tear Cards",
+    "enabled": 1
+  },
+  {
+    "id": 137,
+    "sku": "digitalsheets-14pt+matte/satin-aq",
+    "name": "Digital Sheets 14pt + Matte Finish",
+    "category": "Digital Sheets",
+    "enabled": 1
+  },
+  {
+    "id": 138,
+    "sku": "digitalsheets-13pt-enviro-uncoated",
+    "name": "Digital Sheets 13pt Enviro Uncoated",
+    "category": "Digital Sheets",
+    "enabled": 1
+  },
+  {
+    "id": 139,
+    "sku": "digitalsheets-100lb-gloss-text",
+    "name": "Digital Sheets 100lb Gloss Text",
+    "category": "Digital Sheets",
+    "enabled": 1
+  },
+  {
+    "id": 141,
+    "sku": "digitalsheets-100lb+matte-aq",
+    "name": "Digital Sheets 100lb + Matte Finish",
+    "category": "Digital Sheets",
+    "enabled": 1
+  },
+  {
+    "id": 142,
+    "sku": "digitalsheets-80lb-enviro-uncoated ",
+    "name": "Digital Sheets 80lb Enviro Uncoated ",
+    "category": "Digital Sheets",
+    "enabled": 1
+  },
+  {
+    "id": 147,
+    "sku": "unaddressed-postcard",
+    "name": "Unaddressed Postcard",
+    "category": "Unaddressed Admail",
+    "enabled": 0
+  },
+  {
+    "id": 148,
+    "sku": "postcard-addressed-postage-included",
+    "name": "Postcard Addressed-Postage Included",
+    "category": "Postcard Addressed",
+    "enabled": 0
+  },
+  {
+    "id": 149,
+    "sku": "postcard-addressed-postage-due",
+    "name": "Postcard Addressed-Postage Due",
+    "category": "Postcard Addressed",
+    "enabled": 0
+  },
+  {
+    "id": 150,
+    "sku": "postcard-enveloped-addressed-postage-included",
+    "name": "Postcard Enveloped and Addressed-Postage Included",
+    "category": "Postcard Enveloped and Addressed",
+    "enabled": 0
+  },
+  {
+    "id": 151,
+    "sku": "postcard-enveloped-addressed-postage-due",
+    "name": "Postcard Enveloped and Addressed-Postage Due",
+    "category": "Postcard Enveloped and Addressed",
+    "enabled": 0
+  },
+  {
+    "id": 155,
+    "sku": "brochure-enveloped-addressed-postage-due ",
+    "name": "Brochure Enveloped and Addressed-Postage Due ",
+    "category": "Brochure Enveloped and Addressed",
+    "enabled": 0
+  },
+  {
+    "id": 156,
+    "sku": "brochure-enveloped-addressed-postage-included  ",
+    "name": "Brochure Enveloped and Addressed-Postage Included  ",
+    "category": "Brochure Enveloped and Addressed",
+    "enabled": 0
+  },
+  {
+    "id": 163,
+    "sku": "postcard_16PT_matte_lam_spot_uv",
+    "name": "Postcard 18pt Matte Lam + SPOT UV",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 202,
+    "sku": "premium_pullupbanner",
+    "name": "Premium Pull Up Banners 13oz Matte Vinyl",
+    "category": "Pull Up Banners",
+    "enabled": 1
+  },
+  {
+    "id": 206,
+    "sku": "window_perforated_vinyl",
+    "name": "Window Perforated Vinyl",
+    "category": "Window Graphics",
+    "enabled": 1
+  },
+  {
+    "id": 4137,
+    "sku": "presentation_folders_14pt_matte_lam",
+    "name": "Presentation Folders Matte Laminated",
+    "category": "Presentation Folders",
+    "enabled": 1
+  },
+  {
+    "id": 4139,
+    "sku": "glossy_adhesive_vinyl",
+    "name": "Glossy Adhesive Vinyl",
+    "category": "Adhesive Vinyl",
+    "enabled": 1
+  },
+  {
+    "id": 4165,
+    "sku": "security_envelopes",
+    "name": "Security Envelopes 60LB Uncoated",
+    "category": "Envelopes",
+    "enabled": 1
+  },
+  {
+    "id": 4902,
+    "sku": "tentcards_14pt_matte_finish",
+    "name": "Tent Cards 14PT + Matte Finish",
+    "category": "Tent Cards",
+    "enabled": 1
+  },
+  {
+    "id": 4904,
+    "sku": "postcards_10pt_matte_finish",
+    "name": "Postcards 10PT + Matte Finish",
+    "category": "Postcards",
+    "enabled": 1
+  },
+  {
+    "id": 5528,
+    "sku": "bookmarks14pt_uv",
+    "name": "Bookmark 14PT + UV",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5529,
+    "sku": "bookmarks_14pt_matteaq",
+    "name": "Bookmark 14PT + Matte Finish",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5530,
+    "sku": "bookmarks_16pt_mattelam",
+    "name": "Bookmark 18PT Matte / Silk Lamination",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5531,
+    "sku": "bookmarks_16pt_glosslam",
+    "name": "Bookmark 18PT Gloss Lamination",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5534,
+    "sku": "bookmarks_14ptc1s_uv",
+    "name": "Bookmark 14pt Writable + UV (C1S)",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5535,
+    "sku": "bookmarks_13pt_enviro",
+    "name": "Bookmark 13pt Enviro Uncoated",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5537,
+    "sku": "bookmarks_16pt_uv",
+    "name": "Bookmark 16pt + UV",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5538,
+    "sku": "bookmarks_16pt_matteaq",
+    "name": "Bookmark 16pt + Matte Finish",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5539,
+    "sku": "bookmarks_13pt_linen",
+    "name": "Bookmark 13pt Linen Uncoated",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5541,
+    "sku": "bookmarks_10pt_matte_finish",
+    "name": "Bookmark 10PT + Matte Finish",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5546,
+    "sku": "bookmark_16PT_matte_lam_spot_uv",
+    "name": "Bookmark 18pt Matte Lam + SPOT UV",
+    "category": "Bookmarks",
+    "enabled": 1
+  },
+  {
+    "id": 5547,
+    "sku": "ncrform3part",
+    "name": "NCR Forms 20lb Uncoated",
+    "category": "NCR Forms",
+    "enabled": 1
+  },
+  {
+    "id": 5557,
+    "sku": "businesscards18ptc1s",
+    "name": "Business Cards 18PT Writable (C1S)",
+    "category": "Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 5585,
+    "sku": "envelopes_60lb_self_adhesive",
+    "name": "Envelopes 60lb (Self-Adhesive)",
+    "category": "Envelopes",
+    "enabled": 1
+  },
+  {
+    "id": 7028,
+    "sku": "bopp_labels",
+    "name": "BOPP Roll Labels",
+    "category": "Roll Labels / Stickers",
+    "enabled": 1
+  },
+  {
+    "id": 7029,
+    "sku": "poly_labels",
+    "name": "Poly Roll Labels",
+    "category": "Roll Labels / Stickers",
+    "enabled": 1
+  },
+  {
+    "id": 7030,
+    "sku": "paper_labels",
+    "name": "Paper Roll Labels",
+    "category": "Roll Labels / Stickers",
+    "enabled": 1
+  },
+  {
+    "id": 7324,
+    "sku": "foil-gold-silver",
+    "name": "Metallic Foil Business Cards",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7326,
+    "sku": "durable-business-cards",
+    "name": "Durable Business Cards",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7332,
+    "sku": "kraft-business-cards",
+    "name": "Kraft Business Cards",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7334,
+    "sku": "pearl-business-cards",
+    "name": "Pearl Business Cards",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7543,
+    "sku": "pearl_paper_postcards",
+    "name": "Pearl Paper Postcards",
+    "category": "Specialty Post Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7544,
+    "sku": "kraft_paper_postcards",
+    "name": "Kraft Paper Postcards",
+    "category": "Specialty Post Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7545,
+    "sku": "metallic_foil_postcards",
+    "name": "Metallic Foil Postcards",
+    "category": "Specialty Post Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7546,
+    "sku": "durable_postcards",
+    "name": "Durable Postcards",
+    "category": "Specialty Post Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7547,
+    "sku": "table_top_pull-up_banners",
+    "name": "Table Top Pull Up Banner 13 oz Matte Vinyl",
+    "category": "Pull Up Banners",
+    "enabled": 1
+  },
+  {
+    "id": 7548,
+    "sku": "premium_wide_pull_up_banners",
+    "name": "Premium Wide Pull Up Banners 13 oz Matte Vinyl",
+    "category": "Pull Up Banners",
+    "enabled": 1
+  },
+  {
+    "id": 7549,
+    "sku": "double_sided_pull_up_banners",
+    "name": "Double Sided Pull Up Banners 13 oz Matte Vinyl",
+    "category": "Pull Up Banners",
+    "enabled": 1
+  },
+  {
+    "id": 7550,
+    "sku": "metallic_foil_greeting_cards",
+    "name": "Metallic Foil Greeting Cards",
+    "category": "Specialty Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7551,
+    "sku": "spot_uv_greeting_cards",
+    "name": "Spot UV Greeting Cards",
+    "category": "Specialty Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7552,
+    "sku": "pearl_paper_greeting_cards",
+    "name": "Pearl Paper Greeting Cards",
+    "category": "Specialty Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7553,
+    "sku": "kraft_paper_greeting_cards",
+    "name": "Kraft Paper Greeting Cards",
+    "category": "Specialty Greeting Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7554,
+    "sku": "mesh_banners_8oz_polyester",
+    "name": "Mesh Banner 8oz Polyester Mesh",
+    "category": "Vinyl Banners",
+    "enabled": 1
+  },
+  {
+    "id": 7555,
+    "sku": "removable-wall_decals_7_mil",
+    "name": "Removable Wall Decals 7 Mil",
+    "category": "Wall Decals",
+    "enabled": 1
+  },
+  {
+    "id": 7557,
+    "sku": "die_cut_business_cards",
+    "name": "Die Cut Business Cards ",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 7567,
+    "sku": "soft_touch_business_cards",
+    "name": "Soft Touch Business Cards",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 14672,
+    "sku": "social-distancing-floor-stickers",
+    "name": "Social Distancing Floor Stickers",
+    "category": "Covid-19-Decals-",
+    "enabled": 1
+  },
+  {
+    "id": 14676,
+    "sku": "floor-graphics",
+    "name": "Floor Graphics",
+    "category": "Floor Graphics",
+    "enabled": 1
+  },
+  {
+    "id": 14678,
+    "sku": "booklets_offset_60lb_85x11",
+    "name": "Booklets 60lb Offset Text (8.5 x 11)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 14679,
+    "sku": "booklets_offset_60lb_85x55",
+    "name": "Booklets 60lb Offset Text (8.5 x 5.5)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 14959,
+    "sku": "cut_to_shape_removable_decals",
+    "name": "Cut to Shape Removable Decals",
+    "category": "White Vinyl",
+    "enabled": 0
+  },
+  {
+    "id": 14960,
+    "sku": "cut_to_shape_permanent_decals",
+    "name": "Cut to Shape Permanent Decals",
+    "category": "White Vinyl",
+    "enabled": 0
+  },
+  {
+    "id": 14972,
+    "sku": "social_distancing_signage",
+    "name": "Social Distancing Signage",
+    "category": "Covid-19-Decals",
+    "enabled": 0
+  },
+  {
+    "id": 14975,
+    "sku": "10mm_coroplast",
+    "name": "10mm Coroplast",
+    "category": "Coroplast Signs & Yard Signs-",
+    "enabled": 1
+  },
+  {
+    "id": 14978,
+    "sku": "3mm-aluminum-signs",
+    "name": "3mm Aluminum Signs",
+    "category": "Aluminum Signs",
+    "enabled": 1
+  },
+  {
+    "id": 14979,
+    "sku": "booklets_80lb_silk_text_85x55",
+    "name": "Booklets 80lb Silk Text (8.5 x 5.5)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 14980,
+    "sku": "booklets_80lb_silk_text_85x11",
+    "name": "Booklets 80lb Silk Text (8.5 x 11)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 14981,
+    "sku": "cut-to-shape-magnets-30mil",
+    "name": "Cut to Shape Magnets (30mil)",
+    "category": "Magnets",
+    "enabled": 1
+  },
+  {
+    "id": 14982,
+    "sku": "booklets_100lb_silk_text_85x55",
+    "name": "Booklets 100lb Silk Text (8.5 x 5.5)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 14983,
+    "sku": "booklets_100lb_silk_text_85x11",
+    "name": "Booklets 100lb Silk Text (8.5 x 11)",
+    "category": "Booklets",
+    "enabled": 1
+  },
+  {
+    "id": 14985,
+    "sku": "cut-to-shape-magnets-20mil",
+    "name": "Cut to Shape Magnets (20mil)",
+    "category": "Magnets",
+    "enabled": 1
+  },
+  {
+    "id": 14987,
+    "sku": "table-covers-6-ft-table",
+    "name": "Table Covers (6 ft Table)",
+    "category": "Table Covers",
+    "enabled": 1
+  },
+  {
+    "id": 14988,
+    "sku": "table-covers-8-ft-table",
+    "name": "Table Covers (8 ft Table)",
+    "category": "Table Covers",
+    "enabled": 1
+  },
+  {
+    "id": 15005,
+    "sku": "invitations-14pt-matte-finish",
+    "name": "Invitations 14pt + Matte Finish",
+    "category": "Invitations",
+    "enabled": 1
+  },
+  {
+    "id": 15006,
+    "sku": "invitations-14pt-writable-aq-C1S",
+    "name": "Invitations 14pt Writable + AQ (C1S)",
+    "category": "Invitations",
+    "enabled": 1
+  },
+  {
+    "id": 15007,
+    "sku": "invitations-14pt-aq",
+    "name": "Invitations 14pt + AQ",
+    "category": "Invitations",
+    "enabled": 1
+  },
+  {
+    "id": 15008,
+    "sku": "invitations-14pt-uv-high-gloss",
+    "name": "Invitations 14pt + UV (High Gloss)",
+    "category": "Invitations",
+    "enabled": 1
+  },
+  {
+    "id": 15010,
+    "sku": "pearl-paper-invitations",
+    "name": "Pearl Paperl Invitations",
+    "category": "Invitations",
+    "enabled": 1
+  },
+  {
+    "id": 15011,
+    "sku": "metallic-foil-invitations",
+    "name": "Metallic Foil Invitations",
+    "category": "Invitations",
+    "enabled": 1
+  },
+  {
+    "id": 15022,
+    "sku": "ultra-smooth-business-cards",
+    "name": "Ultra Smooth Business Cards",
+    "category": "Specialty Business Cards",
+    "enabled": 1
+  },
+  {
+    "id": 15193,
+    "sku": "pullupbanner_13oz_v2",
+    "name": "Pull Up Banners 13oz Matte Vinyl Blackbase (31.5 x 78.75)",
+    "category": "Pull Up Banners",
+    "enabled": 1
+  },
+  {
+    "id": 16930,
+    "sku": "willow_labels",
+    "name": "Willowpack Roll Labels",
+    "category": "Roll Labels / Stickers",
+    "enabled": 0
+  }
+]

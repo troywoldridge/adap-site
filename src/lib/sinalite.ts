@@ -1,130 +1,93 @@
-// src/lib/sinalite.ts
-const SANDBOX = "https://api.sinaliteuppy.com";
-const LIVE    = "https://liveapi.sinalite.com";
-const API_BASE = process.env.NODE_ENV === "production" ? LIVE : SANDBOX;
+// server-only
+import fetch from "node-fetch";
 
-const CLIENT_ID     = process.env.SINALITE_CLIENT_ID!;
-const CLIENT_SECRET = process.env.SINALITE_CLIENT_SECRET!;
-const AUDIENCE      = "https://apiconnect.sinalite.com";
+let _token: string | null = null;
+let _expiresAt = 0;
 
-let _cachedToken: { token: string; expiresAt: number } | null = null;
-
+// 1) get or refresh your access token
 async function getAccessToken(): Promise<string> {
   const now = Date.now() / 1000;
-  if (_cachedToken && _cachedToken.expiresAt - 30 > now) {
-    return _cachedToken.token;
+  if (_token && now < _expiresAt - 60) {
+    return _token;
   }
-  const res = await fetch(`${API_BASE}/auth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      audience: AUDIENCE,
-      grant_type: "client_credentials",
-    }),
-  });
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SINALITE_BASE}/auth/token`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: process.env.SIN_CLIENT_ID,
+        client_secret: process.env.SIN_CLIENT_SECRET,
+        audience: process.env.SIN_AUDIENCE,
+        grant_type: "client_credentials",
+      }),
+    }
+  );
   if (!res.ok) {
-    throw new Error("Sinalite auth failed");
+    throw new Error("Auth failed");
   }
-  const { access_token, token_type, expires_in } = await res.json();
-  _cachedToken = {
-    token: `${token_type} ${access_token}`,
-    expiresAt: now + expires_in,
-  };
-  return _cachedToken.token;
+  // 👇 **Type the response!**
+  type AuthResponse = { access_token: string; expires_in: number; token_type: string };
+  const data = (await res.json()) as AuthResponse;
+  _token = `${data.token_type} ${data.access_token}`;
+  _expiresAt = now + data.expires_in;
+  return _token;
 }
 
-async function authFetch(input: string, init: RequestInit = {}) {
+
+// 2) generic wrapper to Sinalite
+async function sinaliteFetch<T>(
+  path: string,
+  opts: { method?: "GET" | "POST"; body?: any } = {}
+): Promise<T> {
   const token = await getAccessToken();
-  return fetch(input, {
-    ...init,
-    headers: {
-      ...(init.headers || {}),
-      Authorization: token,
-      "Content-Type": "application/json",
-    },
-  });
-}
-
-export interface ProductSummary {
-  id: number;
-  sku: string;
-  name: string;
-  category: string;
-  enabled: number;
-}
-
-export async function listProducts(): Promise<ProductSummary[]> {
-  const res = await authFetch(`${API_BASE}/product`);
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SINALITE_BASE}${path}`,
+    {
+      method: opts.method || "GET",
+      headers: {
+        Authorization: token,
+        "Content-Type": "application/json",
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    }
+  );
   if (!res.ok) {
-    throw new Error("Failed to fetch product list");
+    const err = await res.text();
+    throw new Error(`Sinalite ${path} → ${err}`);
   }
-  return res.json();
+  return (await res.json()) as T;
 }
 
-/**
- * GET /product/{id}/{storeCode}
- * Returns [options[], pricingValues[], metadata[]]
- */
-export async function getProductDetails(
-  id: number,
-  storeCode: string
-): Promise<[any[], any[], any[]]> {
-  const res = await authFetch(`${API_BASE}/product/${id}/${storeCode}`);
-  if (!res.ok) {
-    throw new Error("Failed to fetch product details");
-  }
-  return res.json();
+// 3) list all products (you may not need this if you drill by ID)
+export function getProductList() {
+  return sinaliteFetch<Array<{ id: number; sku: string; name: string }>>(
+    `/product`
+  );
 }
 
-/**
- * POST /price/{id}/{storeCode}
- * { productOptions: number[] }
- */
-export async function priceProduct(
-  id: number,
+// 4) fetch one product’s metadata & available options
+export function getProductDetails(id: string, storeCode: string) {
+  return sinaliteFetch<[Array<{ id: number; group: string; name: string }>, any[], any[]]>(
+    `/product/${id}/${storeCode}`
+  );
+}
+
+// 5) price a particular combination of option-IDs
+export function priceProduct(
+  id: string,
   storeCode: string,
-  optionIds: number[]
-): Promise<{
-  price: string;
-  packageInfo: Record<string, any>;
-  productOptions: Record<string, any>;
-}> {
-  const res = await authFetch(`${API_BASE}/price/${id}/${storeCode}`, {
+  productOptions: Array<number | string>
+) {
+  return sinaliteFetch<{
+    price: string;
+    packageInfo: Record<string, any>;
+    productOptions: Record<string, any>;
+  }>(`/price/${id}/${storeCode}`, {
     method: "POST",
-    body: JSON.stringify({ productOptions: optionIds }),
+    body: { productOptions },
   });
-  if (!res.ok) {
-    throw new Error("Failed to price product");
-  }
-  return res.json();
 }
 
-/**
- * POST /order/shippingEstimate
- */
-export async function shippingEstimate(body: any): Promise<any> {
-  const res = await authFetch(`${API_BASE}/order/shippingEstimate`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error("Failed to fetch shipping estimate");
-  }
-  return res.json();
-}
-
-/**
- * POST /order/new
- */
-export async function placeOrder(body: any): Promise<any> {
-  const res = await authFetch(`${API_BASE}/order/new`, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    throw new Error("Failed to place order");
-  }
-  return res.json();
-}
+export { sinaliteFetch };

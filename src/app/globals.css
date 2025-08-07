@@ -1,399 +1,836 @@
-/* ──────────────────────────────────────────
-   1) RESET & BOX-SIZING
-────────────────────────────────────────── */
+/* =====================================
+   0) RESET & VARIABLES
+   ===================================== */
 *,
 *::before,
 *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0; padding: 0; box-sizing: border-box;
 }
 
-/* ──────────────────────────────────────────
-   2) ROOT TOKENS
-────────────────────────────────────────── */
 :root {
-  /* palette */
-  --color-white:        #fffff2;
-  --color-neutral-1:    #110350;   /* text */
-  --color-neutral-3:    #f9fafb;   /* page bg */
-  --color-primary-2:    #1d4ed8;   /* icons */
-  --color-secondary:    #dc2626;
-  --color-secondary-2:  #b91c1c;
-  --color-gray-200:     #e5e7eb;
-
-  /* spacings */
+  --color-yellow:      #facc15;
+  --color-black:       #111;
+  --color-white:       #fff;
+  --color-blue:        #0047ab;
+  --color-blue-light:  #e5f2ff;
+  --color-gray-200:    #ddd;
+  --color-red:         #B22222;  
+  --color-neutral-1:   #111827;
+  --color-neutral-2:   #4b5563;
+  --color-neutral-3:   #f9fafb;
   --gap-2: 0.5rem;
   --gap-4: 1rem;
   --gap-6: 1.5rem;
   --gap-8: 2rem;
   --gap-10: 2.5rem;
-
-  /* breakpoints */
+  --gap-12: 3rem;
+  --gap-13: 3.5rem;
+  --gap-14: 4rem;
+  --bp-sm: 640px;
   --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
 }
 
-/* ──────────────────────────────────────────
-   3) DOCUMENT BASICS
-────────────────────────────────────────── */
-html,
-body {
+/* =====================================
+   1) BASE TYPE & UTILITIES
+   ===================================== */
+html, body {
   width: 100%;
   min-height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: #110350;
+  font-family: system-ui, sans-serif;
+  color: var(--color-black);
   background: var(--color-neutral-3);
 }
 
-/* helpers you use in JSX */
-.min-h-screen { min-height: 100vh; }
-.container    {
-  width: 100%;
-  max-width: 1280px;
-  margin-inline: auto;
-  padding-inline: var(--gap-4);
+.hidden {
+  display: none !important;
 }
 
-/* ──────────────────────────────────────────
-   4) SITE HEADER
-────────────────────────────────────────── */
+a {
+  color: var(--color-blue);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--bp-xl);
+  margin: 0 auto;
+  padding: 0 var(--gap-4);
+}
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+/* =====================================
+   2) ANNOUNCEMENT BAR + TOP NAV
+   ===================================== */
+.notification-bar {
+  background: var(--color-yellow);
+  color: var(--color-black);
+  text-align: center;
+  font-size: 0.875rem;
+  padding: var(--gap-2);
+  position: sticky; top: 0; z-index: 500;
+}
+
+.top-nav {
+  background: var(--color-black);
+  color: var(--color-white);
+  font-size: 0.875rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gap-4);
+  padding: var(--gap-2) var(--gap-4);
+}
+.top-nav a {
+  color: var(--color-white);
+}
+.top-nav a:hover {
+  text-decoration: underline;
+}
+
+/* =====================================
+   3) HEADER (logo, search, icons)
+   ===================================== */
+
+/* Utility: make `.hidden` truly hidden */
+.hidden {
+  display: none !important;
+}
+
+/* Overall sticky header */
 .site-header {
+  background: var(--color-white);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   position: sticky;
   top: 0;
-  z-index: 100;
-  width: 100%;
-  background: #fffff2;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1);
-  padding-block: 0.75rem;
+  z-index: 400;
+  padding: var(--gap-2) 0;
 }
 
-/* *** THIS was missing → keeps logo / search / icons in one row *** */
+/* Inner flex container */
 .site-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--gap-8);
-  flex-wrap: nowrap;          /* prevent early wrapping */
+  gap: var(--gap-4);
+  max-width: var(--bp-xl);
+  margin: 0 auto;
+  padding: 0 var(--gap-4);
 }
 
-/* logo */
+/* Logo */
 .site-header__logo {
   display: flex;
   align-items: center;
-  gap: var(--gap-1);
-  text-decoration: none;
-  color: inherit;
+  gap: var(--gap-2);
 }
-.site-header__logo-image { height: 100px; width: auto; object-fit: contain; }
+.site-header__logo img {
+  height: 48px;
+  width: auto;
+}
 
-/* search */
+/* Search wrapper */
 .site-header__search {
-  flex: 1 1 100%;
-  max-width: 480px;
-  min-width: 0;               /* KEY: let it shrink */
+  flex: 1 1 auto;      /* grow & shrink */
+  max-width: 500px;
+  min-width: 0;        /* allow shrink on small */
+  position: relative;
 }
-.site-header__search input {
+
+/* Hide Algolia/Tailwind “submit” button */
+.site-header__search button[type="submit"],
+.ais-SearchBox-submit {
+  display: none !important;
+}
+
+/* Search input styling */
+.site-header__search input[type="search"] {
   width: 100%;
   min-width: 0;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 4px;
-  font-size: .9rem;
+  height: 2.5rem;             /* taller input */
+  padding: 0 1rem;            /* comfy horizontal padding */
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.375rem;
 }
-.site-header__search .autocomplete-list { display: none !important; }
-.site-header__search:focus-within .autocomplete-list { display: none !important; }
-.site-header__search .autocomplete-list:hover { display: block; }
 
-/* icons */
+/* Autocomplete dropdown hidden by default */
+.site-header__search > ul,
+.site-header__search > ol {
+  display: none;
+}
+/* Show it on focus/hover */
+.site-header__search:focus-within > ul,
+.site-header__search:focus-within > ol,
+.site-header__search > ul:hover,
+.site-header__search > ol:hover {
+  display: block;
+}
+
+/* Icon group */
 .site-header__icons {
   display: flex;
   align-items: center;
-  gap: calc(var(--gap-4) * 1.3);
+  gap: var(--gap-4);
 }
 .site-header__icons a,
 .site-header__icons button {
-  font-size: 1.25rem;
-  color: var(--color-primary-2);
+  font-size: 1.3rem;
   background: none;
   border: none;
-  padding: 0.25rem;
+  color: var(--color-blue);
   cursor: pointer;
-  transition: color .2s, background .2s;
-}
-.site-header__icons a:hover,
-.site-header__icons button:hover {
-  color: var(--color-secondary);
-  background: var(--color-neutral-3);
-  border-radius: 4px;
+  padding: 0.25rem;
 }
 
-/* hamburger shows only <900 px */
+/* Mobile menu toggle button */
+.site-header__icons button.toggle-btn {
+  display: block;
+}
 @media (min-width: 900px) {
-  .site-header__icons .toggle-btn { display: none; }
+  .site-header__icons button.toggle-btn {
+    display: none;
+  }
 }
 
-/* mobile menu */
-.mobile-menu {
-  background: var(--color-white);
-  border-top: 1px solid var(--color-gray-200);
+
+/* -------------------------------------
+   4) MAIN NAV (horizontal row of icons+labels)
+------------------------------------- */
+.main-nav {
+  background: var(--color-blue);
+  position: sticky;
+  top: calc(var(--gap-2)*3 + 2rem); /* right under header */
+  z-index: 200;
 }
-.mobile-menu nav {
+/* -------------------------------------
+   MAIN NAV (text + dividers)
+------------------------------------- */
+.main-nav .inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0; /* we’ll handle spacing with padding on items */
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--gap-4) var(--gap-4);
+  background: var(--color-blue);
+  position: sticky;
+  top: calc(var(--gap-2)*3 + 2rem);
+  z-index: 200;
+}
+
+.main-nav__item {
+  color: var(--color-white);
+  text-decoration: none;
+  font-size: 0.875rem;
+  padding: 0 var(--gap-4);
+  position: relative;
+}
+
+/* insert “|” after every link except the last */
+.main-nav__item:not(:last-child)::after {
+  content: "|";
+  position: absolute;
+  right: 0;
+  color: var(--color-white);
+}
+
+/* spacing so text doesn’t bump the divider */
+.main-nav__item {
+  padding-right: calc(var(--gap-8) * 2);
+}
+
+.main-nav__item:last-child {
+  padding-right: var(--gap-3);
+}
+
+.main-nav__item:hover {
+  text-decoration: underline;
+}
+
+.main-nav a {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-4);
-  padding: var(--gap-6);
-  text-align: center;
+  align-items: center;
+  color: var(--color-white);
+  text-decoration: none;
+  font-size: 0.875rem;
+  gap: 0.25rem;
 }
-.mobile-menu a { font-weight: 600; color: var(--color-primary-2); }
-.mobile-menu a:hover { color: var(--color-secondary-2); text-decoration: underline; }
-
-/* hide mobile menu in desktop */
-@media (min-width: 600px) { .mobile-menu { display: none; } }
-
-/* small-screen: allow wrapping *after* logo + icons stay fixed width */
-@media (max-width: 500px) {
-  .site-header__inner { flex-wrap: wrap; }
-  .site-header__search { flex: 1 1 100%; margin-top: var(--gap-4); }
+.main-nav a:hover {
+  text-decoration: underline;
 }
 
-/* push page content below sticky header (optional) */
-body > .site-header + * { margin-top: var(--gap-6); }
-
-/* ──────────────────────────────────────────
-   5) FEATURED-CATEGORY GRID
-────────────────────────────────────────── */
-section.shop-by-category { padding-block: calc(var(--gap-8) * 1.5); }
-section.shop-by-category h2 { margin-bottom: var(--gap-8); }
-
-.category-grid {
-  list-style: none;
+/* -------------------------------------
+   MAIN NAV (site-secondary-nav)
+------------------------------------- */
+.site-secondary-nav {
+  background: var(--color-blue);
+  position: sticky;
+  top: calc(var(--gap-2)*3 + 2rem); /* right under the header */
+  z-index: 300;
+}
+.site-secondary-nav .inner {
+  max-width: var(--bp-xl);
   margin: 0 auto;
-  max-width: 1100px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  display: flex;
+  align-items: center;
+  padding: var(--gap-2) var(--gap-4);
+}
+.site-secondary-nav ul {
+  display: flex;
   gap: var(--gap-6);
+  list-style: none;
+  margin: 0;
   padding: 0;
 }
 
-.category-card {
-  background: #fffff2;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,.08);
-  overflow: hidden;
-  transition: transform .18s, box-shadow .18s;
-}
-.category-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 8px 16px rgba(0,0,0,.10);
-}
-.category-card__image-wrap {
-  position: relative;
-  width: 100%;
-  padding-bottom: 75%;   /* 4:3 */
-}
-.category-card__image { object-fit: cover; }
-
-.category-card__title {
-  padding: 1rem 0.5rem;
-  font-weight: 600;
-  text-align: center;
-  font-size: 1rem;
-  color: var(--color-neutral-1);
-}
-
-
-/* ------------------------------------------
-   WHY CHOOSE US  3-up grid (no cards)
-------------------------------------------*/
-
-/* generic 3-column helper (mobile-first) */
-.grid-3{
-  display:grid;
-  grid-template-columns:1fr;         /* 1 col on phones   */
-  gap:var(--gap-8);
-  text-align:center;
-}
-@media (min-width:640px){ .grid-3{ grid-template-columns:repeat(2,1fr);} }
-@media (min-width:900px){ .grid-3{ grid-template-columns:repeat(3,1fr);} }
-
-/* item—now just inline content, no “card” chrome */
-.why-item{
-  padding:0;               /* remove card padding */
-  background:none;         /* no white box */
-  box-shadow:none;         /* no shadow */
-}
-
-/* icon + copy */
-.why-icon{
-  width:3rem;
-  height:3rem;
-  margin-bottom:var(--gap-4);
-  color:var(--color-primary-2);
-}
-.why-item h3{
-  font-weight:600;
-  margin-bottom:0.5rem;
-}
-.why-item p{
-  font-size:0.925rem;
-  color:var(--color-neutral-2);
-}
-
-/* ------------------------------------------
-   OUR PROMISE  – 3 bullets with check-icons
-------------------------------------------*/
-
-/* wrapper around the three items               */
-.promise-grid {
-  display: grid;
-  grid-template-columns: 1fr;               /* 1 col on phones   */
-  gap: var(--gap-6);
-  margin-top: var(--gap-6);
-}
-@media (min-width: 640px)  { .promise-grid { grid-template-columns: repeat(2,1fr); } }
-@media (min-width: 900px)  { .promise-grid { grid-template-columns: repeat(3,1fr); } }
-
-/* each bullet                                  */
-.promise-item{
+.site-secondary-nav a {
   display: flex;
-  align-items: flex-start;
-  gap: var(--gap-4);
+  flex-direction: column;
+  align-items: center;
+  color: var(--color-white);
+  font-size: 0.875rem;
+  text-decoration: none;
+  gap: 0.25rem;
+}
+.site-secondary-nav a:hover {
+  text-decoration: underline;
 }
 
-/* icon size / color                           */
-.promise-icon{
-  width: 2.5rem;
-  height: 4.0rem;
-  flex: 0 0 auto;
-  margin-top: 0%;                      /* nudge down a touch */
-  color: #10b981;                           /* Tailwind’s green-500 */
+
+/* -------------------------------------
+   5) SUPPORT BANNER (icon + text row)
+------------------------------------- */
+.support-banner {
+  background: var(--color-white);
+  border-top: 1px solid var(--color-gray-200);
+  border-bottom: 1px solid var(--color-gray-200);
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: var(--gap-4) 0;
+}
+.support-banner a {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-2);
+  color: var(--color-black);
+  text-decoration: none;
+  font-weight: 500;
+}
+.support-banner a:hover {
+  text-decoration: underline;
 }
 
-/* text                                         */
-.promise-item p{
-  font-size: 1.1rem;
-  line-height: 4rem;
-  color: var(--color-neutral-1);
+/* -------------------------------------
+   6) HERO SECTION (contained, fixed height)
+------------------------------------- */
+.hero {
+  margin: var(--gap-8) 0;
 }
 
-/* heading helper (optional – keeps consistency)*/
-.section-title{
-  text-align: center;
-  font-weight: 700;
-  font-size: 1.5rem;
-  margin-top: 1rem;
-  margin-bottom: .50
-  rem;
+.hero__wrapper {
+  position: relative;
+  max-width: 1200px;          /* center & cap width */
+  height: 300px;              /* mobile height */
+  margin: 0 auto;             /* horizontal centering */
+  overflow: hidden;
+  border-radius: 0.75rem;
+  box-shadow:
+    0 10px 15px -3px rgba(0,0,0,0.1),
+    0 4px 6px  -2px rgba(0,0,0,0.05);
 }
 
-section.our-promise{
-  padding-top: var(--gap-8);   /* = 2 rem with the variables you’re using */
+@media (min-width: 768px) {
+  .hero__wrapper {
+    height: 450px;            /* tablet+ height */
+  }
 }
 
-/* ==================================================
-   HERO  SECTION
-   ================================================= */
-
-/* ---- each slide ---- */
+/* slide positioning & fade */
 .hero__slide {
   position: absolute;
   inset: 0;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .7s ease-in-out;
+  transition: opacity 0.7s ease-in-out;
 }
 .hero__slide.is-active {
   opacity: 1;
   pointer-events: auto;
-  z-index: 5;
+  z-index: 1;
 }
 
-/* full-bleed image */
-.hero__img { object-fit: cover; }
+/* full-bleed background image */
+.hero__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 75%;
+  object-fit: contain;         /* <-- change here */
+  object-position: calc(100% - 8rem) center;
+  background: transparent;     /* optional: letterbox bg */
+  z-index: 0;
+}
 
-/* dark overlay */
+/* dimming overlay */
 .hero__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,.35);
+  background: --color-neutral-3;
+  z-index: 1;
 }
 
-/* ---- slide content ---- */
+/* text container */
 .hero__content {
   position: relative;
-  z-index: 10;
+  z-index: 2;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 var(--gap-4);
-  max-width: 760px;
+  padding-left: calc(var(--gap-4) * 3);
+  padding-right: calc(var(--gap-4) * 2);
+  max-width: 600px;
+  color: var(--color-blue);
 }
 @media (min-width: 1024px) {
-  .hero__content { padding: 0 var(--gap-8); }
+  .hero__content {
+    padding: 0 var(--gap-8);
+  }
 }
+
+/* heading & paragraph */
 .hero__title {
-  color: #fff;
+  font-size: 1.75rem;
   font-weight: 800;
-  font-size: 2rem;
   margin-bottom: var(--gap-4);
 }
-@media (min-width: 768px) { .hero__title { font-size: 3rem; } }
+@media (min-width: 768px) {
+  .hero__title { font-size: 2.5rem; }
+}
 
 .hero__desc {
-  color: #dbeafe; /* light-blue */
   font-size: 1.125rem;
   margin-bottom: var(--gap-6);
+  color: var(--color-blue);
 }
 
-/* ---- arrows ---- */
-.hero__arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255,255,255,.85);
-  color: var(--color-neutral-1);
-  font-size: 1.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,.15);
-  transition: background .2s;
-  z-index: 20;
+/* -------------------------------------
+   HERO CTA BUTTON
+------------------------------------- */
+.hero__cta {
+  display: block;                       /* shrink-wrap around its own size */
+  width: max-content;                   /* ditto */
+  margin: var(--gap-4) 0 0;             /* only vertical + right margin */
+  /* now nudge the button into place:
+     50% = start in the horizontal center of the container
+    -80px = pull it back to the left by 80px (adjust as needed) */
+  margin-left: calc(50% - 120px);
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--color-blue);
+  border-radius: 0.5rem;
+  text-align: center;
+  color: var(--color-red);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s;
 }
-.hero__arrow:hover { background: #fff; }
-.hero__arrow--prev { left: var(--gap-4);  }
-.hero__arrow--next { right: var(--gap-4); }
 
-/* ---- dots ---- */
+.hero__cta:hover,
+.hero__cta:focus {
+  background-color: var(--color-blue);
+  color: var(--color-white);
+}
+
+
+
+/* pagination dots */
 .hero__dots {
   position: absolute;
   bottom: var(--gap-4);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: .5rem;
-  z-index: 20;
+  gap: 0.5rem;
+  z-index: 2;
 }
 .hero__dot {
-  width: 10px;
-  height: 10px;
+  width: 15px;
+  height: 15px;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: rgba(255,255,255,.6);
+   background: var(--color-yellow);
   cursor: pointer;
-  transition: transform .2s, background .2s;
+  transition: background 0.2s, transform 0.2s;
 }
 .hero__dot.is-active {
-  background: #fff;
-  transform: scale(1.15);
-  box-shadow: 0 0 4px rgba(0,0,0,.3);
+  background: var(--color-red);
+  transform: scale(1.2);
 }
 
 
+/* =====================================
+   7) FEATURED HIGHLIGHTS
+   ===================================== */
+.featured-highlights {
+  display: grid;
+  grid-template-columns: repeat( auto-fit, minmax(260px, 1fr) );
+  gap: var(--gap-6);
+  margin-bottom: var(--gap-8);
+}
+
+/* =====================================
+   8) SHOP BY CATEGORY
+   ===================================== */
+section.shop-by-category {
+  padding: var(--gap-8) 0;
+}
+
+/* Center the section title */
+section.shop-by-category .section-title {
+  text-align: center;
+  margin: 0 auto var(--gap-6);
+  font-size: 2.5rem; 
+  max-width: 600px;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat( auto-fit, minmax(260px, 1fr) );
+  gap: var(--gap-6);
+  margin-top: var(--gap-4);
+  list-style: none;
+  padding: 0;
+}
+.category-card {
+  background: var(--color-white);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.category-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 6px 12px rgba(0,0,0,0.10);
+}
+.category-card__image-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 75%;
+}
+.category-card__image {
+  object-fit: cover;
+}
+.category-card__title {
+  padding: var(--gap-4);
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-neutral-1);
+  font-size: 1rem;
+}
+
+/* =====================================
+   9) WHY CHOOSE US & OUR PROMISE
+   ===================================== */
+
+/* 3-up grid utility (📱→1, ≥640px→2, ≥900px→3) */
+.grid-3 {
+  display: grid;
+  gap: var(--gap-6);
+  text-align: center;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* -------------------------------------
+   Why Choose Us Section & Title
+------------------------------------- */
+
+/* ensure the section itself gets some top/bottom padding */
+.why-choose-us {
+  padding: var(--gap-8) 0;
+  margin-bottom: var(--gap-12); /* existing bottom spacing */
+}
+
+/* style the <h2> (or whatever you used) inside it */
+.why-choose-us .section-title,
+.why-choose-us h2 {
+  font-size: 1.875rem;      /* 30px */
+  line-height: 2.25rem;     /* 36px */
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: var(--gap-6);
+  color: var(--color-neutral-1);
+}
+
+/* -------------------------------------
+   Our Promise To You
+------------------------------------- */
+.our-promise {
+  margin-top: var(--gap-12);
+  margin-bottom: var(--gap-12);
+}
+.our-promise .section-title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: var(--gap-8);
+}
+.promise-grid {
+  display: grid;
+  gap: var(--gap-6);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .promise-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.promise-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-4);
+  background: var(--color-neutral-3);
+  padding: var(--gap-6) var(--gap-4);
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0);
+}
+.promise-icon {
+  font-size: 1.5rem;
+  color: var(--color-blue);
+  margin-top: 0.25rem;
+}
+
+
+/* -------------------------------------
+   6) FOOTER
+   ------------------------------------- */
+.site-footer {
+  background: var(--color-blue);
+  color: var(--color-white);
+  padding: var(--gap-8) 0;
+}
+
+.footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--gap-4);
+  display: grid;
+  grid-template-columns:
+    auto            /* logo */
+    minmax(180px, 1fr) /* hours+social */
+    minmax(160px, 1fr) /* “SinaLite” links */
+    minmax(160px, 1fr) /* “Our Services” links */
+    minmax(160px, 1fr) /* “Resources” links */
+  ;
+  gap: var(--gap-8);
+  align-items: start;
+}
+
+/* logo */
+.footer-logo img,
+.site-footer__logo img {
+  width: 200px;      /* bump this to whatever looks right */
+  height: auto;      /* maintain aspect ratio */
+  object-fit: contain;
+  display: block;
+  margin-bottom: var(--gap-4);
+}
+
+/* business hours */
+.footer-hours h3 {
+  font-size: 1.25rem;
+  margin-bottom: var(--gap-4);
+}
+
+.footer-hours p {
+  margin-bottom: var(--gap-2);
+  font-size: 0.875rem;
+}
+
+.footer-hours .phone {
+  margin-top: var(--gap-4);
+  font-weight: 600;
+}
+
+.footer-hours .phone a {
+  color: var(--color-white);
+  text-decoration: none;
+}
+
+.footer-hours .phone a:hover {
+  text-decoration: underline;
+}
+
+/* social icons */
+.social {
+  margin-top: var(--gap-6);
+}
+
+.social p {
+  margin-bottom: var(--gap-2);
+  font-size: 0.875rem;
+}
+
+.social-icons {
+  display: flex;
+  gap: var(--gap-4);
+}
+
+.social-icons img {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+/* link columns */
+.footer-links h3 {
+  font-size: 1.25rem;
+  margin-bottom: var(--gap-4);
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links li {
+  margin-bottom: var(--gap-2);
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: text-decoration 0.2s;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+/* vertical divider to left of the “SinaLite” column */
+.footer-divider {
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  padding-left: var(--gap-8);
+}
+
+.social-icons a {
+  color: var(--color-white);
+  font-size: 1.25rem;
+  transition: color 0.2s;
+}
+.social-icons a:hover {
+  color: var(--color-yellow);
+}
+.social-icons a + a {
+  margin-left: var(--gap-4);
+}
+
+/* ===========================================================================
+   CATEGORY LANDING PAGE
+   =========================================================================== */
+
+/* ========================================================
+   CATEGORY LANDING PAGE STYLES
+   ======================================================== */
+
+/* 1) Intro section */
+.category-intro {
+  text-align: center;
+  margin: var(--gap-8) 0;
+}
+.category-intro__desc {
+  max-width: 600px;
+  margin: var(--gap-2) auto 0;
+  color: var(--color-neutral-2);
+}
+
+/* 2) Subcategory grid wrapper */
+.subcategory-grid {
+  display: grid;
+  gap: var(--gap-6);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  justify-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* 3) Card */
+.subcategory-card {
+  width: 100%;
+  max-width: 280px;
+  background-color: var(--color-white);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.subcategory-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.10);
+}
+
+/* 4) Image container (4:3 aspect) */
+.subcategory-card__image-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 75%; /* 4:3 aspect ratio */
+}
+.subcategory-card__image {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+/* 5) Title & description */
+.subcategory-card__title {
+  padding: var(--gap-4) var(--gap-4) 0;
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-align: center;
+  color: var(--color-neutral-1);
+}
+.subcategory-card__desc {
+  padding: 0 var(--gap-4) var(--gap-4);
+  font-size: 1rem;
+  color: var(--color-neutral-2);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* 6) “Browse” button */
+.subcategory-card__btn {
+  display: inline-block;
+  margin: 0 0 var(--gap-4);
+  padding: var(--gap-2) var(--gap-4);
+  border: 2px solid var(--color-primary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.subcategory-card__btn:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
