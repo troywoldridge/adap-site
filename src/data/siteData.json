@@ -1,0 +1,481 @@
+{
+  "categories": [
+    {
+      "id": null,
+      "name": "undefined",
+      "slug": "undefined",
+      "image": null,
+      "subcategories": [
+        {
+          "id": null,
+          "name": "standard_business_cards",
+          "slug": "standardbusinesscards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "specialty_business-cards",
+          "slug": "specialtybusiness-cards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "specialty_invitations",
+          "slug": "specialtyinvitations",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "standard_invitations",
+          "slug": "standardinvitations",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "wall_calendars",
+          "slug": "wallcalendars",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "cut_to_shape_magnets",
+          "slug": "cuttoshapemagnets",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "standard_flyers",
+          "slug": "standardflyers",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "specialty_flyers",
+          "slug": "specialtyflyers",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "standard_greeting_cards",
+          "slug": "standardgreetingcards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "specialty_greeting_cards",
+          "slug": "specialtygreetingcards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "standard_postcards",
+          "slug": "standardpostcards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "specialty_postcards",
+          "slug": "specialtypostcards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Postcard-addressed-postage-due",
+          "slug": "postcard-addressed-postage-due",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "postcard-enveloped-and-addressed-postage-included",
+          "slug": "postcard-enveloped-and-addressed-postage-included",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Unaddressed-postcard",
+          "slug": "unaddressed-postcard",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "standard_bookmark",
+          "slug": "standardbookmark",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "specialty_bookmark",
+          "slug": "specialtybookmark",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Standard-rack-cards",
+          "slug": "standard-rack-cards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "standard_tear_cards",
+          "slug": "standardtearcards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "posters",
+          "slug": "posters",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "door_hangers",
+          "slug": "doorhangers",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "brochures",
+          "slug": "brochures",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Brochure-enveloped-and-addressed-postage-due",
+          "slug": "brochure-enveloped-and-addressed-postage-due",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Brochure-enveloped-and-addressed-postage-included",
+          "slug": "brochure-enveloped-and-addressed-postage-included",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "magnets",
+          "slug": "magnets",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "booklets",
+          "slug": "booklets",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Digital-sheets",
+          "slug": "digital-sheets",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "variable_printing",
+          "slug": "variableprinting",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "presentation_folders",
+          "slug": "presentationfolders",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Canvas",
+          "slug": "canvas",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "plastic",
+          "slug": "plastic",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "clings_transparent",
+          "slug": "clingstransparent",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "clings_opaque",
+          "slug": "clingsopaque",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "tent_cards",
+          "slug": "tentcards",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "notepads_50_pages",
+          "slug": "notepads50pages",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Notepads_25_pages",
+          "slug": "notepads25pages",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "number_tickets",
+          "slug": "numbertickets",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "banners",
+          "slug": "banners",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "pull_up_banners",
+          "slug": "pullupbanners",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "x_frame_banners",
+          "slug": "xframebanners",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "4mm_foam_board",
+          "slug": "4mmfoamboard",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "a_frame_signs",
+          "slug": "aframesigns",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "Cut-to-shape-permanent-decals",
+          "slug": "cut-to-shape-permanent-decals",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "cut_shape_removable_decals",
+          "slug": "cutshaperemovabledecals",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "3mm-aluminum-signs_1",
+          "slug": "3mm-aluminum-signs1",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "table_covers",
+          "slug": "tablecovers",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "car-magnets-30mil_2",
+          "slug": "car-magnets-30mil2",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "coroplast",
+          "slug": "coroplast",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "removable_wall_decals",
+          "slug": "removablewalldecals",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "3mm-sintra",
+          "slug": "3mm-sintra",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "floor_graphics",
+          "slug": "floorgraphics",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "20pt_styrene",
+          "slug": "20ptstyrene",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "glossy_adhesive_vinyl",
+          "slug": "glossyadhesivevinyl",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "large-format-posters",
+          "slug": "large-format-posters",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "window_perforated_vinyl",
+          "slug": "windowperforatedvinyl",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "h_stands",
+          "slug": "hstands",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "display_board_24pt",
+          "slug": "displayboard24pt",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "a_frame_stands",
+          "slug": "aframestands",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "envelopes",
+          "slug": "envelopes",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "letterhead",
+          "slug": "letterhead",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "ncr_forms",
+          "slug": "ncrforms",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "roll_labels",
+          "slug": "rolllabels",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "packaging",
+          "slug": "packaging",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "stickers",
+          "slug": "stickers",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "4mm_foam_board",
+          "slug": "4mmfoamboard",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "promotional_main",
+          "slug": "promotionalmain",
+          "image": null,
+          "products": []
+        },
+        {
+          "id": null,
+          "name": "sample_pack",
+          "slug": "samplepack",
+          "image": null,
+          "products": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,97 +1,62 @@
-// ─────────────────────────────────────────
-// src/app/page.tsx
-// ─────────────────────────────────────────
+import { getCategories } from "@/lib/sinalite.client";
+import { mergeCategory } from "@/lib/mergeUtils";
 import Hero from "@/components/Hero";
-import FeaturedHighlights from "@/components/FeaturedHighlights";
-import FeaturedCategories, {
-  FeaturedCategory,
-} from "@/components/FeaturedCategories";
+import CategoryGrid from "@/components/CategoryGrid";
+import type { Metadata } from "next";
 
-import categoryAssets from "@/data/categoryAssets.json";
-import {
-  PiggyBankIcon,
-  RibbonIcon,
-  ClockIcon,
-  CheckIcon,
-} from "@/components/Icons";
-
-export const metadata = {
-  title: "Home",
+// 1. SEO & Social Metadata
+export const metadata: Metadata = {
+  title: "Premium Print Products | American Design And Printing",
   description:
-    "Your one-stop for trade printing—business cards, banners, invitations, and more.",
+    "Discover top-quality print and promotional products. Shop business cards, brochures, banners & more—powered by Sinalite. Fast shipping. Amazing prices.",
+  openGraph: {
+    title: "Premium Print Products | American Design And Printing",
+    description:
+      "Shop business cards, postcards, signs, and custom print products—delivered with lightning-fast turnaround!",
+    url: "https://americandesignandprinting.com/",
+    siteName: "American Design And Printing",
+    images: [
+      {
+        url: "https://imagedelivery.net/<YOUR_CLOUDFLARE_HASH>/<YOUR_HERO_IMAGE_ID>/public",
+        width: 1200,
+        height: 630,
+        alt: "American Design And Printing - Premium Print Products",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Premium Print Products | American Design And Printing",
+    description: "Shop premium print & promo with blazing-fast shipping.",
+    images: [
+      "https://imagedelivery.net/<YOUR_CLOUDFLARE_HASH>/<YOUR_HERO_IMAGE_ID>/public",
+    ],
+  },
 };
 
-export default function HomePage() {
-  /* Build “Shop by Category” cards (first 3) */
-  const categories: FeaturedCategory[] = Object.entries(categoryAssets)
-    .slice(0, 3)
-    .map(([slug, asset]: any) => ({
-      slug,
-      name: slug
-        .split("-")
-        .map((w: string) => w[0].toUpperCase() + w.slice(1))
-        .join(" "),
-      imageUrl: `https://imagedelivery.net/${process.env.NEXT_PUBLIC_CF_ACCOUNT}/${asset.imageId}/${asset.variant}`,
-      href: `/category/${slug}`,
-      description: asset.description,
-    }));
+// 2. The Actual Page (Server Component)
+export default async function HomePage() {
+  const storeCode = process.env.NEXT_PUBLIC_STORE_CODE;
+  if (!storeCode) {
+    return (
+      <main className="container py-10">
+        <h1 className="text-red-700 font-bold text-2xl">Missing Store Code!</h1>
+        <p>
+          Please set <code>NEXT_PUBLIC_STORE_CODE</code> in your environment.
+        </p>
+      </main>
+    );
+  }
+
+  const categories = await getCategories(storeCode);
+  const mergedCategories = categories.map(mergeCategory);
 
   return (
-    <div className="homepage">
-      {/* ─── 0) HERO ─────────────────────────────────────────── */}
+    <main>
       <Hero />
-
-      {/* ─── 1) FEATURED HIGHLIGHTS ─────────────────────────── */}
-      <section className="featured-highlights container">
-        <FeaturedHighlights maxItems={3} />
-      </section>
-
-      {/* ─── 2) SHOP BY CATEGORY ────────────────────────────── */}
-      <section className="shop-by-category container">
-        <h2 className="section-title">Shop By Featured Categories</h2>
-        <FeaturedCategories categories={categories} />
-      </section>
-
-      {/* ─── 3) WHY CHOOSE US ───────────────────────────────── */}
-      <section className="why-choose-us">
-        <h2 className="section-title">Why Choose Us</h2>
-        <div className="container grid-3">
-          <div className="why-item">
-            <PiggyBankIcon className="why-icon" />
-            <h3>Low Trade Pricing</h3>
-            <p>Make more money with our exclusive trade discounts.</p>
-          </div>
-          <div className="why-item">
-            <RibbonIcon className="why-icon" />
-            <h3>One-Stop Shop</h3>
-            <p>Everything from business cards to banners.</p>
-          </div>
-          <div className="why-item">
-            <ClockIcon className="why-icon" />
-            <h3>Fast Turnaround</h3>
-            <p>On-time delivery so you never miss a deadline.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 4) OUR PROMISE ─────────────────────────────────── */}
-      <section className="our-promise container">
-        <h2 className="section-title">Our Promise To You</h2>
-        <div className="promise-grid">
-          <div className="promise-item">
-            <CheckIcon className="promise-icon" />
-            <p>On-time delivery anywhere in the USA</p>
-          </div>
-          <div className="promise-item">
-            <CheckIcon className="promise-icon" />
-            <p>No hidden costs, no delays, no paperwork</p>
-          </div>
-          <div className="promise-item">
-            <CheckIcon className="promise-icon" />
-            <p>24/7 live order tracking</p>
-          </div>
-        </div>
-      </section>
-    </div>
+      <CategoryGrid categories={mergedCategories} />
+    </main>
   );
 }
