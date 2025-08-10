@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, integer, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, integer, text, boolean, timestamp, uuid, jsonb, numeric } from "drizzle-orm/pg-core";
 
 // Artwork Uploads Table
 export const artworkUploads = pgTable("artwork_uploads", {
@@ -26,28 +26,23 @@ export const orders = pgTable("orders", {
 export const orderSessions = pgTable("order_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: varchar("user_id", { length: 64 }),
-
   productId: varchar("product_id", { length: 64 }).notNull(),
-  options: jsonb("options").$type<(number | string)[]>().default([]).notNull(),
-  files: jsonb("files").$type<{ type: string; url: string }[]>().default([]).notNull(),
-
+  // For regular products: array of option ids; for roll-labels: an object
+  options: jsonb("options").$type<(number | string)[] | Record<string, any>>().notNull().default([]),
+  files: jsonb("files").$type<{ type: string; url: string }[]>().notNull().default([]),
   shippingInfo: jsonb("shipping_info").$type<Record<string, any> | null>(),
   billingInfo: jsonb("billing_info").$type<Record<string, any> | null>(),
-
-  currency: varchar("currency", { length: 8 }).default("USD").notNull(),
-  subtotal: numeric("subtotal").default("0").notNull(),
-  tax: numeric("tax").default("0").notNull(),
-  discount: numeric("discount").default("0").notNull(),
-  total: numeric("total").default("0").notNull(),
-
+  trackingUrl: varchar("tracking_url", { length: 255 }),
+  currency: varchar("currency", { length: 8 }).notNull().default("USD"),
+  subtotal: numeric("subtotal").notNull().default("0"),
+  tax: numeric("tax").notNull().default("0"),
+  discount: numeric("discount").notNull().default("0"),
+  total: numeric("total").notNull().default("0"),
   selectedShippingRate: jsonb("selected_shipping_rate").$type<[string, string, number, number] | null>(),
-
   stripeCheckoutSessionId: varchar("stripe_checkout_session_id", { length: 128 }),
   stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 128 }),
   sinaliteOrderId: varchar("sinalite_order_id", { length: 64 }),
-
   notes: text("notes"),
-
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

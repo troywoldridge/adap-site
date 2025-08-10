@@ -1,0 +1,1 @@
+ALTER TABLE "order_sessions" ADD COLUMN "tracking_url" varchar(255);

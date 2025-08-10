@@ -1,0 +1,21 @@
+CREATE TABLE "order_sessions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" varchar(64),
+	"product_id" varchar(64) NOT NULL,
+	"options" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"files" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"shipping_info" jsonb,
+	"billing_info" jsonb,
+	"currency" varchar(8) DEFAULT 'USD' NOT NULL,
+	"subtotal" numeric DEFAULT '0' NOT NULL,
+	"tax" numeric DEFAULT '0' NOT NULL,
+	"discount" numeric DEFAULT '0' NOT NULL,
+	"total" numeric DEFAULT '0' NOT NULL,
+	"selected_shipping_rate" jsonb,
+	"stripe_checkout_session_id" varchar(128),
+	"stripe_payment_intent_id" varchar(128),
+	"sinalite_order_id" varchar(64),
+	"notes" text,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
+);

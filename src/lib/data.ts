@@ -1,107 +1,120 @@
 // src/lib/data.ts
-import slugify from 'slugify';
-import mappingRaw from '@/data/imageMap.clean.json';
+import slugify from "slugify";
+import imagesRaw from "@/data/images.json";
 
-export interface Category {
-  id: number;
-  slug: string;
-  name: string;
-}
-export interface Subcategory {
-  id: number;
-  categoryId: number;
-  slug: string;
-  name: string;
-}
-export interface ProductEntry {
-  id: number;
-  sku: string;
-  name: string;
-  categoryId: number;
-  subcategoryId: number;
-  imageUrl: string | null;
-}
-
-// 1️⃣ Turn the raw import into a typed array
-const mapEntries: {
+// ---- Types ----
+export interface ImageRecord {
   category_id: number;
   subcategory_id: number;
-  name: string;
-  image_name: string;
+  name: string;               // e.g. "standard_business_cards"
+  image_name: string;         // e.g. "business-cards-18pt-matte-silk-lamination_1.webp"
   cloudflare_id: string | null;
-  product_id: number | null;
+  product_id: number;         // 0 means "not tied to a product"
   matched_sku: string | null;
-}[] = Array.isArray(mappingRaw) ? mappingRaw : Object.values(mappingRaw);
+}
 
-// 2️⃣ Build unique categories
-export const categories: Category[] = Array.from(
-  new Map(
-    mapEntries
-      .map((e) => {
-        return {
-          id: e.category_id,
-          // title-case the numeric ID if you don't have a human name
-          name: `Category ${e.category_id}`,
-          slug: String(e.category_id),
-        } as Category;
-      })
-      .map((c) => [c.id, c])
-  ).values()
-);
+export type ImageMap = ImageRecord[];
 
-// 3️⃣ Build unique subcategories
-export const subcategories: Subcategory[] = Array.from(
-  new Map(
-    mapEntries
-      .map((e) => {
-        const raw = e.name; // your mapping “name” is actually the subcategory slug
-        const slug = slugify(raw, { lower: true, strict: true });
-        const title = raw.replace(/[_-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-        return {
-          id: e.subcategory_id,
-          categoryId: e.category_id,
-          slug,
-          name: title,
-        } as Subcategory;
-      })
-      .map((s) => [s.id, s])
-  ).values()
-);
+// ---- Cloudflare image URL helper ----
+const CF_BASE =
+  process.env.NEXT_PUBLIC_IMAGE_DELIVERY_BASE?.replace(/\/+$/, "") ||
+  "https://imagedelivery.net";
+const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "";
+const CF_VARIANT =
+  process.env.NEXT_PUBLIC_CF_IMAGE_VARIANT || "public";
 
-// 4️⃣ Build the products array
-const BASE = `${process.env.NEXT_PUBLIC_IMAGE_DELIVERY_BASE}/${process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH}`;
+/** Build a Cloudflare Image Delivery URL, or fallback to a relative /images path. */
+export function cfUrl(
+  cloudflareId: string | null | undefined,
+  fallbackImageName?: string
+): string {
+  if (cloudflareId && CF_HASH) {
+    return `${CF_BASE}/${CF_HASH}/${cloudflareId}/${CF_VARIANT}`;
+  }
+  // Fallback to /images if no CF id
+  if (fallbackImageName) {
+    return `/images/${fallbackImageName}`;
+  }
+  return "/images/placeholder.png";
+}
 
-export const products: ProductEntry[] = mapEntries
-  .filter((e) => e.product_id !== null)        // drop any entries without products
-  .map((e) => {
-    const id = e.product_id!;
-    const sku = e.matched_sku ?? String(id);
-    const title = sku.replace(/[_-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    const imageUrl = e.cloudflare_id
-      ? `${BASE}/${e.cloudflare_id}/public`
-      : null;
+// Normalize name to a human label if needed
+export function humanizeName(name: string): string {
+  return name
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
 
-    return {
-      id,
-      sku,
-      name: title,
-      categoryId: e.category_id,
-      subcategoryId: e.subcategory_id,
-      imageUrl,
-    };
+// Keep the raw mapping as a typed array
+export const imageMap: ImageMap = Array.isArray(imagesRaw)
+  ? (imagesRaw as ImageRecord[])
+  : [];
+
+// ---- Lookups ----
+
+/** Find the best image for a (categoryId, subcategoryId) pair. */
+export function getImageForCategorySubcategory(
+  categoryId: number,
+  subcategoryId?: number
+): { url: string; record: ImageRecord | null } {
+  // Try exact match first
+  let rec =
+    imageMap.find(
+      (r) =>
+        r.category_id === categoryId &&
+        (typeof subcategoryId === "number"
+          ? r.subcategory_id === subcategoryId
+          : true)
+    ) || null;
+
+  // If no exact match w/ subcategory, try any image in the category
+  if (!rec && typeof subcategoryId === "number") {
+    rec = imageMap.find((r) => r.category_id === categoryId) || null;
+  }
+
+  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
+  return { url, record: rec };
+}
+
+/** Find an image by product_id. */
+export function getImageByProductId(
+  productId: number
+): { url: string; record: ImageRecord | null } {
+  const rec = imageMap.find((r) => r.product_id === productId) || null;
+  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
+  return { url, record: rec };
+}
+
+/** Find an image by matched_sku (exact match). */
+export function getImageBySku(
+  sku: string
+): { url: string; record: ImageRecord | null } {
+  const rec =
+    imageMap.find((r) => (r.matched_sku || "").toLowerCase() === sku.toLowerCase()) ||
+    null;
+  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
+  return { url, record: rec };
+}
+
+/** Find an image by the `name` field (e.g., "standard_business_cards"). */
+export function getImageByName(
+  name: string
+): { url: string; record: ImageRecord | null } {
+  const rec =
+    imageMap.find(
+      (r) => r.name.toLowerCase() === name.toLowerCase()
+    ) || null;
+  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
+  return { url, record: rec };
+}
+
+/** Slug helper if you need it elsewhere (consistent slug generation). */
+export function toSlug(input: string): string {
+  return slugify(input, {
+    lower: true,
+    strict: true,
+    trim: true,
   });
-
-// Now you can do in your pages:
-// import { categories, subcategories, products } from '@/lib/data';
-//
-// CategoryPage:
-//   const cat = categories.find(c => c.slug === params.categorySlug)
-//   const subs = subcategories.filter(s => s.categoryId === cat.id)
-//
-// SubcategoryPage:
-//   const sub = subcategories.find(s => s.slug === params.subcategorySlug)
-//   const prods = products.filter(p => p.subcategoryId === sub.id)
-//
-// ProductPage:
-//   const product = products.find(p => p.id === Number(params.id))
-//   // then call Sinalite API via p.sku or p.id, and show p.imageUrl as the hero image
+}

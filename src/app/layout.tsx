@@ -6,6 +6,7 @@ import MainNav from "@/components/MainNav";
 import SupportBanner from "@/components/SupportBanner";
 import Footer from "@/components/Footer";
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs"; 
 
 export const metadata: Metadata = {
   title: "Custom Print Experts | American Design And Printing",

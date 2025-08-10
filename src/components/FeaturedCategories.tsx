@@ -1,4 +1,3 @@
-// src/components/FeaturedCategories.tsx
 "use client";
 
 import Link from "next/link";
@@ -14,19 +13,21 @@ export interface FeaturedCategory {
 
 interface Props {
   categories: FeaturedCategory[];
+  limit?: number; // NEW
 }
 
-export default function FeaturedCategories({ categories }: Props) {
+export default function FeaturedCategories({ categories, limit = 2 }: Props) {
   if (!categories?.length) {
     return null;
   }
 
+  const items = categories.slice(0, limit); // ✅ only render up to limit
+
   return (
     <ul className="category-grid">
-      {categories.map(({ slug, name, imageUrl, href, description }) => (
+      {items.map(({ slug, name, imageUrl, href, description }) => (
         <li key={slug} className="category-card">
           <Link href={href} title={name}>
-            {/* --- fixed 4:3 ratio wrapper --- */}
             <div className="category-card__image-wrap">
               <Image
                 src={imageUrl}
@@ -37,8 +38,6 @@ export default function FeaturedCategories({ categories }: Props) {
                 priority={false}
               />
             </div>
-
-            {/* --- title --- */}
             <h3 className="category-card__title">{name}</h3>
           </Link>
         </li>

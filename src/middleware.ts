@@ -1,43 +1,42 @@
 // middleware.ts (project root)
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// ✅ Routes that REQUIRE sign-in
+// Routes that REQUIRE sign-in
 const isProtectedRoute = createRouteMatcher([
-  "/admin(.*)",                              // Admin app
-  "/api/admin(.*)",                          // Admin APIs
-  "/review-order",                           // Review order page
-  "/checkout",                               // Checkout flow
-  "/orders(.*)",                             // Order history / details
-  "/account(.*)",                            // Account pages
-  "/products/:productId/upload-artwork",     // Artwork upload for any product
+  "/admin(.*)",
+  "/api/admin(.*)",
+  "/review-order",
+  "/checkout",
+  "/orders(.*)",
+  "/account(.*)",
+  "/products/:productId/upload-artwork",
   "/api/shipping/estimate",
   "/api/shippingEstimate",
-  // add more as needed...
+  "/api/order/place",
+  "/api/orders(.*)",
 ]);
 
-// (Optional) Routes that must remain public for SEO / browse
-// Only needed if you plan to add public-only logic.
+// (Optional) public routes kept for SEO/browse
 const isExplicitPublic = createRouteMatcher([
   "/",
   "/categories(.*)",
   "/subcategories(.*)",
-  "/products(.*)", // product detail pages should remain browseable
+  "/products(.*)",
   "/blog(.*)",
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  // If it’s a protected route, enforce sign-in
+export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    auth().protect();
+    const session = await auth(); // ✅ await the async auth()
+    if (!session.userId) {
+      // Redirect unauthenticated users to sign-in
+      return session.redirectToSignIn();
+    }
   }
-
-  // Otherwise it's public — just continue
-  // If you need special logic for explicit public routes, you can check isExplicitPublic(req) here.
+  // else public — fall through
 });
 
-// ✅ ENSURE the middleware RUNS on your app routes
-// This matcher runs on everything except static files and _next assets.
-// Then we selectively protect inside the middleware via isProtectedRoute().
+// Ensure middleware runs on app routes (exclude _next assets and files)
 export const config = {
   matcher: ["/((?!_next|.*\\..*).*)"],
 };

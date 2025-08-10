@@ -2,12 +2,12 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 export async function requireUser() {
-  const { userId } = auth();
+  const { userId } = await auth(); // ✅ await
   if (!userId) {
     throw new Error("Unauthorized");
   }
   const user = await currentUser();
-  return user!;
+  return user!; // you can add a null check if you want to be extra safe
 }
 
 export async function requireAdmin() {

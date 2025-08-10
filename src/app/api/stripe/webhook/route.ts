@@ -1,98 +1,109 @@
+// app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
-import { placeSinaliteOrder } from "@/lib/sinalite.order";
-import { getOrderSessionById, markOrderPaid, saveSinaliteOrderId } from "@/lib/session";
-import { sendEmail } from "@/lib/sendEmail";
-import OrderConfirmationEmail from "@/emails/OrderConfirmationEmail";
+import { enforceRateLimit } from "@/lib/rateLimit";
+import { markOrderPaid, saveSinaliteOrderId, getOrderSessionByStripeSession } from "@/lib/session";
 
-export async function POST(req: NextRequest) {
-  const sig = req.headers.get("stripe-signature");
-  const secret = process.env.STRIPE_WEBHOOK_SECRET!;
-  const rawBody = await req.text();
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(rawBody, sig!, secret);
-  } catch (err: any) {
-    console.error("Webhook signature verification failed.", err.message);
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+async function placeSinaliteOrder(orderSessionId: string, payload: any) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/order/place`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, orderSessionId }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Sinalite place failed: ${res.status} ${txt}`);
   }
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as any;
-    const orderSessionId = session.metadata?.orderSessionId;
-    try {
-      const orderSession = await getOrderSessionById(orderSessionId);
-      if (!orderSession) throw new Error("Order session not found in webhook.");
-
-      // Build the Sinalite /order/new payload **exactly** per their docs
-      const orderData = {
-        items: [
-          {
-            productId: orderSession.productId,
-            options: orderSession.options, // array of option ids (or roll-label object if product type requires)
-            files: (orderSession.files || []).map((f: any) => ({
-              type: f.type || "front",
-              url: f.url,
-            })),
-            extra: orderSession.extra || undefined,
-          },
-        ],
-        shippingInfo: {
-          ShipFName: orderSession.shippingInfo.ShipFName,
-          ShipLName: orderSession.shippingInfo.ShipLName,
-          ShipEmail: orderSession.shippingInfo.ShipEmail,
-          ShipAddr: orderSession.shippingInfo.ShipAddr,
-          ShipAddr2: orderSession.shippingInfo.ShipAddr2 || "",
-          ShipCity: orderSession.shippingInfo.ShipCity,
-          ShipState: orderSession.shippingInfo.ShipState,
-          ShipZip: orderSession.shippingInfo.ShipZip,
-          ShipCountry: orderSession.shippingInfo.ShipCountry,
-          ShipPhone: orderSession.shippingInfo.ShipPhone,
-          ShipMethod: orderSession.selectedShippingRate
-            ? orderSession.selectedShippingRate[1] // service string, e.g., "UPS Standard"
-            : undefined,
-        },
-        billingInfo: {
-          BillFName: orderSession.billingInfo.BillFName,
-          BillLName: orderSession.billingInfo.BillLName,
-          BillEmail: orderSession.billingInfo.BillEmail,
-          BillAddr: orderSession.billingInfo.BillAddr,
-          BillAddr2: orderSession.billingInfo.BillAddr2 || "",
-          BillCity: orderSession.billingInfo.BillCity,
-          BillState: orderSession.billingInfo.BillState,
-          BillZip: orderSession.billingInfo.BillZip,
-          BillCountry: orderSession.billingInfo.BillCountry,
-          BillPhone: orderSession.billingInfo.BillPhone,
-        },
-        notes: orderSession.notes || undefined,
-      };
-
-      // Place the order with Sinalite
-      const placed = await placeSinaliteOrder(orderData); // { orderId, message, status }
-      await saveSinaliteOrderId(orderSessionId, placed.orderId);
-      await markOrderPaid(orderSessionId, session.payment_intent || session.id);
-
-      // Send order confirmation email
-      await sendEmail({
-        to: orderSession.customerEmail,
-        subject: `Order Confirmation #${placed.orderId}`,
-        react: OrderConfirmationEmail({
-          name: `${orderSession.shippingInfo.ShipFName} ${orderSession.shippingInfo.ShipLName}`,
-          orderId: placed.orderId,
-          orderTotal: (orderSession.total || 0).toLocaleString("en-US", { style: "currency", currency: orderSession.currency || "USD" }),
-          trackingUrl: undefined, // you’ll add when Sinalite provides tracking later
-        }),
-      });
-
-    } catch (err: any) {
-      console.error("checkout.session.completed handler failed:", err);
-      // Consider alerting/observability here
-    }
-  }
-
-  return NextResponse.json({ received: true }, { status: 200 });
+  return res.json() as Promise<{ orderId: number; status: string; message?: string }>;
 }
 
-// Edge runtimes need special handling for raw body; keep as Node for now:
-export const config = { api: { bodyParser: false } } as any;
+export async function POST(req: NextRequest) {
+  // (Optional) keep a very light rate limit
+  const limited = await enforceRateLimit(req);
+  if (limited) {
+    return limited;
+  }
+
+  const sig = req.headers.get("stripe-signature");
+  const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !whSecret) {
+    return NextResponse.json({ error: "Missing Stripe signature/secret" }, { status: 400 });
+  }
+
+  // Get the **raw** request body (do NOT JSON.parse)
+  const rawBody = await req.text(); // stripe accepts string or Buffer
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, sig, whSecret);
+  } catch (err: any) {
+    console.error("[stripe.webhook] signature verify failed:", err?.message || err);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+
+        const stripeSessionId = session.id;
+        const paymentIntentId =
+          typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null;
+
+        const orderSessionId = session.metadata?.orderSessionId ?? undefined;
+
+        // Mark paid in our DB
+        if (orderSessionId && paymentIntentId) {
+          await markOrderPaid(orderSessionId, paymentIntentId);
+        }
+
+        // Place Sinalite order
+        if (orderSessionId) {
+          const order = await getOrderSessionByStripeSession(
+            stripeSessionId,
+            paymentIntentId ?? undefined
+          );
+
+          if (order && order.shippingInfo && order.billingInfo) {
+            const payload = {
+              items: [
+                {
+                  productId: order.productId,
+                  options: order.options ?? [],
+                  files: order.files ?? [],
+                },
+              ],
+              shippingInfo: order.shippingInfo,
+              billingInfo: order.billingInfo,
+              notes: order.notes ?? undefined,
+            };
+
+            const placed = await placeSinaliteOrder(orderSessionId, payload);
+            if (placed?.orderId) {
+              await saveSinaliteOrderId(orderSessionId, placed.orderId);
+            }
+          }
+        }
+        break;
+      }
+
+      // Handle other events as needed
+      default:
+        break;
+    }
+
+    return NextResponse.json({ received: true }, { status: 200 });
+  } catch (err: any) {
+    console.error("[stripe.webhook] handler error:", err?.message || err);
+    return NextResponse.json({ error: "Webhook handling failed" }, { status: 500 });
+  }
+}

@@ -1,93 +1,62 @@
-// server-only
-import fetch from "node-fetch";
+// src/lib/sinalite.client.ts
+import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
 
-let _token: string | null = null;
-let _expiresAt = 0;
+// Prefer env; fall back to apiconnect (same audience as your token)
+const BASE =
+  process.env.SINALITE_BASE_URL ||
+  process.env.SINALITE_API_BASE_URL ||
+  "https://apiconnect.sinalite.com";
 
-// 1) get or refresh your access token
-async function getAccessToken(): Promise<string> {
-  const now = Date.now() / 1000;
-  if (_token && now < _expiresAt - 60) {
-    return _token;
+function assertEnv(name: string, value: string | undefined) {
+  if (!value || !value.trim()) {
+    throw new Error(`Missing required env: ${name}`);
   }
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SINALITE_BASE}/auth/token`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: process.env.SIN_CLIENT_ID,
-        client_secret: process.env.SIN_CLIENT_SECRET,
-        audience: process.env.SIN_AUDIENCE,
-        grant_type: "client_credentials",
-      }),
-    }
-  );
-  if (!res.ok) {
-    throw new Error("Auth failed");
-  }
-  // 👇 **Type the response!**
-  type AuthResponse = { access_token: string; expires_in: number; token_type: string };
-  const data = (await res.json()) as AuthResponse;
-  _token = `${data.token_type} ${data.access_token}`;
-  _expiresAt = now + data.expires_in;
-  return _token;
 }
 
+async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = await getSinaliteAccessToken(); // returns "Bearer x.y.z"
+  const url = `${BASE.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 
-// 2) generic wrapper to Sinalite
-async function sinaliteFetch<T>(
-  path: string,
-  opts: { method?: "GET" | "POST"; body?: any } = {}
-): Promise<T> {
-  const token = await getAccessToken();
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SINALITE_BASE}${path}`,
-    {
-      method: opts.method || "GET",
-      headers: {
-        Authorization: token,
-        "Content-Type": "application/json",
-      },
-      body: opts.body ? JSON.stringify(opts.body) : undefined,
-    }
-  );
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Sinalite ${path} → ${err}`);
-  }
-  return (await res.json()) as T;
-}
-
-// 3) list all products (you may not need this if you drill by ID)
-export function getProductList() {
-  return sinaliteFetch<Array<{ id: number; sku: string; name: string }>>(
-    `/product`
-  );
-}
-
-// 4) fetch one product’s metadata & available options
-export function getProductDetails(id: string, storeCode: string) {
-  return sinaliteFetch<[Array<{ id: number; group: string; name: string }>, any[], any[]]>(
-    `/product/${id}/${storeCode}`
-  );
-}
-
-// 5) price a particular combination of option-IDs
-export function priceProduct(
-  id: string,
-  storeCode: string,
-  productOptions: Array<number | string>
-) {
-  return sinaliteFetch<{
-    price: string;
-    packageInfo: Record<string, any>;
-    productOptions: Record<string, any>;
-  }>(`/price/${id}/${storeCode}`, {
-    method: "POST",
-    body: { productOptions },
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+      ...(init.headers || {}),
+    },
+    // avoid Next cache surprises while we debug
+    cache: "no-store",
   });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    // Surface detail in server logs
+    console.error(`[sinalite.client] ${res.status} ${res.statusText} @ ${url}`, body?.slice(0, 800));
+    throw new Error(`Sinalite request failed: ${res.status} ${res.statusText}`);
+  }
+
+  // Most endpoints are JSON
+  return res.json() as Promise<T>;
 }
 
-export { sinaliteFetch };
+// ---------- Public API ----------
+export async function getCategories(storeCode: string) {
+  assertEnv("NEXT_PUBLIC_STORE_CODE", storeCode);
+  // storefront categories are under /storefront/:storeCode/...
+  // use the same BASE + Bearer token (many environments require auth even for catalog)
+  return apiFetch(`storefront/${encodeURIComponent(storeCode)}/categories`);
+}
+
+export async function getSubcategories(storeCode: string, categoryId: string | number) {
+  assertEnv("NEXT_PUBLIC_STORE_CODE", storeCode);
+  return apiFetch(
+    `storefront/${encodeURIComponent(storeCode)}/categories/${encodeURIComponent(
+      String(categoryId)
+    )}/subcategories`
+  );
+}
+
+export async function getProductDetails(productId: string | number, storeCode: string) {
+  assertEnv("NEXT_PUBLIC_STORE_CODE", storeCode);
+  return apiFetch(`storefront/${encodeURIComponent(storeCode)}/products/${encodeURIComponent(String(productId))}`);
+}

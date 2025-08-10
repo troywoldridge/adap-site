@@ -1,12 +1,14 @@
+// src/lib/sendEmail.ts
 import { Resend } from "resend";
+import type { ReactElement } from "react";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendEmailParams {
   to: string | string[];
   subject: string;
-  react?: React.ReactElement; // for React Email
-  html?: string; // for raw HTML
+  react?: ReactElement;   // React Email component
+  html?: string;          // raw HTML alternative
   from?: string;
   replyTo?: string;
   cc?: string | string[];
@@ -14,14 +16,7 @@ interface SendEmailParams {
 }
 
 export async function sendEmail({
-  to,
-  subject,
-  react,
-  html,
-  from,
-  replyTo,
-  cc,
-  bcc,
+  to, subject, react, html, from, replyTo, cc, bcc,
 }: SendEmailParams) {
   if (!to) {
     throw new Error("Missing recipient email address!");
@@ -31,21 +26,24 @@ export async function sendEmail({
   }
 
   let emailHtml = html;
+
   if (react) {
-    // React Email rendering for beautiful, typed emails!
-    const { render } = await import("@react-email/render");
-    emailHtml = render(react);
+    // Some versions export async-only; use renderAsync to be safe
+    const mod = await import("@react-email/render");
+    const renderAsync = (mod as any).renderAsync ?? mod.render;
+    emailHtml = await renderAsync(react);
   }
+
   if (!emailHtml) {
     throw new Error("No HTML content provided.");
   }
 
-  return await resend.emails.send({
-    from: from || "ADAP <noreply@yourdomain.com>",
+  return resend.emails.send({
+    from: from ?? "ADAP <noreply@yourdomain.com>",
     to,
     subject,
     html: emailHtml,
-    reply_to: replyTo,
+    replyTo,    // ✅ camelCase
     cc,
     bcc,
   });

@@ -1,49 +1,28 @@
 // src/app/categories/page.tsx
-import { getCategories } from "@/lib/sinalite.client";
-import { mergeCategory } from "@/lib/mergeUtils";
-import CategoryGrid from "@/components/CategoryGrid";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import type { Metadata } from "next";
+import CategoryGrid from "@/components/CategoryGrid";
+import { getLocalCategories } from "@/lib/catalogLocal";
 
-const HERO_IMAGE = "https://imagedelivery.net/<YOUR_CLOUDFLARE_HASH>/<YOUR_CATEGORIES_HERO_IMAGE_ID>/public";
+const HERO_IMAGE =
+  "https://imagedelivery.net/<YOUR_CLOUDFLARE_HASH>/<YOUR_CATEGORIES_HERO_IMAGE_ID>/public";
 
 export const metadata: Metadata = {
   title: "Shop All Print Categories | American Design And Printing",
   description:
-    "Explore all premium print product categories at American Design And Printing. Find business cards, brochures, banners, and more—all powered by Sinalite for blazing-fast turnaround!",
+    "Explore all premium print product categories at American Design And Printing. Find business cards, brochures, banners, and more—powered by Sinalite for blazing-fast turnaround!",
 };
 
-export default async function CategoriesPage() {
-  const storeCode = process.env.NEXT_PUBLIC_STORE_CODE;
-  if (!storeCode) {
-    return (
-      <main className="container py-12 text-center">
-        <h1 className="text-2xl font-bold text-red-600">Missing Store Code!</h1>
-        <p>Please set <code>NEXT_PUBLIC_STORE_CODE</code> in your environment variables.</p>
-      </main>
-    );
-  }
+export default function CategoriesPage() {
+  // Pull straight from local JSON (no network, no store code needed)
+  const categories = getLocalCategories(); // returns [{ id, slug, name, description, image }]
 
-  let categories: any[] = [];
-  try {
-    categories = await getCategories(storeCode);
-  } catch {
-    return (
-      <main className="container py-12 text-center">
-        <h1 className="text-xl font-bold text-red-600">Unable to load categories</h1>
-        <p>Check your Sinalite API connection.</p>
-      </main>
-    );
-  }
-
-  const mergedCategories = categories.map(mergeCategory);
-
-  if (!mergedCategories.length) {
+  if (!categories.length) {
     return (
       <main className="container py-12 text-center">
         <h1 className="text-xl font-bold">No categories found!</h1>
-        <p>Please check your store setup or contact support.</p>
+        <p>Please check your local data files in <code>src/data</code>.</p>
       </main>
     );
   }
@@ -73,7 +52,9 @@ export default async function CategoriesPage() {
           </Link>
         </div>
       </section>
-      <CategoryGrid categories={mergedCategories} />
+
+      {/* CategoryGrid expects an array of categories with id, slug, name, image, description */}
+      <CategoryGrid categories={categories} />
     </main>
   );
 }

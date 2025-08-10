@@ -1,49 +1,77 @@
+// app/api/admin/reviews/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { productReviews } from "@/db/schema";
-import { auth } from "@clerk/nextjs/server";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 const ADMIN_EMAILS = ["troy.woldridge.1@gmail.com"];
 
+// GET: list pending reviews
 export async function GET(req: NextRequest) {
-  const { userId, sessionClaims } = auth();
-  const email = sessionClaims?.email;
-  if (!userId || !email || !ADMIN_EMAILS.includes(email)) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const user = await currentUser();
+  const emails = user?.emailAddresses?.map((e) => e.emailAddress) ?? [];
+  if (!emails.some((e) => ADMIN_EMAILS.includes(e))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get("productId");
   const rating = searchParams.get("rating");
 
-  let query = db.select().from(productReviews).where(productReviews.approved.eq(false));
+  const conditions = [eq(productReviews.approved, false)];
   if (productId) {
-    query = query.where(productReviews.productId.eq(productId));
+    conditions.push(eq(productReviews.productId, productId));
   }
   if (rating) {
-    query = query.where(productReviews.rating.eq(Number(rating)));
+    conditions.push(eq(productReviews.rating, Number(rating)));
   }
 
-  const reviews = await query.orderBy(productReviews.createdAt.desc());
+  const reviews = await db
+    .select()
+    .from(productReviews)
+    .where(and(...conditions))
+    .orderBy(desc(productReviews.createdAt));
+
   return NextResponse.json(reviews);
 }
 
-// Bulk PATCH for approve/delete
+// POST: bulk approve/delete reviews
 export async function POST(req: NextRequest) {
-  const { userId, sessionClaims } = auth();
-  const email = sessionClaims?.email;
-  if (!userId || !email || !ADMIN_EMAILS.includes(email)) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const user = await currentUser();
+  const emails = user?.emailAddresses?.map((e) => e.emailAddress) ?? [];
+  if (!emails.some((e) => ADMIN_EMAILS.includes(e))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { ids, action } = await req.json();
-  if (!Array.isArray(ids) || !["approve", "delete"].includes(action)) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: "ids must be a non-empty array" }, { status: 400 });
   }
+  if (action !== "approve" && action !== "delete") {
+    return NextResponse.json({ error: "action must be 'approve' or 'delete'" }, { status: 400 });
+  }
+
+  const idNums = ids.map((n: unknown) => Number(n)).filter((n) => Number.isFinite(n));
+
   if (action === "approve") {
-    await db.update(productReviews).set({ approved: true }).where(productReviews.id.in(ids));
-    return NextResponse.json({ success: true });
+    await db
+      .update(productReviews)
+      .set({ approved: true })
+      .where(inArray(productReviews.id, idNums));
+  } else {
+    await db.delete(productReviews).where(inArray(productReviews.id, idNums));
   }
-  if (action === "delete") {
-    await db.delete(productReviews).where(productReviews.id.in(ids));
-    return NextResponse.json({ success: true });
-  }
+
+  return NextResponse.json({ success: true });
 }

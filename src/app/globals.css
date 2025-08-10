@@ -1043,3 +1043,123 @@ section.shop-by-category .section-title {
 .shipping-rate__service { font-weight: 400; color: var(--color-neutral-2); margin-left: 0.7em; min-width: 150px; }
 .shipping-rate__price { font-size: 1.05rem; font-weight: 600; color: var(--color-black); margin-left: auto; }
 .shipping-rate__unavailable { color: var(--color-red); margin-left: 1em; font-size: .95em; }
+
+/* badges */
+.badge { display:inline-block; padding:.2rem .5rem; border-radius:.375rem; font-size:.75rem; font-weight:600; }
+.badge-success { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+.badge-warning { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+.badge-danger  { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+.badge-info    { background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe; }
+
+.muted { color:#6b7280; font-size:.875rem; }
+.stack { display:flex; flex-direction:column; }
+.action-row { display:flex; gap:.5rem; justify-content:flex-end; }
+
+/* table */
+.orders-table-wrap { overflow:auto; border-radius:.5rem; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.orders-table { width:100%; border-collapse:collapse; }
+.orders-table th, .orders-table td { padding: .875rem 1rem; border-bottom:1px solid #eee; text-align:left; }
+.orders-table thead th { background:#f9fafb; font-weight:600; font-size:.875rem; color:#374151; }
+
+/* buttons */
+.btn { display:inline-flex; align-items:center; gap:.5rem; padding:.5rem .875rem; border-radius:.5rem; text-decoration:none; border:1px solid transparent; }
+.btn-primary { background:#0047ab; color:#fff; }
+.btn-secondary { background:#e5e7eb; color:#111; }
+.btn-link { color:#0047ab; text-decoration:underline; border:none; background:transparent; padding:0; }
+.btn:hover { transform: translateY(-1px); transition:.15s ease; }
+.btn-link.disabled { opacity:.5; pointer-events:none; }
+
+/* pagination */
+.pagination { display:flex; align-items:center; gap:.75rem; }
+.page-btn { padding:.35rem .75rem; border:1px solid #e5e7eb; border-radius:.375rem; text-decoration:none; color:#111; }
+.page-btn:hover { background:#f3f4f6; }
+.page-btn.disabled { opacity:.5; pointer-events:none; }
+.page-count { color:#6b7280; }
+
+/* ==== FeaturedCategories (global) ==== */
+
+/* Grid wrapper */
+.category-grid {
+  /* center the block and keep it from spanning the whole screen */
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0;
+  list-style: none;
+
+  display: grid;
+  grid-template-columns: 1fr;      /* 1-up on mobile */
+  gap: 1.25rem;
+}
+
+/* 2-up from tablet and up */
+@media (min-width: 640px) {
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Card */
+.category-card {
+  border: 1px solid #e5e7eb;       /* light gray */
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.category-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.10);
+  border-color: #d1d5db;
+}
+
+/* Image wrapper – fixed 4:3 aspect ratio for Next/Image with fill */
+.category-card__image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;             /* modern way */
+  /* fallback for old browsers:
+     padding-top: 75%; height: 0;  display: block; position: relative; */
+  background: #f7f7f7;             /* subtle placeholder */
+}
+
+.category-card__image {
+  object-fit: cover;                /* ensure full bleed */
+}
+
+/* Title */
+.category-card__title {
+  margin: .75rem 1rem 1rem;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--color-blue);
+}
+
+/* Optional: keep the link from underlining the whole card */
+.category-card a {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+/* Dark mode niceties (optional) */
+@media (prefers-color-scheme: dark) {
+  .category-card {
+    background: var(--color-blue);
+    border-color: #202634;
+    box-shadow: none;
+  }
+  .category-card:hover {
+    border-color: #2a3242;
+    box-shadow: 0 6px 16px rgba(0,0,0,.35);
+  }
+  .category-card__title {
+    color: var(--color-neutral-3);
+  }
+  .category-card__image-wrap {
+    background: #bec2ca;
+  }
+}
+

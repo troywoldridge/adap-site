@@ -1,39 +1,42 @@
+// app/products/[productId]/reviews/helpful/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { productReviews, reviewHelpfulVotes } from "@/db/schema";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { productId: string } }
 ) {
   const { productId } = params;
-  // Get all approved review IDs for this product
+
+  // 1) Get approved review IDs for this product
   const reviews = await db
     .select({ id: productReviews.id })
     .from(productReviews)
-    .where(productReviews.productId.eq(productId))
-    .where(productReviews.approved.eq(true));
+    .where(and(eq(productReviews.productId, productId), eq(productReviews.approved, true)));
 
   const ids = reviews.map((r) => r.id);
-
-  if (!ids.length) {
+  if (ids.length === 0) {
     return NextResponse.json({});
   }
 
-  // For each review, count helpful/not-helpful
-  const voteRows = await db.execute(
-    `SELECT review_id, 
-            SUM(CASE WHEN is_helpful THEN 1 ELSE 0 END) AS helpful, 
-            SUM(CASE WHEN is_helpful THEN 0 ELSE 1 END) AS not_helpful
-      FROM review_helpful_votes
-      WHERE review_id = ANY($1)
-      GROUP BY review_id`,
-    [ids]
-  );
-  // Shape as: { [reviewId]: { helpful: x, notHelpful: y } }
-  const map = {};
-  for (const v of voteRows) {
-    map[v.review_id] = { helpful: Number(v.helpful), notHelpful: Number(v.not_helpful) };
+  // 2) Aggregate helpful / not-helpful counts per review via Drizzle + sql<>
+  const votes = await db
+    .select({
+      reviewId: reviewHelpfulVotes.reviewId,
+      helpful: sql<number>`SUM(CASE WHEN ${reviewHelpfulVotes.isHelpful} THEN 1 ELSE 0 END)`,
+      notHelpful: sql<number>`SUM(CASE WHEN ${reviewHelpfulVotes.isHelpful} THEN 0 ELSE 1 END)`,
+    })
+    .from(reviewHelpfulVotes)
+    .where(inArray(reviewHelpfulVotes.reviewId, ids))
+    .groupBy(reviewHelpfulVotes.reviewId);
+
+  // 3) Shape as { [reviewId]: { helpful, notHelpful } }
+  const map: Record<number, { helpful: number; notHelpful: number }> = {};
+  for (const v of votes) {
+    map[v.reviewId] = { helpful: Number(v.helpful), notHelpful: Number(v.notHelpful) };
   }
+
   return NextResponse.json(map);
 }
