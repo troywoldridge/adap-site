@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { buildPricingIndex, resolveLocalPrice } from "@/lib/sinalite.pricing-local";
-import ContinueToUploadButton from "@/components/ContinueToUploadButton";
 
 type Value = { id: number; name: string };
 type OptionGroup = { group: string; label: string; values: Value[] };
@@ -50,7 +49,7 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
   const [error, setError] = React.useState<string | null>(null);
   const [showDebug, setShowDebug] = React.useState(false);
 
-  // Local pricing index (optional)
+  // Build a local pricing index once per pricingMatrix change
   const pricingIndex = React.useMemo(() => {
     if (!pricingMatrix || pricingMatrix.length === 0) return null;
     try {
@@ -60,25 +59,21 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
     }
   }, [pricingMatrix]);
 
-  // Broadcast selection for shipping & upload step
+  // Broadcast current selections for ShippingEstimator
   const broadcastSelections = React.useCallback((sel: Record<string, number>) => {
     try {
-      // Re-map to { groupLabel: valueName } for better UX in downstream listeners
-      const human: Record<string, string | number> = {};
-      for (const g of options) {
-        const id = sel[g.group];
-        const val = g.values.find((v) => v.id === id);
-        if (val) human[g.label] = val.name;
-      }
-      window.dispatchEvent(new CustomEvent("sinalite:selectedOptions", { detail: human }));
-    } catch {/* no-op */}
-  }, [options]);
+      window.dispatchEvent(new CustomEvent("sinalite:selectedOptions", { detail: { ...sel } }));
+    } catch {
+      // no-op for SSR
+    }
+  }, []);
 
   React.useEffect(() => {
     broadcastSelections(selected);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Build optionIds array from the current selection (in group order)
   const computeOptionIds = React.useCallback((): number[] => {
     const optionIds: number[] = [];
     for (const g of options) {
@@ -88,6 +83,7 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
     return optionIds;
   }, [options, selected]);
 
+  // Server fallback pricing call
   const fetchServerPrice = React.useCallback(async (optionIds: number[]) => {
     setIsLoading(true);
     setError(null);
@@ -105,7 +101,11 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
 
       const text = await res.text();
       let json: any;
-      try { json = JSON.parse(text); } catch { throw new Error("Unexpected response from pricing service."); }
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error("Unexpected response from pricing service.");
+      }
       if (!res.ok || json?.error) {
         throw new Error(json?.message || json?.error || `Pricing failed (${res.status})`);
       }
@@ -123,9 +123,6 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
 
       const pkg = json?.packageInfo || json?.response?.packageInfo || null;
       setPkgInfo(pkg);
-
-      // broadcast human-readable selection (most accurate from API)
-      try { window.dispatchEvent(new CustomEvent("sinalite:selectedOptions", { detail: human })); } catch {}
     } catch (e: any) {
       setPrice(null);
       setSelectedSummary({});
@@ -136,16 +133,19 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
     }
   }, [STORE, hasQtyGroup, manualQty, productId]);
 
+  // Main recalc: try local first, then server fallback
   const recalc = React.useCallback(async () => {
     const optionIds = computeOptionIds();
 
-    // Broadcast so shipping / upload stay in sync
+    // Broadcast so shipping stays in sync
     broadcastSelections(selected);
 
+    // Try local matrix first
     if (pricingIndex) {
       const hit = resolveLocalPrice(optionIds, pricingIndex);
       if (hit) {
         setPrice(hit.price);
+        // Synthesize human summary from selections
         const human: Record<string, string> = {};
         for (const g of options) {
           const id = selected[g.group];
@@ -155,13 +155,15 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
         setSelectedSummary(human);
         setPkgInfo(hit.packageInfo ?? null);
         setError(null);
-        return;
+        return; // instant result
       }
     }
 
+    // Fallback: server call
     await fetchServerPrice(optionIds);
   }, [broadcastSelections, computeOptionIds, options, pricingIndex, selected, fetchServerPrice]);
 
+  // Debounce recalculation when selections/qty change
   React.useEffect(() => {
     const t = setTimeout(() => { void recalc(); }, 150);
     return () => clearTimeout(t);
@@ -208,18 +210,13 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 8 }}>
-        <button
-          onClick={() => void recalc()}
-          disabled={isLoading}
-          className="btn btn-primary"
-        >
-          {isLoading ? "Calculating…" : "Recalculate"}
-        </button>
-
-        {/* NEW: Step forward to upload artwork */}
-        <ContinueToUploadButton productId={productId} />
-      </div>
+      <button
+        onClick={() => void recalc()}
+        disabled={isLoading}
+        className="btn btn-primary"
+      >
+        {isLoading ? "Calculating…" : "Recalculate"}
+      </button>
 
       <div style={{ marginTop: 14 }}>
         {typeof price === "number" && (
@@ -235,6 +232,7 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
           </div>
         )}
 
+        {/* Customer-facing package details removed per request. Keep only in debug. */}
         <details
           style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: 10 }}
           open={showDebug}

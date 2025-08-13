@@ -24,6 +24,8 @@
     "deploy:full": "bash scripts/deploy.sh develop origin"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@aws-sdk/s3-request-presigner": "^3.864.0",
     "@clerk/nextjs": "^6.30.0",
     "@react-email/components": "^0.5.0",
     "@react-email/render": "^1.2.0",

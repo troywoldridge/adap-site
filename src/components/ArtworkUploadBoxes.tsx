@@ -1,91 +1,104 @@
+// src/components/ArtworkUploadBoxes.tsx
 "use client";
-import { useState } from "react";
 
-export default function ArtworkUploadBoxes({
-  productId,
-  numSides,
-}: {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getPresignedUrl, uploadToPresignedUrl } from "@/lib/uploadArtwork";
+
+type Props = {
   productId: string;
   numSides: number;
-}) {
+  orderId: string;
+};
+
+export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Props) {
+  const router = useRouter();
   const [files, setFiles] = useState<(File | null)[]>(Array(numSides).fill(null));
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [publicUrls, setPublicUrls] = useState<string[]>([]);
 
-  function handleFile(idx: number, file: File | null) {
-    if (file && file.type !== "application/pdf") {
-      setError("Only PDF files are allowed.");
-      return;
-    }
-    setError(null);
-    setFiles((f) => {
-      const arr = [...f];
-      arr[idx] = file;
-      return arr;
-    });
+  function setFile(idx: number, file: File | null) {
+    const next = [...files];
+    next[idx] = file;
+    setFiles(next);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (files.some((f) => !f)) {
-      setError("Please select a file for every side.");
-      return;
-    }
+  async function startUpload() {
     setError(null);
+    setDone(false);
     setUploading(true);
-    for (let idx = 0; idx < files.length; idx++) {
-      const file = files[idx];
-      if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("productId", productId);
-        formData.append("side", String(idx + 1));
-        await fetch("/api/artwork/upload", { method: "POST", body: formData });
+
+    try {
+      const urls: string[] = [];
+      for (const f of files) {
+        if (!f) throw new Error("Please select all artwork files.");
+        const { uploadUrl, publicUrl } = await getPresignedUrl({
+          filename: f.name,
+          contentType: f.type || "application/octet-stream",
+          orderId,
+        });
+        await uploadToPresignedUrl(uploadUrl, f);
+        urls.push(publicUrl);
       }
+
+      setPublicUrls(urls);
+      setDone(true);
+
+      // Persist on client (simple, reliable)
+      const key = `adap_order_${orderId}_artwork`;
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      const next = Array.isArray(existing) ? existing : [];
+      next.push({ productId, files: urls, uploadedAt: Date.now() });
+      localStorage.setItem(key, JSON.stringify(next));
+
+      // (Optional) Also POST to your server to attach to order in DB:
+      // await fetch("/api/orders/attach-artwork", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, productId, files: urls }) }).catch(()=>{});
+    } catch (e: any) {
+      setError(e?.message || "Upload failed");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
-    setDone(true);
-    setFiles(Array(numSides).fill(null));
+  }
+
+  function goReview() {
+    router.push(`/review-order?orderId=${encodeURIComponent(orderId)}`);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="artwork-upload-form">
-      {Array.from({ length: numSides }).map((_, idx) => (
-        <div key={idx} className="artwork-upload-box">
-          <label className="artwork-upload-label">
-            {numSides > 1 ? `Side #${idx + 1}` : "Artwork File"}
-          </label>
-          <div className="artwork-upload-note">
-            Only PDF files allowed. Files should be 300dpi, with 1/8&quot; bleed, and final trim size.
-          </div>
+    <div className="space-y-4">
+      {Array.from({ length: numSides }).map((_, i) => (
+        <div key={i} className="border rounded p-3">
+          <label className="block text-sm font-medium mb-2">Artwork Side {i + 1}</label>
           <input
             type="file"
-            accept="application/pdf"
-            required
-            className="artwork-upload-input"
-            onChange={(e) => handleFile(idx, e.target.files?.[0] || null)}
+            accept="application/pdf,image/*"
+            onChange={(e) => setFile(i, e.target.files?.[0] || null)}
           />
-          {files[idx] && (
-            <span className="artwork-upload-filename">
-              File: {files[idx]?.name}
-            </span>
-          )}
         </div>
       ))}
-      {error && <div className="artwork-upload-error">{error}</div>}
-      <button
-        type="submit"
-        className="artwork-upload-btn"
-        disabled={uploading || files.some((f) => !f)}
-      >
-        {uploading ? "Uploading..." : "Upload"}
+
+      <button className="btn btn-primary" onClick={startUpload} disabled={uploading}>
+        {uploading ? "Uploading…" : "Upload Artwork"}
       </button>
+
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+
       {done && (
-        <div className="artwork-upload-success">
-          Upload complete! Thank you.
+        <div className="mt-3 space-y-2">
+          <p className="text-green-600">Upload complete! 🎉</p>
+          <ul className="list-disc ml-5">
+            {publicUrls.map((u, i) => (
+              <li key={i}><a className="underline" href={u} target="_blank" rel="noreferrer">{u}</a></li>
+            ))}
+          </ul>
+
+          <button className="btn btn-secondary mt-3" onClick={goReview}>
+            Continue to Review Order
+          </button>
         </div>
       )}
-    </form>
+    </div>
   );
 }

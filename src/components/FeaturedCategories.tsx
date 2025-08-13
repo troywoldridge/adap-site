@@ -13,7 +13,7 @@ export interface FeaturedCategory {
 
 interface Props {
   categories: FeaturedCategory[];
-  limit?: number; // NEW
+  limit?: number;
 }
 
 export default function FeaturedCategories({ categories, limit = 2 }: Props) {
@@ -21,24 +21,24 @@ export default function FeaturedCategories({ categories, limit = 2 }: Props) {
     return null;
   }
 
-  const items = categories.slice(0, limit); // ✅ only render up to limit
+  const items = categories.slice(0, limit);
 
   return (
-    <ul className="category-grid">
+    <ul className="featured-category-grid">
       {items.map(({ slug, name, imageUrl, href, description }) => (
-        <li key={slug} className="category-card">
+        <li key={slug} className="featured-category-card">
           <Link href={href} title={name}>
-            <div className="category-card__image-wrap">
+            <div className="featured-category-card__image-wrap">
               <Image
-                src={imageUrl}
+                src={imageUrl}                       // e.g. https://imagedelivery.net/<HASH>/<ID>/<VARIANT>
                 alt={description || name}
                 fill
-                sizes="(max-width: 768px) 50vw, 200px"
-                className="category-card__image"
+                sizes="(max-width: 768px) 100vw, 480px"
+                className="featured-category-card__image"
                 priority={false}
               />
             </div>
-            <h3 className="category-card__title">{name}</h3>
+            <h3 className="featured-category-card__title">{name}</h3>
           </Link>
         </li>
       ))}

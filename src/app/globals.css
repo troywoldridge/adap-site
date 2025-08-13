@@ -249,7 +249,7 @@ a:hover {
 }
 
 .main-nav__item:last-child {
-  padding-right: var(--gap-3);
+  padding-right: var(--gap-4);
 }
 
 .main-nav__item:hover {
@@ -388,8 +388,15 @@ a:hover {
 .hero__overlay {
   position: absolute;
   inset: 0;
-  background: --color-neutral-3;
+  /* Light-to-clear gradient so text is readable but image shows */
+  background: linear-gradient(
+    to right,
+    rgba(255,255,255,.92) 0%,
+    rgba(255,255,255,.55) 45%,
+    rgba(255,255,255,0) 70%
+  );
   z-index: 1;
+  pointer-events: none; /* make sure it never steals clicks */
 }
 
 /* text container */
@@ -506,41 +513,60 @@ section.shop-by-category .section-title {
   max-width: 600px;
 }
 
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat( auto-fit, minmax(260px, 1fr) );
-  gap: var(--gap-6);
-  margin-top: var(--gap-4);
-  list-style: none;
+.featured-category-grid {
+  max-width: 1000px;
+  margin: 2rem auto;
   padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
 }
-.category-card {
-  background: var(--color-white);
-  border-radius: 0.75rem;
-  box-shadow:
-    0 4px 6px rgba(0,0,0,0.08);
+
+
+.featured-category-card {       /* was .category-card (duplicate name) */
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
 }
-.category-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 6px 12px rgba(0,0,0,0.10);
+
+@media (min-width: 640px) {
+  .featured-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
-.category-card__image-wrap {
+
+@media (min-width: 1024px) {
+  .featured-category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.featured-category-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.10);
+  border-color: #d1d5db;
+}
+
+/* Shorter image ratio */
+.featured-category-card__image-wrap {
   position: relative;
   width: 100%;
-  padding-bottom: 75%;
+  aspect-ratio: 4 / 2.5; /* shorter than 4:3 */
+  background: #f7f7f7;
 }
-.category-card__image {
-  object-fit: cover;
-}
-.category-card__title {
-  padding: var(--gap-4);
-  text-align: center;
+
+.featured-category-card__image { object-fit: cover; }
+
+.featured-category-card__title {
+  margin: .75rem 1rem 1rem;
+  font-size: 1.05rem;
+  line-height: 1.35;
   font-weight: 600;
-  color: var(--color-neutral-1);
-  font-size: 1rem;
+  color: var(--color-blue);
 }
 
 /* =====================================
@@ -749,15 +775,22 @@ section.shop-by-category .section-title {
    CATEGORY LANDING PAGE STYLES
    ======================================================== */
 
-/* 1) Intro section */
+/* Center align heading and description on category landing pages */
 .category-intro {
   text-align: center;
   margin: var(--gap-8) 0;
 }
+
+.category-intro h1 {
+  text-align: center;
+  margin-bottom: var(--gap-2);
+}
+
 .category-intro__desc {
   max-width: 600px;
   margin: var(--gap-2) auto 0;
   color: var(--color-neutral-2);
+  text-align: center;
 }
 
 /* 2) Subcategory grid wrapper */
@@ -1163,3 +1196,90 @@ section.shop-by-category .section-title {
   }
 }
 
+/* Make the SinaLite selects look clean and full width */
+.product-options-panel select,
+.product-options-panel input[type="number"] {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+  font-size: 0.95rem;
+}
+.product-options-panel label {
+  display: block;
+  font-weight: 600;
+  margin: 0.25rem 0 0.25rem;
+}
+
+.ui-card {
+  background: var(--ui-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  padding: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+
+.input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ui-focus);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--ui-primary);
+  color: var(--ui-primary-contrast);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.muted {
+  color: var(--ui-muted);
+}
+
+/* Artwork upload */
+.artwork-upload-form { display: grid; gap: 12px; }
+.artwork-upload-box { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; }
+.artwork-upload-label { font-weight: 600; }
+.artwork-upload-note { font-size: 12px; }
+.artwork-upload-filename { font-size: 12px; color: var(--ui-muted); }
+.artwork-upload-error { background: #fff1f2; color: #991b1b; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
+.artwork-upload-success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; padding: 10px; border-radius: 8px; }

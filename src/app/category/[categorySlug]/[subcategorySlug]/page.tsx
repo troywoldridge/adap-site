@@ -5,7 +5,11 @@ import Image from "next/image";
 
 import categoryAssets from "@/data/categoryAssets.json";
 import subcategoryAssets from "@/data/subcategoryAssets.json";
-import { cfUrl } from "@/lib/data"; // your CF helper
+import productAssetsRaw from "@/data/productAssets.json";
+
+import { humanizeName } from "@/lib/data";
+import { productImagesForProductId } from "@/lib/product-images";
+import { getSinaliteProductMeta } from "@/lib/sinalite.client"; // calls /product/:id with Bearer token (per SinaLite docs)
 
 type CategoryAsset = {
   [slug: string]: {
@@ -17,170 +21,198 @@ type CategoryAsset = {
 };
 
 type SubAsset = {
-  id: number;
-  category_id: string;  // category slug, e.g. "business-cards"
-  slug: string;         // subcategory slug, e.g. "standard-business-cards-1"
-  name: string;         // "standard_business_cards"
+  id: number;              // numeric subcategory id
+  category_id: string;     // category slug, e.g. "business-cards"
+  slug: string;            // e.g. "standard-business-cards"
+  name: string;            // e.g. "standard_business_cards"
   description?: string | null;
   cloudflare_image_id?: string | null;
 };
 
-export default function SubcategoryPage({
+// productAssets.json row
+type ProductAsset = {
+  category_id?: string | number;
+  subcategory_id?: string | number;
+  name?: string;                     // local label; often generic
+  image_name?: string;
+  cloudflare_id?: string | null;
+  product_id: number | string;       // SinaLite product id
+  matched_sku?: string | null;       // SinaLite SKU
+};
+
+const productAssets: ProductAsset[] = Array.isArray(productAssetsRaw)
+  ? (productAssetsRaw as ProductAsset[])
+  : [];
+
+function titleFromMetaOrLocal(meta: any | null, p: ProductAsset): string {
+  // 1) Live name from SinaLite (/product/:id). Docs show "name" & "sku" on product rows.
+  const apiName = (meta?.name ?? "").toString().trim();
+  if (apiName) return apiName;
+
+  // 2) Fall back to SKU if present (readable once humanized)
+  const sku = (meta?.sku ?? p.matched_sku ?? "").toString().trim();
+  if (sku) return humanizeName(sku);
+
+  // 3) Last resort: local mapping name
+  if (p.name) return humanizeName(p.name);
+
+  // 4) Absolute fallback
+  return `Product ${p.product_id}`;
+}
+
+export default async function SubcategoryPage({
   params,
 }: {
   params: { categorySlug: string; subcategorySlug: string };
 }) {
   const { categorySlug, subcategorySlug } = params;
 
-  // 1) Validate category
+  // Validate category
   const catMap = categoryAssets as unknown as CategoryAsset;
   const cat = catMap[categorySlug];
-  if (!cat) {
-    return notFound();
-  }
+  if (!cat) return notFound();
 
-  // 2) Load all subs for this category from local JSON
+  // All subs under this category
   const subs = (subcategoryAssets as SubAsset[]).filter(
     (s) => s.category_id === categorySlug
   );
-  if (!subs.length) {
-    return notFound();
-  }
+  if (!subs.length) return notFound();
 
-  // 3) Pick the current sub
+  // Current subcategory
   const sub = subs.find((s) => s.slug === subcategorySlug);
-  if (!sub) {
-    return notFound();
-  }
+  if (!sub) return notFound();
 
-  // 4) Image
-  const heroImg =
-    sub.cloudflare_image_id ? cfUrl(sub.cloudflare_image_id) : "/images/placeholder.png";
+  // Find all products mapped to this subcategory
+  const subId = Number(sub.id);
+  const mappedProducts = productAssets.filter(
+    (p) => Number(p.subcategory_id) === subId && p.product_id != null
+  );
+
+  // Fetch live meta for each product (SinaLite API)
+  const productsWithMeta = await Promise.all(
+    mappedProducts.map(async (p) => {
+      const id = String(p.product_id);
+      try {
+        const meta = await getSinaliteProductMeta(id); // uses Bearer token per SinaLite docs
+        return {
+          id,
+          title: titleFromMetaOrLocal(meta, p),
+          category: meta?.category ?? "",
+          image: productImagesForProductId(id)[0], // Cloudflare CDN URL
+        };
+      } catch {
+        // If a single product meta call fails, keep a sensible fallback
+        return {
+          id,
+          title: titleFromMetaOrLocal(null, p),
+          category: "",
+          image: productImagesForProductId(id)[0],
+        };
+      }
+    })
+  );
+
+  const titleCat = categorySlug
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+  const titleSub = sub.name.replace(/[_-]+/g, " ");
 
   return (
     <main className="container" style={{ padding: 24 }}>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0 }}>
-          {cat ? categorySlug.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()) : categorySlug}
-          {" — "}
-          {sub.name.replace(/[_-]+/g, " ")}
+      <header className="category-intro" style={{ textAlign: "center", marginBottom: 16 }}>
+        <h1 className="section-title" style={{ margin: 0 }}>
+          {titleCat} — {titleSub}
         </h1>
         {sub.description ? (
-          <p style={{ marginTop: 8, color: "#555" }}>{sub.description}</p>
+          <p className="category-intro__desc" style={{ marginTop: 8 }}>
+            {sub.description}
+          </p>
         ) : null}
       </header>
 
-      <section style={{ display: "grid", gridTemplateColumns: "360px 1fr", gap: 24, alignItems: "start" }}>
-        <div
+      {productsWithMeta.length === 0 ? (
+        <p className="category-intro__desc" style={{ textAlign: "center" }}>
+          No products are mapped to this subcategory yet.
+        </p>
+      ) : (
+        <ul
           style={{
-            position: "relative",
-            width: "100%",
-            aspectRatio: "4 / 3",
-            overflow: "hidden",
-            borderRadius: 8,
-            background: "#f5f5f5",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 16,
+            padding: 0,
+            listStyle: "none",
+            maxWidth: 1200,
+            margin: "0 auto",
+            justifyItems: "center",
           }}
         >
-          <Image
-            src={heroImg}
-            alt={sub.description || sub.name}
-            fill
-            sizes="(max-width: 768px) 90vw, 360px"
-            style={{ objectFit: "cover" }}
-            unoptimized
-          />
-        </div>
+          {productsWithMeta.map((p) => (
+            <li
+              key={p.id}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 10,
+                background: "#fff",
+                padding: 16,
+                width: "100%",
+                maxWidth: 360,
+                textAlign: "center",
+              }}
+            >
+              <Link
+                href={`/product/${p.id}`}
+                title={p.title}
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    aspectRatio: "4 / 3",
+                    overflow: "hidden",
+                    borderRadius: 8,
+                    background: "#f5f5f5",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Image
+                    src={p.image}
+                    alt={p.title}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 360px"
+                    style={{ objectFit: "cover" }}
+                    priority={false}
+                  />
+                </div>
+                <h3 style={{ margin: "0 0 6px" }}>{p.title}</h3>
+                {p.category ? (
+                  <p style={{ margin: 0, color: "#666", fontSize: 14 }}>{p.category}</p>
+                ) : null}
+              </Link>
 
-        <div>
-          <p style={{ marginTop: 0, color: "#333" }}>
-            Products for <strong>{sub.name.replace(/[_-]+/g, " ")}</strong> come from your local
-            <code> subcategoryAssets.json</code>. If/when you want this to jump into a real product page,
-            add a mapping from this subcategory to a Sinalite productId (or SKU) and link the button below.
-          </p>
-
-          {/* Replace the href once you have a mapping to real product IDs */}
-          <Link
-            href="#"
-            onClick={(e) => e.preventDefault()}
-            style={{
-              display: "inline-block",
-              padding: "10px 16px",
-              background: "var(--color-blue)",
-              color: "#fff",
-              borderRadius: 8,
-              textDecoration: "none",
-              fontWeight: 600,
-            }}
-            title="Coming soon"
-          >
-            Customize (coming soon)
-          </Link>
-        </div>
-      </section>
-
-      {/* Sibling subcategories carousel/grid */}
-      {subs.length > 1 && (
-        <>
-          <h2 style={{ marginTop: 32, marginBottom: 12 }}>More in this category</h2>
-          <ul
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: 16,
-              padding: 0,
-              listStyle: "none",
-            }}
-          >
-            {subs
-              .filter((s) => s.slug !== sub.slug)
-              .map((s) => {
-                const thumb =
-                  s.cloudflare_image_id ? cfUrl(s.cloudflare_image_id) : "/images/placeholder.png";
-                return (
-                  <li
-                    key={s.slug}
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 10,
-                      background: "#fff",
-                      padding: 12,
-                    }}
-                  >
-                    <Link
-                      href={`/category/${categorySlug}/${s.slug}`}
-                      title={s.name}
-                      style={{ color: "inherit", textDecoration: "none" }}
-                    >
-                      <div
-                        style={{
-                          position: "relative",
-                          width: "100%",
-                          aspectRatio: "4 / 3",
-                          overflow: "hidden",
-                          borderRadius: 8,
-                          background: "#f5f5f5",
-                          marginBottom: 8,
-                        }}
-                      >
-                        <Image
-                          src={thumb}
-                          alt={s.description || s.name}
-                          fill
-                          sizes="(max-width: 768px) 50vw, 220px"
-                          style={{ objectFit: "cover" }}
-                          unoptimized
-                        />
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: 16 }}>
-                        {s.name.replace(/[_-]+/g, " ")}
-                      </h3>
-                    </Link>
-                  </li>
-                );
-              })}
-          </ul>
-        </>
+              <div style={{ marginTop: 12 }}>
+                <Link
+                  href={`/product/${p.id}`}
+                  className="shipping-estimator__button"
+                  style={{
+                    display: "inline-block",
+                    padding: "10px 16px",
+                    background: "var(--color-blue)",
+                    color: "#fff",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Customize
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   );
 }
+

@@ -8,7 +8,7 @@ export interface ImageRecord {
   subcategory_id: number;
   name: string;               // e.g. "standard_business_cards"
   image_name: string;         // e.g. "business-cards-18pt-matte-silk-lamination_1.webp"
-  cloudflare_id: string | null;
+  cloudflare_id: string | null; // either a bare CF Images ID or (historically) a full URL
   product_id: number;         // 0 means "not tied to a product"
   matched_sku: string | null;
 }
@@ -16,26 +16,31 @@ export interface ImageRecord {
 export type ImageMap = ImageRecord[];
 
 // ---- Cloudflare image URL helper ----
-const CF_BASE =
-  process.env.NEXT_PUBLIC_IMAGE_DELIVERY_BASE?.replace(/\/+$/, "") ||
-  "https://imagedelivery.net";
-const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "";
-const CF_VARIANT =
-  process.env.NEXT_PUBLIC_CF_IMAGE_VARIANT || "public";
+// Per SinaLite doc flow we serve via Cloudflare Images (CDN).
+const CF_BASE   = (process.env.NEXT_PUBLIC_IMAGE_DELIVERY_BASE ?? "https://imagedelivery.net").replace(/\/+$/, "");
+const CF_HASH   = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH ?? "";
+const CF_VARIANT = process.env.NEXT_PUBLIC_CF_IMAGE_VARIANT ?? "public";
 
-/** Build a Cloudflare Image Delivery URL, or fallback to a relative /images path. */
+// Guaranteed placeholder (allowed in CSP + next/image remotePatterns)
+export const PLACEHOLDER = "https://placehold.co/800x600?text=Image+Coming+Soon";
+
+/** Build a Cloudflare Image Delivery URL, accept full URLs, or return placeholder. */
 export function cfUrl(
-  cloudflareId: string | null | undefined,
-  fallbackImageName?: string
+  cloudflareId?: string | null,
+  variant: string = CF_VARIANT
 ): string {
-  if (cloudflareId && CF_HASH) {
-    return `${CF_BASE}/${CF_HASH}/${cloudflareId}/${CF_VARIANT}`;
+  const id = (cloudflareId ?? "").trim();
+  if (!id) {
+    return PLACEHOLDER;
   }
-  // Fallback to /images if no CF id
-  if (fallbackImageName) {
-    return `/images/${fallbackImageName}`;
+
+  // Already a full URL? just use it.
+  if (/^https?:\/\//i.test(id)) {
+    return id;
   }
-  return "/images/placeholder.png";
+
+  // Otherwise treat as CF Images ID
+  return CF_HASH ? `${CF_BASE}/${CF_HASH}/${id}/${variant}` : PLACEHOLDER;
 }
 
 // Normalize name to a human label if needed
@@ -59,23 +64,28 @@ export function getImageForCategorySubcategory(
   categoryId: number,
   subcategoryId?: number
 ): { url: string; record: ImageRecord | null } {
-  // Try exact match first
+  // 1) exact match on category + subcategory (when provided)
   let rec =
     imageMap.find(
       (r) =>
         r.category_id === categoryId &&
-        (typeof subcategoryId === "number"
-          ? r.subcategory_id === subcategoryId
-          : true)
+        (typeof subcategoryId === "number" ? r.subcategory_id === subcategoryId : true)
     ) || null;
 
-  // If no exact match w/ subcategory, try any image in the category
+  // 2) if no subcategory match, try any image in the category
   if (!rec && typeof subcategoryId === "number") {
     rec = imageMap.find((r) => r.category_id === categoryId) || null;
   }
 
-  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
-  return { url, record: rec };
+  return { url: cfUrl(rec?.cloudflare_id), record: rec };
+}
+
+/** Find an image by subcategory_id (authoritative when your JSON maps it). */
+export function getImageBySubcategoryId(
+  subcategoryId: number
+): { url: string; record: ImageRecord | null } {
+  const rec = imageMap.find((r) => r.subcategory_id === subcategoryId) || null;
+  return { url: cfUrl(rec?.cloudflare_id), record: rec };
 }
 
 /** Find an image by product_id. */
@@ -83,8 +93,7 @@ export function getImageByProductId(
   productId: number
 ): { url: string; record: ImageRecord | null } {
   const rec = imageMap.find((r) => r.product_id === productId) || null;
-  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
-  return { url, record: rec };
+  return { url: cfUrl(rec?.cloudflare_id), record: rec };
 }
 
 /** Find an image by matched_sku (exact match). */
@@ -92,29 +101,19 @@ export function getImageBySku(
   sku: string
 ): { url: string; record: ImageRecord | null } {
   const rec =
-    imageMap.find((r) => (r.matched_sku || "").toLowerCase() === sku.toLowerCase()) ||
-    null;
-  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
-  return { url, record: rec };
+    imageMap.find((r) => (r.matched_sku || "").toLowerCase() === sku.toLowerCase()) || null;
+  return { url: cfUrl(rec?.cloudflare_id), record: rec };
 }
 
 /** Find an image by the `name` field (e.g., "standard_business_cards"). */
 export function getImageByName(
   name: string
 ): { url: string; record: ImageRecord | null } {
-  const rec =
-    imageMap.find(
-      (r) => r.name.toLowerCase() === name.toLowerCase()
-    ) || null;
-  const url = rec ? cfUrl(rec.cloudflare_id, rec.image_name) : cfUrl(null);
-  return { url, record: rec };
+  const rec = imageMap.find((r) => r.name.toLowerCase() === name.toLowerCase()) || null;
+  return { url: cfUrl(rec?.cloudflare_id), record: rec };
 }
 
-/** Slug helper if you need it elsewhere (consistent slug generation). */
+/** Consistent slug helper. */
 export function toSlug(input: string): string {
-  return slugify(input, {
-    lower: true,
-    strict: true,
-    trim: true,
-  });
+  return slugify(input, { lower: true, strict: true, trim: true });
 }

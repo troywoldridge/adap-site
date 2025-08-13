@@ -1,7 +1,8 @@
-// middleware.ts (project root)
+// src/middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-// Routes that REQUIRE sign-in
+// 🔐 Protected areas (sign-in required)
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
@@ -9,34 +10,57 @@ const isProtectedRoute = createRouteMatcher([
   "/checkout",
   "/orders(.*)",
   "/account(.*)",
+
+  // ✅ Upload artwork (singular path)
+  "/product/:productId/upload-artwork",
+
+  // (Optional) keep old plural path for backward compatibility
   "/products/:productId/upload-artwork",
-  "/api/shipping/estimate",
-  "/api/shippingEstimate",
-  "/api/order/place",
-  "/api/orders(.*)",
+
+  "/api/artwork/:path*",
+  // Optional but recommended: protect presign uploads too
+  // "/api/r2/presign",
 ]);
 
-// (Optional) public routes kept for SEO/browse
+// 🌐 Public API (no auth) — pricing & shipping stay open per Sinalite API usage
+const isPublicApiRoute = createRouteMatcher([
+  "/api/products/:path*", // product + shipping endpoints
+  "/api/sinalite/:path*", // pricing proxy/calls to Sinalite
+]);
+
+// 📰 Public pages (browsing is open)
 const isExplicitPublic = createRouteMatcher([
   "/",
   "/categories(.*)",
   "/subcategories(.*)",
-  "/products(.*)",
+  "/product(.*)",   // ✅ singular product pages explicitly public
+  "/products(.*)",  // (if you have any plural routes left around)
   "/blog(.*)",
+  "/search(.*)",
+  "/shipping(.*)",
+  "/shipping-info(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    const session = await auth(); // ✅ await the async auth()
-    if (!session.userId) {
-      // Redirect unauthenticated users to sign-in
-      return session.redirectToSignIn();
-    }
+  // Allow preflight & HEAD
+  if (req.method === "HEAD" || req.method === "OPTIONS") {
+    return NextResponse.next();
   }
-  // else public — fall through
+
+  // Public APIs & pages flow through
+  if (isPublicApiRoute(req) || isExplicitPublic(req)) {
+    return NextResponse.next();
+  }
+
+  // Enforce auth on protected routes (Clerk v5)
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+
+  // Default allow
+  return NextResponse.next();
 });
 
-// Ensure middleware runs on app routes (exclude _next assets and files)
 export const config = {
   matcher: ["/((?!_next|.*\\..*).*)"],
 };
