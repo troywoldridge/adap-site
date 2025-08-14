@@ -2,62 +2,74 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// 🔐 Protected areas (sign-in required)
+// ---- PROTECTED (must be signed in) ----
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
-  "/review-order",
-  "/checkout",
-  "/orders(.*)",
+
   "/account(.*)",
+  "/orders(.*)",
+  "/checkout(.*)",
+  "/review-order(.*)",
 
-  // ✅ Upload artwork (singular path)
-  "/product/:productId/upload-artwork",
+  // Artwork upload page(s)
+  "/product/:productId/upload-artwork(.*)", // current (singular)
+  "/products/:productId/upload-artwork(.*)", // legacy (plural), just in case
 
-  // (Optional) keep old plural path for backward compatibility
-  "/products/:productId/upload-artwork",
-
+  // Artwork + order APIs that should require auth
   "/api/artwork/:path*",
-  // Optional but recommended: protect presign uploads too
-  // "/api/r2/presign",
+  "/api/r2/presign(.*)",
+  "/api/order/place",
+  "/api/orders(.*)",
 ]);
 
-// 🌐 Public API (no auth) — pricing & shipping stay open per Sinalite API usage
+// ---- PUBLIC API (no auth) ----
 const isPublicApiRoute = createRouteMatcher([
-  "/api/products/:path*", // product + shipping endpoints
-  "/api/sinalite/:path*", // pricing proxy/calls to Sinalite
+  "/api/products/:path*",   // your product endpoints / shipping
+  "/api/sinalite/:path*",   // pricing endpoints
+  "/api/stripe/:path*",     // webhooks, etc. must be publicly reachable
+  "/api/hero-analytics",    // if you add this later, keep public
 ]);
 
-// 📰 Public pages (browsing is open)
+// ---- PUBLIC PAGES ----
 const isExplicitPublic = createRouteMatcher([
   "/",
+  "/search(.*)",
   "/categories(.*)",
   "/subcategories(.*)",
-  "/product(.*)",   // ✅ singular product pages explicitly public
-  "/products(.*)",  // (if you have any plural routes left around)
+
+  // Product pages are public; only the *upload* sub-route is protected
+  "/product(.*)",
+  "/products(.*)",
+
   "/blog(.*)",
-  "/search(.*)",
   "/shipping(.*)",
   "/shipping-info(.*)",
+
+  // Auth pages always public
+  "/sign-in(.*)",
+  "/sign-up(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Allow preflight & HEAD
+  // Always let preflight/HEAD pass
   if (req.method === "HEAD" || req.method === "OPTIONS") {
     return NextResponse.next();
   }
 
-  // Public APIs & pages flow through
+  // Let public APIs + public pages through
   if (isPublicApiRoute(req) || isExplicitPublic(req)) {
     return NextResponse.next();
   }
 
-  // Enforce auth on protected routes (Clerk v5)
+  // Enforce auth on protected routes
   if (isProtectedRoute(req)) {
-    await auth.protect();
+    const au = await auth(); // NOTE: call and await the helper to get the result
+    if (!au.userId) {
+      return au.redirectToSignIn();
+    }
   }
 
-  // Default allow
   return NextResponse.next();
 });
 

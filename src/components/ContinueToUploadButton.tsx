@@ -1,25 +1,26 @@
 // src/components/ContinueToUploadButton.tsx
 "use client";
+
 import Link from "next/link";
 
 export default function ContinueToUploadButton({
   productId,
   orderId,
-  sides,
+  sides = 1,
 }: {
-  productId: string;
+  productId: string | number;
   orderId: string;
   sides?: number;
 }) {
-  const base = `/product/${encodeURIComponent(productId)}/upload-artwork`; // <-- singular
-  const query = new URLSearchParams({ orderId });
-  if (typeof sides === "number" && sides > 0) {
-    query.set("sides", String(sides));
-  }
-
+  const pid = String(productId);
+  const href = `/product/${encodeURIComponent(
+    pid
+  )}/upload-artwork?sides=${encodeURIComponent(String(sides))}&orderId=${encodeURIComponent(
+    orderId
+  )}`;
   return (
-    <Link href={`${base}?${query.toString()}`} className="btn btn-secondary">
-      Continue to Upload Artwork
+    <Link href={href} className="btn btn-primary">
+      Upload your artwork
     </Link>
   );
 }

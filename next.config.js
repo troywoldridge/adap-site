@@ -2,71 +2,92 @@
 /** @type {import('next').NextConfig} */
 
 const isDev = process.env.NODE_ENV !== "production";
-
-// If you read files via a CDN domain (recommended), put it in R2_PUBLIC_BASEURL
-// e.g. https://cdn.adap.com/artwork
 const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || "";
+const R2_DIRECT_HOST = process.env.R2_DIRECT_HOST || "";
+
 let R2_PUBLIC_ORIGIN = "";
 let R2_PUBLIC_HOST = "";
 try {
   if (R2_PUBLIC_BASEURL) {
     const u = new URL(R2_PUBLIC_BASEURL);
-    R2_PUBLIC_ORIGIN = u.origin;       // scheme+host
-    R2_PUBLIC_HOST = u.hostname;       // host only for next/image remotePatterns
+    R2_PUBLIC_ORIGIN = u.origin;
+    R2_PUBLIC_HOST = u.hostname;
   }
-} catch { /* ignore */ }
+} catch {}
 
-const ContentSecurityPolicy = [
-  // baseline
-  "default-src 'self'",
+const scriptSrcList = [
+  `'self'`,
+  `'unsafe-inline'`,
+  `'unsafe-eval'`,
+  `https://js.stripe.com`,
+  `https://challenges.cloudflare.com`,
+  `https://cdn.jsdelivr.net`,
+  `https://clerk.com`,
+  `https://cdn.clerk.com`,
+  `https://clerk-assets.com`,
+  `https://assets.clerk.dev`,
+  `https://*.clerk.accounts.dev`,
+];
 
-  // scripts (Stripe + Cloudflare Turnstile + Clerk loader via jsdelivr)
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://challenges.cloudflare.com https://cdn.jsdelivr.net",
+const connectSrcList = [
+  `'self'`,
+  `https://api.stripe.com`,
+  `https://liveapi.sinalite.com`,
+  `https://api.sinaliteuppy.com`,
+  `https://*.upstash.io`,
+  `https://*.algolia.net`,
+  `https://*.algolianet.com`,
+  `https://clerk.com`,
+  `https://cdn.clerk.com`,
+  `https://clerk-assets.com`,
+  `https://assets.clerk.dev`,
+  `https://api.clerk.com`,
+  `https://*.clerk.com`,
+  `https://*.clerk.dev`,
+  `https://*.clerk.services`,
+  `https://*.clerk.accounts.dev`,
+  `https://cdn.jsdelivr.net`,
+  `https://*.r2.cloudflarestorage.com`,
+  `https://clerk-telemetry.com`,
+  isDev ? `ws:` : ``,
+  isDev ? `wss:` : ``,
+].filter(Boolean);
 
-  // styles
-  "style-src 'self' 'unsafe-inline'",
-
-  // images (Cloudflare Images + Sinalite previews + R2 reads via CDN or direct)
-  [
-    "img-src 'self' data: blob:",
-    "https://imagedelivery.net",
-    "https://api.sinaliteuppy.com",
-    "https://liveapi.sinalite.com",
-    "https://placehold.co",
-    "https://*.r2.cloudflarestorage.com", // direct R2 reading (if you ever render direct URLs)
-    R2_PUBLIC_ORIGIN,                     // your CDN origin for R2, e.g. https://cdn.adap.com
+const directives = {
+  "default-src": `'self'`,
+  "script-src": scriptSrcList.join(" "),
+  "script-src-elem": scriptSrcList.join(" "),
+  "style-src": [
+    `'self'`,
+    `'unsafe-inline'`,
+    `https://cdn.jsdelivr.net`,
+    `https://unpkg.com`,
+    `https://fonts.googleapis.com`,
+  ].join(" "),
+  "img-src": [
+    `'self'`,
+    `data:`,
+    `blob:`,
+    `https://imagedelivery.net`,
+    `https://api.sinaliteuppy.com`,
+    `https://liveapi.sinalite.com`,
+    `https://placehold.co`,
+    `https://*.r2.cloudflarestorage.com`,
+    R2_PUBLIC_ORIGIN,
   ].filter(Boolean).join(" "),
+  "font-src": `'self' data: https://fonts.gstatic.com`,
+  "media-src": `'self' https: data: blob:`,
+  "worker-src": `'self' blob:`,
+  "connect-src": connectSrcList.join(" "),
+  "frame-src": `https://js.stripe.com https://hooks.stripe.com https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com`,
+  "object-src": `'none'`,
+  "base-uri": `'self'`,
+  "form-action": `'self' https://api.stripe.com`,
+};
 
-  // fonts/media/workers
-  "font-src 'self' data:",
-  "media-src 'self' https: data: blob:",
-  "worker-src 'self' blob:",
-
-  // XHR/fetch/WebSocket
-  [
-    "connect-src 'self'",
-    "https://api.stripe.com",
-    "https://liveapi.sinalite.com",     // Sinalite API docs: pricing
-    "https://api.sinaliteuppy.com",     // Sinalite API docs: auth/token etc.
-    "https://*.upstash.io",
-    "https://*.algolia.net",            // Algolia primary
-    "https://*.algolianet.com",         // Algolia failover
-    "https://*.clerk.com",              // Clerk
-    "https://*.clerk.services",
-    "https://cdn.jsdelivr.net",         // Clerk JS loader
-    "https://*.r2.cloudflarestorage.com", // R2 presigned PUT host(s)
-    isDev ? "ws:" : "",                 // HMR in dev
-    isDev ? "wss:" : "",
-  ].filter(Boolean).join(" "),
-
-  // frames (Stripe + Clerk)
-  "frame-src https://js.stripe.com https://hooks.stripe.com https://*.clerk.com",
-
-  // misc hardening
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self' https://api.stripe.com",
-].join("; ");
+const ContentSecurityPolicy = Object.entries(directives)
+  .map(([k, v]) => `${k} ${v}`)
+  .join("; ");
 
 const securityHeaders = [
   { key: "Content-Security-Policy", value: ContentSecurityPolicy },
@@ -77,19 +98,18 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
-// Build remotePatterns for next/image
 const imageRemotePatterns = [
-  { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },   // Cloudflare Images (product photos)
+  { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "placehold.co", pathname: "/**" },
-  // If you ever show images direct from R2 (not needed for uploads, but safe):
-  { protocol: "https", hostname: "*.r2.cloudflarestorage.com", pathname: "/**" },
 ];
 
-// Add your CDN host (if set) so next/image can optimize it too
 if (R2_PUBLIC_HOST) {
   imageRemotePatterns.push({ protocol: "https", hostname: R2_PUBLIC_HOST, pathname: "/**" });
+}
+if (R2_DIRECT_HOST) {
+  imageRemotePatterns.push({ protocol: "https", hostname: R2_DIRECT_HOST, pathname: "/**" });
 }
 
 const nextConfig = {
@@ -98,9 +118,7 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  experimental: {
-    // turbo: false,
-  },
+  experimental: {},
 };
 
 export default nextConfig;

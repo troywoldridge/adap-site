@@ -1283,3 +1283,13 @@ section.shop-by-category .section-title {
 .artwork-upload-filename { font-size: 12px; color: var(--ui-muted); }
 .artwork-upload-error { background: #fff1f2; color: #991b1b; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; }
 .artwork-upload-success { background: #f0fdf4; color: #064e3b; border: 1px solid #bbf7d0; padding: 10px; border-radius: 8px; }
+
+/* Hide Algolia Autocomplete panel everywhere */
+.aa-Panel,
+.aa-DetachedContainer,
+.aa-DetachedOverlay { display: none !important; visibility: hidden !important; }
+
+/* If you used InstantSearch hits near the header, hide them too */
+.header-search .ais-Hits,
+.header-search .ais-InfiniteHits,
+.header-search .ais-Panel { display:none !important; }

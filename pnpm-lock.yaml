@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@algolia/autocomplete-theme-classic':
+        specifier: ^1.19.2
+        version: 1.19.2
       '@aws-sdk/client-s3':
         specifier: ^3.864.0
         version: 3.864.0
@@ -161,6 +164,9 @@ importers:
         version: 5.9.2
 
 packages:
+
+  '@algolia/autocomplete-theme-classic@1.19.2':
+    resolution: {integrity: sha512-UapO6bGuT5NkRK8VWxSg8AOLRhIcxBZ/OYg7ao//WHBo/yyiDybxy+K/xeY1RcHQVgimqlWfXj8IWAyQxxZP6A==}
 
   '@algolia/cache-browser-local-storage@4.14.2':
     resolution: {integrity: sha512-FRweBkK/ywO+GKYfAWbrepewQsPTIEirhi1BdykX9mxvBPtGNKccYAxvGdDCumU1jL4r3cayio4psfzKMejBlA==}
@@ -3403,6 +3409,8 @@ packages:
     resolution: {integrity: sha512-Djo/cM339grjI7/HmN+ixYO2FzEMcWr/On50UlQ/RjrWK1I/hPpWhpC76heCptnRFpH0LMwrEbUY50HDc0V8wg==}
 
 snapshots:
+
+  '@algolia/autocomplete-theme-classic@1.19.2': {}
 
   '@algolia/cache-browser-local-storage@4.14.2':
     dependencies:

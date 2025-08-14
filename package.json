@@ -24,6 +24,7 @@
     "deploy:full": "bash scripts/deploy.sh develop origin"
   },
   "dependencies": {
+    "@algolia/autocomplete-theme-classic": "^1.19.2",
     "@aws-sdk/client-s3": "^3.864.0",
     "@aws-sdk/s3-request-presigner": "^3.864.0",
     "@clerk/nextjs": "^6.30.0",

@@ -33,7 +33,9 @@ export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Pro
     try {
       const urls: string[] = [];
       for (const f of files) {
-        if (!f) throw new Error("Please select all artwork files.");
+        if (!f) {
+          throw new Error("Please select all artwork files.");
+        }
         const { uploadUrl, publicUrl } = await getPresignedUrl({
           filename: f.name,
           contentType: f.type || "application/octet-stream",

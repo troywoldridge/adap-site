@@ -14,6 +14,7 @@ import "server-only";
 type Token = { access_token: string; token_type: string; expires_at: number };
 let tokenCache: Token | null = null;
 
+
 // Lazily read env so imports never crash
 function env() {
   const API_BASE = process.env.SINALITE_API_BASE;          // e.g., https://api.sinaliteuppy.com or https://liveapi.sinalite.com
@@ -36,7 +37,7 @@ async function getAccessToken(): Promise<string> {
   if (tokenCache && tokenCache.expires_at > now + 10_000) {
     return `${tokenCache.token_type} ${tokenCache.access_token}`;
   }
-
+  
   const res = await fetch(`${API_BASE}/auth/token`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -70,6 +71,16 @@ async function getAccessToken(): Promise<string> {
   return `${tokenCache.token_type} ${tokenCache.access_token}`;
 }
 
+export class UpstreamError extends Error {
+  status: number;
+  body?: string;
+  constructor(message: string, status = 500, body?: string) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   const auth = await getAccessToken();
   const res = await fetch(url, {
@@ -82,12 +93,28 @@ async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
     next: { revalidate: 600 },
   });
 
+  const raw = await res.text();
+
   if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`SinaLite ${res.status} ${res.statusText} @ ${url}\n${t}`);
+    throw new UpstreamError(
+      `SinaLite ${res.status} ${res.statusText} @ ${url}`,
+      res.status,
+      raw
+    );
   }
-  return res.json() as Promise<T>;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    const t = raw.trim();
+    if (/^product unavailable\.?$/i.test(t) || /^not found/i.test(t)) {
+      throw new UpstreamError(`SinaLite 404 Product Unavailable @ ${url}`, 404, t);
+    }
+    // Sometimes upstream answers with HTML or plain text for maintenance/errors
+    throw new UpstreamError(`SinaLite returned non-JSON @ ${url}`, 502, t);
+  }
 }
+
 
 // ===== Public types =====
 export type SinaliteProductMeta = {
@@ -134,20 +161,30 @@ async function fetchSinaliteProductArrays(
 ): Promise<{ optionsArray: any[]; pricingArray: any[]; metaArray: any[] }> {
   const { API_BASE, STORE } = env();
   const sc = storeCode || STORE;
-  const payload = await getJson<any>(`${API_BASE}/product/${productId}/${sc}`);
 
-  if (Array.isArray(payload)) {
+  try {
+    const payload = await getJson<any>(`${API_BASE}/product/${productId}/${sc}`);
+
+    if (Array.isArray(payload)) {
+      return {
+        optionsArray: Array.isArray(payload[0]) ? payload[0] : [],
+        pricingArray: Array.isArray(payload[1]) ? payload[1] : [],
+        metaArray: Array.isArray(payload[2]) ? payload[2] : [],
+      };
+    }
     return {
-      optionsArray: Array.isArray(payload[0]) ? payload[0] : [],
-      pricingArray: Array.isArray(payload[1]) ? payload[1] : [],
-      metaArray: Array.isArray(payload[2]) ? payload[2] : [],
+      optionsArray: Array.isArray(payload?.options) ? payload.options : [],
+      pricingArray: Array.isArray(payload?.pricing) ? payload.pricing : [],
+      metaArray: Array.isArray(payload?.meta) ? payload.meta : [],
     };
+  } catch (err: any) {
+    // Gracefully handle “Product Unavailable.” or similar client-side errors from SinaLite
+    if (err?.status === 404 || err?.status === 400) {
+      return { optionsArray: [], pricingArray: [], metaArray: [] };
+    }
+    // Anything else = real upstream issue → bubble up
+    throw err;
   }
-  return {
-    optionsArray: Array.isArray(payload?.options) ? payload.options : [],
-    pricingArray: Array.isArray(payload?.pricing) ? payload.pricing : [],
-    metaArray: Array.isArray(payload?.meta) ? payload.meta : [],
-  };
 }
 
 // Re-export under the original public name so other imports keep working
@@ -224,7 +261,9 @@ export function normalizeOptionGroups(optionsArray: any[]): SinaliteOptionGroup[
   groups.sort((a, b) => {
     const ai = indexIn(a.group, orderHint);
     const bi = indexIn(b.group, orderHint);
-    if (ai !== bi) return ai - bi;
+    if (ai !== bi) {
+      return ai - bi;
+    }
     return a.label.localeCompare(b.label);
   });
 
@@ -282,7 +321,9 @@ async function buildIdIndexes(productId: number, storeCode?: string) {
       const name = String((row as RawOptionRegular).name);
       idIndex.set(id, { group: g, name });
       const k = norm(g);
-      if (!groupIndex.has(k)) groupIndex.set(k, []);
+      if (!groupIndex.has(k)) {
+        groupIndex.set(k, []);
+      }
       groupIndex.get(k)!.push({ id, name });
       continue;
     }
@@ -293,7 +334,9 @@ async function buildIdIndexes(productId: number, storeCode?: string) {
       const name = String((row as RawOptionRollLabel).option_val);
       idIndex.set(id, { group: g, name });
       const k = norm(g);
-      if (!groupIndex.has(k)) groupIndex.set(k, []);
+      if (!groupIndex.has(k)) {
+        groupIndex.set(k, []);
+      }
       groupIndex.get(k)!.push({ id, name });
       continue;
     }
@@ -466,8 +509,12 @@ export async function getDefaultPriceSnapshot(
     }
 
     for (const g of groups) {
-      if (qtyGroup && g.group === qtyGroup.group) continue;
-      if (g.values.length) optionIds.push(g.values[0].id);
+      if (qtyGroup && g.group === qtyGroup.group) {
+        continue;
+      }
+      if (g.values.length) {
+        optionIds.push(g.values[0].id);
+      }
     }
 
     optionIds = Array.from(new Set(optionIds));
@@ -479,7 +526,9 @@ export async function getDefaultPriceSnapshot(
       (priceResp as any)?.response?.price ??
       null;
 
-    if (rawPrice == null) return null;
+    if (rawPrice == null) {
+      return null;
+    }
 
     const currency = sc.toLowerCase().includes("ca") ? "CAD" : "USD";
     return { price: Number(rawPrice), currency };

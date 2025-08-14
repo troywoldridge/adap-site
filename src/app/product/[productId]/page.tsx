@@ -13,7 +13,7 @@ import { productImagesForProductId } from "@/lib/product-images";
 import { productJsonLd, breadcrumbJsonLd, absoluteUrl } from "@/lib/seo";
 import ProductConfigurator from "@/components/product/ProductConfigurator";
 import ShippingEstimator from "@/components/product/ShippingEstimator";
-import UploadCta from "@/components/UploadCta"; // ✅ new
+import UploadCta from "@/components/UploadCta";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +27,14 @@ export async function generateMetadata({
   let meta: any = null;
   try {
     meta = await getSinaliteProductMeta(id);
-  } catch {}
+  } catch {
+    // ignore: product may be unavailable; we'll handle in the page
+  }
 
   const name = meta?.name || `Product ${id}`;
   const desc = meta?.description || `Order ${name} online — trade pricing via SinaLite.`;
   const url = absoluteUrl(`/product/${id}`);
-  const images = productImagesForProductId(id); // Cloudflare Images URLs
+  const images = productImagesForProductId(id); // served via Cloudflare Images CDN
 
   return {
     title: name,
@@ -62,25 +64,33 @@ export default async function ProductPage({
 }) {
   const id = params.productId;
 
-  // Meta
-  let meta: any;
+  // Guard against invalid ids (e.g. /product/0)
+  const idNum = Number(id);
+  if (!Number.isFinite(idNum) || idNum <= 0) {
+    return notFound();
+  }
+
+  // Meta (per SinaLite API docs, product can be unavailable)
+  let meta: any = null;
   try {
     meta = await getSinaliteProductMeta(id);
   } catch {
     return notFound();
   }
-  if (!meta) return notFound();
+  if (!meta) {
+    return notFound();
+  }
 
-  // Options (array → normalized groups)
+  // Options (array → normalized groups). If upstream returns no arrays, we still render safely.
   const { optionsArray } = await getSinaliteProductArrays(id);
-  const optionGroups = normalizeOptionGroups(optionsArray);
+  const optionGroups = normalizeOptionGroups(optionsArray || []);
 
   // Gallery (Cloudflare CDN)
   const gallery = productImagesForProductId(id);
   const hero = gallery[0] || "https://placehold.co/800x600?text=No+Image";
   const url = absoluteUrl(`/product/${id}`);
 
-  // Best-effort default price (per SinaLite docs)
+  // Best-effort default price (safe if upstream has no data)
   const offer = await getDefaultPriceSnapshot(id); // { price, currency } | null
 
   // JSON-LD
@@ -190,10 +200,9 @@ export default async function ProductPage({
         {/* Right: live pricing configurator (client) + shipping estimator + upload CTA */}
         <div className="space-y-4">
           <ProductConfigurator productId={id} options={optionGroups} />
-          {/* Per Sinalite API docs, you can wire selected options into the estimator via event bridge */}
-          <ShippingEstimator productId={Number(id)} enableEventBridge />
+          <ShippingEstimator productId={idNum} enableEventBridge />
 
-          {/* ✅ New: Upload Artwork step (uses Cloudflare R2 via presigned PUT) */}
+          {/* Upload Artwork step (presigned PUT to Cloudflare R2) */}
           <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
             <UploadCta productId={id} />
           </div>

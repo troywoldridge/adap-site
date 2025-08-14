@@ -1,35 +1,38 @@
 import Hero from "@/components/Hero";
 import FeaturedCategories from "@/components/FeaturedCategories";
 import { getLocalCategories } from "@/lib/catalogLocal";
+import SignupPromoCard from "@/components/SignupPromoCard";
 
 // Minimal shape to satisfy TypeScript
 type LocalCategory = {
   slug: string;
   name: string;
-  image?: string | null;
+  image?: string | null;       // should already be a Cloudflare Images URL from your lib
   description?: string | null;
 };
 
 export default function HomePage() {
-  // must be inside the component
   const categories = getLocalCategories() as LocalCategory[];
 
   // Show Business Cards, Large Format, and Print Products
   const featuredSlugs = ["business-cards", "large-format", "print-products"];
 
   const featured = featuredSlugs
-    .map((slug) => categories.find((c: LocalCategory) => c.slug === slug))
-    .filter(Boolean)
+    .map((slug) => categories.find((c) => c.slug === slug) || null)
+    .filter((c): c is LocalCategory => !!c)
     .map((c) => ({
-      slug: c!.slug,
-      name: c!.name,
-      imageUrl: c!.image || "", // Cloudflare Images URL built in catalogLocal
-      href: `/categories/${c!.slug}`,
-      description: c!.description ?? undefined,
+      slug: c.slug,
+      name: c.name,
+      imageUrl: c.image ?? "",                 // Cloudflare CDN URL (imagedelivery.net)
+      href: `/categories/${c.slug}`,
+      description: c.description ?? undefined,
     }));
 
   return (
     <main>
+      {/* Floating “sign up & save” card for signed-out users */}
+      <SignupPromoCard />
+
       {/* Hero */}
       <Hero />
 
@@ -83,7 +86,7 @@ export default function HomePage() {
       <section className="our-promise">
         <div className="container">
           <h2 className="section-title">Our promise to you:</h2>
-          <div className="promise-grid">
+        <div className="promise-grid">
             <div className="promise-item">
               <span className="promise-icon" aria-hidden>✔</span>
               <p>On time delivery anywhere in USA</p>
