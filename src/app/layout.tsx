@@ -89,20 +89,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider publishableKey={publishableKey}>
       <html lang="en">
         <head>
-          {/* Preconnects: Cloudflare Images CDN + SinaLite API (sandbox by default per docs) */}
-          <link relName="preconnect" rel="preconnect" href="https://imagedelivery.net" crossOrigin="" />
-          <link
-            relName="preconnect"
-            rel="preconnect"
-            href={process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com"}
-            crossOrigin=""
-          />
-          <script
-            type="application/ld+json"
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-          />
-        </head>
+  {/* Preconnects: Cloudflare Images CDN + SinaLite API (sandbox by default per docs) */}
+  <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="anonymous" />
+  <link
+    rel="preconnect"
+    href={process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com"}
+    crossOrigin="anonymous"
+  />
+  <script
+    type="application/ld+json"
+    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+  />
+</head>
+
         <body>
           <NotificationBar />
           <TopNav />

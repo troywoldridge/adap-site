@@ -38,6 +38,8 @@ const isPublicApiRoute = createRouteMatcher([
   "/api/hero-analytics",
   "/api/sessions(.*)",
   "/api/shipping/estimate(.*)",
+  "/api/cart/:path*",
+  "/api/artwork/:path*",    
 ]);
 
 // ── PUBLIC PAGES

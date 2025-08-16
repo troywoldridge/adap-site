@@ -10,7 +10,7 @@ export default function CartShippingEstimator({
   defaultState = 'KY',
   defaultZip = '41179',
 }: {
-  lines?: EstimateLine[];              // optional: if omitted, hook fetches /api/cart/current
+  lines?: EstimateLine[];
   defaultCountry?: 'US' | 'CA';
   defaultState?: string;
   defaultZip?: string;
@@ -27,7 +27,7 @@ export default function CartShippingEstimator({
       shipCountry: country,
       shipState: state,
       shipZip: zip,
-      items: lines,                    // if undefined, hook auto-loads from /api/cart/current
+      items: lines, // if undefined, hook will auto-read from /api/cart/current
     });
   }
 
@@ -44,23 +44,9 @@ export default function CartShippingEstimator({
           <option value="US">United States</option>
           <option value="CA">Canada</option>
         </select>
-        <input
-          className="border rounded p-2"
-          placeholder="State/Province"
-          value={state}
-          onChange={(e) => setState(e.target.value)}
-        />
-        <input
-          className="border rounded p-2"
-          placeholder="Postal code"
-          value={zip}
-          onChange={(e) => setZip(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="rounded bg-black text-white px-4 py-2 disabled:opacity-50"
-          disabled={loading}
-        >
+        <input className="border rounded p-2" placeholder="State/Province" value={state} onChange={(e) => setState(e.target.value)} />
+        <input className="border rounded p-2" placeholder="Postal code" value={zip} onChange={(e) => setZip(e.target.value)} />
+        <button type="submit" className="rounded bg-black text-white px-4 py-2 disabled:opacity-50" disabled={loading}>
           {loading ? 'Getting rates…' : 'Get rates'}
         </button>
       </form>

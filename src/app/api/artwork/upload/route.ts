@@ -1,9 +1,7 @@
-// src/app/api/artwork/upload/route.ts
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-// This route needs Node.js runtime (not edge) to use aws-sdk v3
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -45,7 +43,6 @@ function sanitize(s: string) {
 }
 
 function sideToType(sideNum: number, total?: number) {
-  // Map Side #1/#2 to SinaLite file.type values; beyond that, label side-N
   if (sideNum === 1) return "front";
   if (sideNum === 2 && (total ?? 2) >= 2) return "back";
   return `side-${sideNum}`;
@@ -55,45 +52,34 @@ export async function POST(req: Request) {
   try {
     const { s3, bucket, publicBase } = requireEnv();
 
-    // Parse multipart form-data
     const form = await req.formData();
     const file = form.get("file") as File | null;
     const productId = String(form.get("productId") || "").trim();
     const side = Number(form.get("side") || "1");
 
-    if (!file) {
-      return NextResponse.json({ error: "Missing 'file'." }, { status: 400 });
-    }
-    if (!productId) {
-      return NextResponse.json({ error: "Missing 'productId'." }, { status: 400 });
-    }
+    if (!file) return NextResponse.json({ error: "Missing 'file'." }, { status: 400 });
+    if (!productId) return NextResponse.json({ error: "Missing 'productId'." }, { status: 400 });
     if (!Number.isFinite(side) || side < 1) {
       return NextResponse.json({ error: "Invalid 'side'." }, { status: 400 });
     }
 
-    // Validate content
-    const ct = file.type?.toLowerCase() || "";
+    const ct = (file.type || "").toLowerCase();
     if (ct !== "application/pdf") {
       return NextResponse.json({ error: "Only PDF files are allowed." }, { status: 400 });
     }
 
-    // Size guard (100MB hard cap)
     const size = (file as any).size ? Number((file as any).size) : undefined;
     if (size && size > 100 * 1024 * 1024) {
       return NextResponse.json({ error: "File too large (max 100MB)." }, { status: 413 });
     }
 
-    // Build a clean key under artwork/{productId}/
     const ext = ".pdf";
     const original = sanitize((file as any).name || `artwork${ext}`);
     const uuid = randomUUID();
-    const key = `artwork/${sanitize(productId)}/${Date.now()}_${uuid}_side-${side}_${original.endsWith(
-      ext
-    )
+    const key = `artwork/${sanitize(productId)}/${Date.now()}_${uuid}_side-${side}_${original.endsWith(ext)
       ? original.slice(0, -ext.length)
       : original}${ext}`;
 
-    // Upload to R2
     const ab = await file.arrayBuffer();
     const put = new PutObjectCommand({
       Bucket: bucket,
@@ -101,27 +87,28 @@ export async function POST(req: Request) {
       Body: Buffer.from(ab),
       ContentType: "application/pdf",
       CacheControl: "public, max-age=31536000, immutable",
+      // Optional: preserve filename in downloads
+      ContentDisposition: `inline; filename="${original}"`,
     });
     await s3.send(put);
 
-    // Public CDN URL (Cloudflare proxied)
+    // Cloudflare-proxied public URL (R2 bucket mapped behind your CDN)
     const url = `${publicBase.replace(/\/+$/, "")}/${key.replace(/^artwork\//, "")}`;
 
     return NextResponse.json(
       {
         ok: true,
+        id: key,            // 👈 add id so the client can use it as storageId
         productId,
         side,
         type: sideToType(side),
         key,
-        url,
+        url,                // full CDN URL (handy for immediate previews)
+        contentType: "application/pdf",
       },
       { status: 200 }
     );
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Upload failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || "Upload failed" }, { status: 500 });
   }
 }
