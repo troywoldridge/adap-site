@@ -2,6 +2,13 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// ── Early redirect: legacy review paths → /cart/review
+const isLegacyReview = createRouteMatcher([
+  "/review-order(.*)",
+  "/revieworder(.*)",
+  "/order/review(.*)",
+]);
+
 // ── PROTECTED: Upload route (signed-in required)
 const isProductUpload = createRouteMatcher([
   "/product/:productId/upload-artwork(.*)",
@@ -15,8 +22,8 @@ const isProtectedRoute = createRouteMatcher([
   "/account(.*)",
   "/orders(.*)",
   "/checkout(.*)",
-  "/cart/review(.*)",      // your real review page
-  "/review-order(.*)",     // legacy review (still protected)
+  "/cart/review(.*)",      // canonical review page
+  "/review-order(.*)",     // legacy review (still protected if hit directly)
   "/api/artwork/:path*",
   "/api/r2/presign(.*)",
   "/api/order/place",
@@ -30,7 +37,7 @@ const isPublicApiRoute = createRouteMatcher([
   "/api/stripe/:path*",
   "/api/hero-analytics",
   "/api/sessions(.*)",
-  "/api/shipping/estimate(.*)", // fixed path
+  "/api/shipping/estimate(.*)",
 ]);
 
 // ── PUBLIC PAGES
@@ -49,6 +56,12 @@ const isExplicitPublic = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   if (req.method === "HEAD" || req.method === "OPTIONS") {
     return NextResponse.next();
+  }
+
+  // 0) Legacy → canonical
+  if (isLegacyReview(req)) {
+    const url = new URL("/cart/review", req.url);
+    return NextResponse.redirect(url, { status: 308 });
   }
 
   // 1) Upload route must be signed in

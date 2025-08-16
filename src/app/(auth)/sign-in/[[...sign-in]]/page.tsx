@@ -1,4 +1,5 @@
 "use client";
+
 import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
@@ -8,9 +9,7 @@ export default function SignInPage() {
         routing="path"
         path="/sign-in"
         signUpUrl="/sign-up"
-        afterSignInUrl="/account/onboarding"
-        afterSignUpUrl="/account/onboarding"
-        fallbackRedirectUrl="/account/onboarding"
+        fallbackRedirectUrl="/cart/review"   // if no returnBackUrl was set by middleware
         appearance={{ variables: { colorPrimary: "#c62828" } }}
       />
     </div>

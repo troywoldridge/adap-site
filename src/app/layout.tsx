@@ -12,6 +12,9 @@ import { cfUrl } from "@/lib/data";
 import "instantsearch.css/themes/satellite.css";
 import "@algolia/autocomplete-theme-classic/dist/theme.css";
 
+// 👉 add: client Navigation
+import Navigation, { type NavItem } from "@/client/components/navigation";
+
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
   "https://americandesignandprinting.com";
@@ -40,6 +43,14 @@ export const metadata: Metadata = {
     images: DEFAULT_OG ? [DEFAULT_OG] : undefined,
   },
 };
+
+// 👉 add: main nav items for the new Navigation component
+const NAV_ITEMS: NavItem[] = [
+  { href: "/", label: "Home", exact: true },
+  { href: "/products", label: "Products" },
+  { href: "/cart", label: "Cart" },
+  { href: "/cart/review", label: "Review" },
+];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -78,15 +89,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider publishableKey={publishableKey}>
       <html lang="en">
         <head>
-          {/* Preconnect: Cloudflare Images + SinaLite (per docs) */}
-          <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="" />
+          {/* Preconnects: Cloudflare Images CDN + SinaLite API (sandbox by default per docs) */}
+          <link relName="preconnect" rel="preconnect" href="https://imagedelivery.net" crossOrigin="" />
           <link
+            relName="preconnect"
             rel="preconnect"
             href={process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com"}
             crossOrigin=""
           />
           <script
             type="application/ld+json"
+            // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
         </head>
@@ -95,6 +108,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TopNav />
           <Header />
           <MainNav />
+
+          {/* 👉 add: the new client Navigation (uses usePathname safely) */}
+          <div className="mx-auto max-w-screen-2xl px-4 py-2">
+            <Navigation items={NAV_ITEMS} />
+          </div>
+
           <SupportBanner />
           <main>{children}</main>
           <Footer />

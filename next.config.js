@@ -15,6 +15,7 @@ try {
   }
 } catch {}
 
+/* --- CSP: allow SinaLite (sandbox + live per Sinalite API docs) and Cloudflare CDN --- */
 const scriptSrcList = [
   `'self'`,
   `'unsafe-inline'`,
@@ -68,13 +69,12 @@ const directives = {
     `'self'`,
     `data:`,
     `blob:`,
-    `https://imagedelivery.net`,
-    `https://api.sinaliteuppy.com`,
-    `https://liveapi.sinalite.com`,
+    `https://imagedelivery.net`,      // Cloudflare Images (CDN variants)
+    `https://api.sinaliteuppy.com`,   // sandbox docs
+    `https://liveapi.sinalite.com`,   // live docs
     `https://placehold.co`,
     `https://r2.cloudflarestorage.com`,
-    R2_PUBLIC_ORIGIN,                 // your CDN (e.g., https://cdn.adap.com)
-    // Tip: if you ever use /cdn-cgi/image on the same origin, 'self' already allows it
+    R2_PUBLIC_ORIGIN,                 // your custom CDN host if set
   ].filter(Boolean).join(" "),
   "font-src": `'self' data: https://fonts.gstatic.com`,
   "media-src": `'self' https: data: blob:`,
@@ -84,6 +84,7 @@ const directives = {
   "object-src": `'none'`,
   "base-uri": `'self'`,
   "form-action": `'self' https://api.stripe.com`,
+  "frame-ancestors": `'none'`, // pairs with X-Frame-Options: DENY
 };
 
 const ContentSecurityPolicy = Object.entries(directives)
@@ -99,6 +100,7 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+/* --- Next/Image remote patterns (Cloudflare Images + R2 + placeholders + SinaLite) --- */
 const imageRemotePatterns = [
   { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
@@ -117,13 +119,22 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: imageRemotePatterns,
-    // If you want to skip Next's optimizer and just use originals (or Cloudflare when enabled):
     unoptimized: !USE_NEXT_IMAGE_OPTIMIZER,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  experimental: {},
+  async redirects() {
+    // Hard redirect legacy review pages → canonical
+    return [
+      { source: "/review-order", destination: "/cart/review", permanent: true },
+      { source: "/revieworder", destination: "/cart/review", permanent: true },
+      { source: "/order/review", destination: "/cart/review", permanent: true },
+    ];
+  },
+    experimental: {
+    serverComponentsExternalPackages: ["pg", "pg-connection-string", "pg-pool"],
+  },
 };
 
 export default nextConfig;

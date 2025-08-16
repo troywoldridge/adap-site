@@ -1,11 +1,10 @@
-// src/app/api/cart/attachments/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { cartAttachments } from "@/db/schema/cartAttachments";
+import { db } from "@/db";
+import { cartAttachments } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import { eq } from "drizzle-orm";
 
-export const runtime = "edge";
+// IMPORTANT: this route touches Postgres -> must run on Node.js, not Edge
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type CartLine = { lineId: string; quantity?: number };
@@ -18,11 +17,10 @@ function isNonEmptyString(v: unknown): v is string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const productIdRaw = body?.productId;
+    const productId = Number(body?.productId);
     const cartLines = body?.cartLines as CartLine[] | undefined;
     const parts = body?.parts as Part[] | undefined;
 
-    const productId = Number(productIdRaw);
     if (!Number.isFinite(productId)) {
       return NextResponse.json({ ok: false, error: "productId is required (number)" }, { status: 400 });
     }
@@ -33,7 +31,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "parts are required" }, { status: 400 });
     }
 
-    // Normalize/validate
     const cleanLines = cartLines
       .map((l) => ({ lineId: String(l.lineId).trim() }))
       .filter((l) => isNonEmptyString(l.lineId));
@@ -63,26 +60,21 @@ export async function POST(req: NextRequest) {
           fileName: p.fileName,
         };
       })
-    ).filter(Boolean) as Array<{
-      lineId: string;
-      productId: number;
-      storageId: string;
-      fileName: string;
-    }>;
+    ).filter(Boolean) as Array<{ lineId: string; productId: number; storageId: string; fileName: string }>;
 
     if (values.length === 0) {
       return NextResponse.json({ ok: true, inserted: 0, skipped: 0 });
     }
 
-    // Insert with ON CONFLICT DO NOTHING (unique on lineId+storageId)
     const inserted = await db
       .insert(cartAttachments)
       .values(values)
-      .onConflictDoNothing({ target: [cartAttachments.lineId, cartAttachments.storageId] })
+      .onConflictDoNothing({
+        target: [cartAttachments.lineId, cartAttachments.storageId],
+      })
       .returning({ id: cartAttachments.id });
 
-    // Optional: clean up any historical duplicates that might pre-exist
-    // (keeps the lowest id, deletes the rest)
+    // Optional hygiene: remove historical duplicates if any exist
     await db.execute(sql`
       WITH ranked AS (
         SELECT id, ROW_NUMBER() OVER (PARTITION BY line_id, storage_id ORDER BY id) AS rn
