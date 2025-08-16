@@ -43,6 +43,13 @@
       "when": 1754748169477,
       "tag": "0005_large_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1755261784536,
+      "tag": "0006_adorable_wolverine",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,5 @@
+// src/types/shipping.ts
+
 export interface SinaliteOrderItem {
   productId: number | string;
   options: (number | string)[];

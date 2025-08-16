@@ -1,9 +1,9 @@
-// next.config.mjs
 /** @type {import('next').NextConfig} */
 
 const isDev = process.env.NODE_ENV !== "production";
-const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || "";
+const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || process.env.R2_PUBLIC_BASE || "";
 const R2_DIRECT_HOST = process.env.R2_DIRECT_HOST || "";
+const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false"; // default true
 
 let R2_PUBLIC_ORIGIN = "";
 let R2_PUBLIC_HOST = "";
@@ -72,8 +72,9 @@ const directives = {
     `https://api.sinaliteuppy.com`,
     `https://liveapi.sinalite.com`,
     `https://placehold.co`,
-    `https://*.r2.cloudflarestorage.com`,
-    R2_PUBLIC_ORIGIN,
+    `https://r2.cloudflarestorage.com`,
+    R2_PUBLIC_ORIGIN,                 // your CDN (e.g., https://cdn.adap.com)
+    // Tip: if you ever use /cdn-cgi/image on the same origin, 'self' already allows it
   ].filter(Boolean).join(" "),
   "font-src": `'self' data: https://fonts.gstatic.com`,
   "media-src": `'self' https: data: blob:`,
@@ -114,7 +115,11 @@ if (R2_DIRECT_HOST) {
 
 const nextConfig = {
   reactStrictMode: true,
-  images: { remotePatterns: imageRemotePatterns },
+  images: {
+    remotePatterns: imageRemotePatterns,
+    // If you want to skip Next's optimizer and just use originals (or Cloudflare when enabled):
+    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER,
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -12,7 +12,6 @@ import {
 import { productImagesForProductId } from "@/lib/product-images";
 import { productJsonLd, breadcrumbJsonLd, absoluteUrl } from "@/lib/seo";
 import ProductConfigurator from "@/components/product/ProductConfigurator";
-import ShippingEstimator from "@/components/product/ShippingEstimator";
 import UploadCta from "@/components/UploadCta";
 
 export const dynamic = "force-dynamic";
@@ -200,8 +199,6 @@ export default async function ProductPage({
         {/* Right: live pricing configurator (client) + shipping estimator + upload CTA */}
         <div className="space-y-4">
           <ProductConfigurator productId={id} options={optionGroups} />
-          <ShippingEstimator productId={idNum} enableEventBridge />
-
           {/* Upload Artwork step (presigned PUT to Cloudflare R2) */}
           <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
             <UploadCta productId={id} />

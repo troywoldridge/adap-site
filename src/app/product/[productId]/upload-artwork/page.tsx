@@ -1,48 +1,102 @@
-// src/app/products/[productId]/upload-artwork/page.tsx
-import type { Metadata } from "next";
+// src/app/product/[productId]/upload-artwork/page.tsx
+import Link from "next/link";
+import { headers } from "next/headers";
 import ArtworkUploadBoxes from "@/components/ArtworkUploadBoxes";
+import { getOrderSession, getOrderSessionById } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export function generateMetadata({
-  params,
-  searchParams,
-}: {
+type PageProps = {
   params: { productId: string };
-  searchParams: { sides?: string; orderId?: string };
-}): Metadata {
-  const id = params.productId;
-  const sides = Number(searchParams?.sides || "1");
-  return {
-    title: `Upload Artwork — Product ${id}`,
-    description: `Upload print-ready PDF${sides > 1 ? "s" : ""} for Product ${id}.`,
-  };
+  searchParams?: { [key: string]: string | string[] | undefined };
+};
+
+function readParam(sp: PageProps["searchParams"], key: string): string | undefined {
+  const v = sp?.[key];
+  return Array.isArray(v) ? v[0] : v;
 }
 
-export default async function UploadArtworkPage({
-  params,
-  searchParams,
-}: {
-  params: { productId: string };
-  searchParams: { sides?: string; orderId?: string };
-}) {
+function getBaseUrlFromHeaders(): string {
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
+  if (!host) {
+    // Safe fallback for local dev
+    return process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  }
+  return `${proto}://${host}`;
+}
+
+export default async function UploadArtworkPage({ params, searchParams }: PageProps) {
   const productId = params.productId;
-  const numSides = Math.max(1, Math.min(10, Number(searchParams?.sides || "1")));
-  const orderId = searchParams?.orderId || "temp-session";
+
+  // 1) Try cookie session first
+  let order = await getOrderSession();
+
+  // 2) Try query (?orderSessionId= or legacy ?orderId=)
+  if (!order) {
+    const qp = readParam(searchParams, "orderSessionId") || readParam(searchParams, "orderId");
+    if (qp) {
+      order = await getOrderSessionById(qp);
+    }
+  }
+
+  // 3) Ensure session via API (route handler sets cookie – allowed)
+  if (!order) {
+    const base = getBaseUrlFromHeaders();
+    const res = await fetch(`${base}/api/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ productId }),
+      cache: "no-store",
+    });
+
+    const ctype = res.headers.get("content-type") || "";
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Failed to ensure session (${res.status} ${res.statusText}): ${txt.slice(0, 200)}`);
+    }
+    if (!ctype.includes("application/json")) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Expected JSON from /api/sessions, got: ${ctype}\n${txt.slice(0, 200)}`);
+    }
+
+    const j = await res.json();
+    order = j?.session ?? null;
+  }
+
+  if (!order) {
+    return (
+      <main className="container" style={{ padding: 24 }}>
+        <h1>No order in progress</h1>
+        <p className="muted">We couldn’t create or find an order session.</p>
+        <p><Link href={`/product/${productId}`} className="btn btn-primary">Back to product</Link></p>
+      </main>
+    );
+  }
+
+  // Read ?sides=
+  const sidesParam = readParam(searchParams, "sides");
+  const numSides = sidesParam ? Number(sidesParam) || 2 : 2;
 
   return (
     <main className="container" style={{ padding: 24 }}>
-      <header style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: "1.6rem" }}>Upload Artwork</h1>
-        <p className="muted" style={{ marginTop: 6 }}>
-          Please upload {numSides > 1 ? `${numSides} PDF files (one per side)` : "a single PDF file"} for Product {productId}.
-          Files should be 300dpi, include 1/8&quot; bleed, and final trim size.
-        </p>
-      </header>
+      <h1>Upload Artwork</h1>
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Upload your print-ready files. We’ll attach them to your order and show them on the review page.
+      </p>
 
-      <section className="ui-card">
-        <ArtworkUploadBoxes productId={productId} numSides={numSides} orderId={orderId} />
-      </section>
+      <ArtworkUploadBoxes
+        productId={String(productId)}
+        numSides={numSides}
+        orderSessionId={order.id}
+      />
+
+      <div style={{ marginTop: 16 }}>
+        <Link href={`/review-order`} className="btn btn-secondary">
+          Go to Review Order
+        </Link>
+      </div>
     </main>
   );
 }

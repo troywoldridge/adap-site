@@ -2,21 +2,20 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// ---- PROTECTED (must be signed in) ----
+// ---- EXPLICITLY PROTECT THE UPLOAD ROUTE FIRST ----
+const isProductUpload = createRouteMatcher([
+  "/product/:productId/upload-artwork(.*)",
+  "/products/:productId/upload-artwork(.*)", // legacy safety
+]);
+
+// ---- OTHER PROTECTED ROUTES ----
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
-
   "/account(.*)",
   "/orders(.*)",
   "/checkout(.*)",
   "/review-order(.*)",
-
-  // Artwork upload page(s)
-  "/product/:productId/upload-artwork(.*)", // current (singular)
-  "/products/:productId/upload-artwork(.*)", // legacy (plural), just in case
-
-  // Artwork + order APIs that should require auth
   "/api/artwork/:path*",
   "/api/r2/presign(.*)",
   "/api/order/place",
@@ -25,10 +24,12 @@ const isProtectedRoute = createRouteMatcher([
 
 // ---- PUBLIC API (no auth) ----
 const isPublicApiRoute = createRouteMatcher([
-  "/api/products/:path*",   // your product endpoints / shipping
-  "/api/sinalite/:path*",   // pricing endpoints
-  "/api/stripe/:path*",     // webhooks, etc. must be publicly reachable
-  "/api/hero-analytics",    // if you add this later, keep public
+  "/api/products/:path*",
+  "/api/sinalite/:path*",
+  "/api/stripe/:path*",
+  "/api/hero-analytics",
+  "/api/sessions(.*)",   
+  "/api/shippingEstimate(.*)",
 ]);
 
 // ---- PUBLIC PAGES ----
@@ -37,36 +38,38 @@ const isExplicitPublic = createRouteMatcher([
   "/search(.*)",
   "/categories(.*)",
   "/subcategories(.*)",
-
-  // Product pages are public; only the *upload* sub-route is protected
-  "/product(.*)",
-  "/products(.*)",
-
   "/blog(.*)",
   "/shipping(.*)",
   "/shipping-info(.*)",
-
-  // Auth pages always public
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/api/sessions(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Always let preflight/HEAD pass
   if (req.method === "HEAD" || req.method === "OPTIONS") {
     return NextResponse.next();
   }
 
-  // Let public APIs + public pages through
+  // 1) Upload route must be signed in
+  if (isProductUpload(req)) {
+    const au = await auth();
+    if (!au.userId) {
+      return au.redirectToSignIn({ returnBackUrl: req.url });
+    }
+    return NextResponse.next();
+  }
+
+  // 2) Public APIs + explicit public pages
   if (isPublicApiRoute(req) || isExplicitPublic(req)) {
     return NextResponse.next();
   }
 
-  // Enforce auth on protected routes
+  // 3) Other protected routes
   if (isProtectedRoute(req)) {
-    const au = await auth(); // NOTE: call and await the helper to get the result
+    const au = await auth();
     if (!au.userId) {
-      return au.redirectToSignIn();
+      return au.redirectToSignIn({ returnBackUrl: req.url });
     }
   }
 

@@ -1,17 +1,24 @@
-// src/components/ArtworkUploadBoxes.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getPresignedUrl, uploadToPresignedUrl } from "@/lib/uploadArtwork";
+import { getPresignedUrl, uploadToPresignedUrl, attachArtworkToOrder } from "@/lib/uploadArtwork";
 
 type Props = {
-  productId: string;
+  productId: string | number;
   numSides: number;
-  orderId: string;
+  orderSessionId: string; // <-- NEW
+  orderId?: number | string | null;       // optional if you already have one
+  orderItemId?: number | string | null;   // optional if per-line item
 };
 
-export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Props) {
+export default function ArtworkUploadBoxes({
+  productId,
+  numSides,
+  orderSessionId,
+  orderId = null,
+  orderItemId = null,
+}: Props) {
   const router = useRouter();
   const [files, setFiles] = useState<(File | null)[]>(Array(numSides).fill(null));
   const [uploading, setUploading] = useState(false);
@@ -19,9 +26,9 @@ export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Pro
   const [error, setError] = useState<string | null>(null);
   const [publicUrls, setPublicUrls] = useState<string[]>([]);
 
-  function setFile(idx: number, file: File | null) {
+  function setFile(idx: number, f: File | null) {
     const next = [...files];
-    next[idx] = file;
+    next[idx] = f;
     setFiles(next);
   }
 
@@ -31,32 +38,62 @@ export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Pro
     setUploading(true);
 
     try {
-      const urls: string[] = [];
-      for (const f of files) {
+      const uploaded: {
+        publicUrl: string;
+        filename: string;
+        contentType: string;
+        storageKey: string;
+        bucket: string;
+        sideIndex: number;
+      }[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
         if (!f) {
           throw new Error("Please select all artwork files.");
         }
-        const { uploadUrl, publicUrl } = await getPresignedUrl({
+
+        // 1) Presign (use orderSessionId during checkout)
+        const presign = await getPresignedUrl({
           filename: f.name,
           contentType: f.type || "application/octet-stream",
-          orderId,
+          orderSessionId,
+          productId,
+          sideIndex: i,
         });
-        await uploadToPresignedUrl(uploadUrl, f);
-        urls.push(publicUrl);
+
+        // 2) Upload to R2
+        await uploadToPresignedUrl(presign.uploadUrl, f);
+
+        uploaded.push({
+          publicUrl: presign.publicUrl,
+          filename: f.name,
+          contentType: f.type || "application/octet-stream",
+          storageKey: presign.storageKey,
+          bucket: presign.bucket,
+          sideIndex: i,
+        });
       }
 
-      setPublicUrls(urls);
+      setPublicUrls(uploaded.map((u) => u.publicUrl));
+
+      // 3) Persist to DB
+      await attachArtworkToOrder({
+        orderSessionId,
+        productId,
+        files: uploaded,
+        orderId: orderId ?? null,
+        orderItemId: orderItemId ?? null,
+        // If you already made a SinaLite job, add its id here:
+        // sinaliteJobId: "abc123",
+      });
+
       setDone(true);
 
-      // Persist on client (simple, reliable)
-      const key = `adap_order_${orderId}_artwork`;
-      const existing = JSON.parse(localStorage.getItem(key) || "[]");
-      const next = Array.isArray(existing) ? existing : [];
-      next.push({ productId, files: urls, uploadedAt: Date.now() });
+      // 4) Optional local cache for resilience
+      const key = `adap_session_${orderSessionId}_artwork`;
+      const next = Array.isArray(uploaded) ? uploaded : [];
       localStorage.setItem(key, JSON.stringify(next));
-
-      // (Optional) Also POST to your server to attach to order in DB:
-      // await fetch("/api/orders/attach-artwork", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, productId, files: urls }) }).catch(()=>{});
     } catch (e: any) {
       setError(e?.message || "Upload failed");
     } finally {
@@ -65,7 +102,7 @@ export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Pro
   }
 
   function goReview() {
-    router.push(`/review-order?orderId=${encodeURIComponent(orderId)}`);
+    router.push(`/review-order`);
   }
 
   return (
@@ -92,7 +129,11 @@ export default function ArtworkUploadBoxes({ productId, numSides, orderId }: Pro
           <p className="text-green-600">Upload complete! 🎉</p>
           <ul className="list-disc ml-5">
             {publicUrls.map((u, i) => (
-              <li key={i}><a className="underline" href={u} target="_blank" rel="noreferrer">{u}</a></li>
+              <li key={i}>
+                <a className="underline" href={u} target="_blank" rel="noreferrer">
+                  {u}
+                </a>
+              </li>
             ))}
           </ul>
 

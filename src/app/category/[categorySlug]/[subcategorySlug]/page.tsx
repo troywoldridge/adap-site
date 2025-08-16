@@ -9,7 +9,7 @@ import productAssetsRaw from "@/data/productAssets.json";
 
 import { humanizeName } from "@/lib/data";
 import { productImagesForProductId } from "@/lib/product-images";
-import { getSinaliteProductMeta } from "@/lib/sinalite.client"; // calls /product/:id with Bearer token (per SinaLite docs)
+import { getSinaliteProductMeta } from "@/lib/sinalite.client"; // per Sinalite API docs
 
 type CategoryAsset = {
   [slug: string]: {
@@ -21,23 +21,22 @@ type CategoryAsset = {
 };
 
 type SubAsset = {
-  id: number;              // numeric subcategory id
-  category_id: string;     // category slug, e.g. "business-cards"
-  slug: string;            // e.g. "standard-business-cards"
-  name: string;            // e.g. "standard_business_cards"
+  id: number;
+  category_id: string;
+  slug: string;
+  name: string;
   description?: string | null;
   cloudflare_image_id?: string | null;
 };
 
-// productAssets.json row
 type ProductAsset = {
   category_id?: string | number;
   subcategory_id?: string | number;
-  name?: string;                     // local label; often generic
+  name?: string;
   image_name?: string;
   cloudflare_id?: string | null;
-  product_id: number | string;       // SinaLite product id
-  matched_sku?: string | null;       // SinaLite SKU
+  product_id: number | string;
+  matched_sku?: string | null;
 };
 
 const productAssets: ProductAsset[] = Array.isArray(productAssetsRaw)
@@ -45,19 +44,28 @@ const productAssets: ProductAsset[] = Array.isArray(productAssetsRaw)
   : [];
 
 function titleFromMetaOrLocal(meta: any | null, p: ProductAsset): string {
-  // 1) Live name from SinaLite (/product/:id). Docs show "name" & "sku" on product rows.
   const apiName = (meta?.name ?? "").toString().trim();
   if (apiName) return apiName;
 
-  // 2) Fall back to SKU if present (readable once humanized)
   const sku = (meta?.sku ?? p.matched_sku ?? "").toString().trim();
   if (sku) return humanizeName(sku);
 
-  // 3) Last resort: local mapping name
   if (p.name) return humanizeName(p.name);
 
-  // 4) Absolute fallback
   return `Product ${p.product_id}`;
+}
+
+// ---- helper: dedupe by product_id while preserving first occurrence order
+function dedupeByProductId(rows: ProductAsset[]) {
+  const seen = new Set<string>();
+  const out: ProductAsset[] = [];
+  for (const r of rows) {
+    const id = String(r.product_id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(r);
+  }
+  return out;
 }
 
 export default async function SubcategoryPage({
@@ -82,35 +90,39 @@ export default async function SubcategoryPage({
   const sub = subs.find((s) => s.slug === subcategorySlug);
   if (!sub) return notFound();
 
-  // Find all products mapped to this subcategory
+  // Find all products mapped to this subcategory, then DEDUPE by product_id
   const subId = Number(sub.id);
-  const mappedProducts = productAssets.filter(
+  const mappedProductsRaw = productAssets.filter(
     (p) => Number(p.subcategory_id) === subId && p.product_id != null
   );
+  const mappedProducts = dedupeByProductId(mappedProductsRaw);
 
-  // Fetch live meta for each product (SinaLite API)
+  // Fetch live meta for each product (SinaLite API uses Bearer token per docs)
   const productsWithMeta = await Promise.all(
     mappedProducts.map(async (p) => {
       const id = String(p.product_id);
+      const cfImage = productImagesForProductId(id)[0] || "https://placehold.co/640x480?text=Product";
       try {
-        const meta = await getSinaliteProductMeta(id); // uses Bearer token per SinaLite docs
+        const meta = await getSinaliteProductMeta(id);
         return {
           id,
           title: titleFromMetaOrLocal(meta, p),
           category: meta?.category ?? "",
-          image: productImagesForProductId(id)[0], // Cloudflare CDN URL
+          image: cfImage, // Cloudflare CDN URL if available
         };
       } catch {
-        // If a single product meta call fails, keep a sensible fallback
         return {
           id,
           title: titleFromMetaOrLocal(null, p),
           category: "",
-          image: productImagesForProductId(id)[0],
+          image: cfImage,
         };
       }
     })
   );
+
+  // Optional: stable sort by title for consistent UX
+  productsWithMeta.sort((a, b) => a.title.localeCompare(b.title));
 
   const titleCat = categorySlug
     .replace(/[_-]+/g, " ")
@@ -148,8 +160,9 @@ export default async function SubcategoryPage({
           }}
         >
           {productsWithMeta.map((p) => (
+            // ✅ unique, stable key: subcategory + product id
             <li
-              key={p.id}
+              key={`${subcategorySlug}-${p.id}`}
               style={{
                 border: "1px solid #e5e7eb",
                 borderRadius: 10,
@@ -215,4 +228,3 @@ export default async function SubcategoryPage({
     </main>
   );
 }
-
