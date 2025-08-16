@@ -2,146 +2,130 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getPresignedUrl, uploadToPresignedUrl, attachArtworkToOrder } from "@/lib/uploadArtwork";
+import { useAuth } from "@clerk/nextjs";
 
-type Props = {
-  productId: string | number;
-  numSides: number;
-  orderSessionId: string; // <-- NEW
-  orderId?: number | string | null;       // optional if you already have one
-  orderItemId?: number | string | null;   // optional if per-line item
+type UploadedPart = {
+  // whatever you return after uploading to R2/Cloudflare Images (e.g., image id or URL)
+  fileName: string;
+  storageId: string;
 };
 
 export default function ArtworkUploadBoxes({
   productId,
   numSides,
-  orderSessionId,
-  orderId = null,
-  orderItemId = null,
-}: Props) {
-  const router = useRouter();
+  cartLines,
+}: {
+  productId: string;
+  numSides: number;
+  // Pass the current cart lines for this product so we can pin uploads to the line(s)
+  cartLines: Array<{ lineId: string; quantity: number }>;
+}) {
   const [files, setFiles] = useState<(File | null)[]>(Array(numSides).fill(null));
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [publicUrls, setPublicUrls] = useState<string[]>([]);
 
-  function setFile(idx: number, f: File | null) {
-    const next = [...files];
-    next[idx] = f;
+  const router = useRouter();
+  const { isSignedIn } = useAuth();
+
+  async function handleFileChange(i: number, f: File | null) {
+    const next = files.slice();
+    next[i] = f;
     setFiles(next);
   }
 
-  async function startUpload() {
-    setError(null);
-    setDone(false);
-    setUploading(true);
-
-    try {
-      const uploaded: {
-        publicUrl: string;
-        filename: string;
-        contentType: string;
-        storageKey: string;
-        bucket: string;
-        sideIndex: number;
-      }[] = [];
-
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        if (!f) {
-          throw new Error("Please select all artwork files.");
-        }
-
-        // 1) Presign (use orderSessionId during checkout)
-        const presign = await getPresignedUrl({
-          filename: f.name,
-          contentType: f.type || "application/octet-stream",
-          orderSessionId,
-          productId,
-          sideIndex: i,
-        });
-
-        // 2) Upload to R2
-        await uploadToPresignedUrl(presign.uploadUrl, f);
-
-        uploaded.push({
-          publicUrl: presign.publicUrl,
-          filename: f.name,
-          contentType: f.type || "application/octet-stream",
-          storageKey: presign.storageKey,
-          bucket: presign.bucket,
-          sideIndex: i,
-        });
-      }
-
-      setPublicUrls(uploaded.map((u) => u.publicUrl));
-
-      // 3) Persist to DB
-      await attachArtworkToOrder({
-        orderSessionId,
-        productId,
-        files: uploaded,
-        orderId: orderId ?? null,
-        orderItemId: orderItemId ?? null,
-        // If you already made a SinaLite job, add its id here:
-        // sinaliteJobId: "abc123",
-      });
-
-      setDone(true);
-
-      // 4) Optional local cache for resilience
-      const key = `adap_session_${orderSessionId}_artwork`;
-      const next = Array.isArray(uploaded) ? uploaded : [];
-      localStorage.setItem(key, JSON.stringify(next));
-    } catch (e: any) {
-      setError(e?.message || "Upload failed");
-    } finally {
-      setUploading(false);
+  async function uploadAll(): Promise<UploadedPart[]> {
+    // Replace this with your existing upload code that stores to Cloudflare Images/R2
+    // and returns an ID we can associate in the DB.
+    const results: UploadedPart[] = [];
+    for (const f of files) {
+      if (!f) continue;
+      // Example: POST to your own uploader
+      const form = new FormData();
+      form.append("file", f);
+      const resp = await fetch("/api/uploads/artwork", { method: "POST", body: form });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      results.push({ fileName: f.name, storageId: data.id });
     }
+    return results;
   }
 
-  function goReview() {
-    router.push(`/review-order`);
+  async function attachToCart(parts: UploadedPart[]) {
+    // Persist the uploaded assets against the cart line(s) in your DB
+    // so Review Order has everything it needs.
+    const resp = await fetch("/api/cart/attachments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        productId,
+        cartLines,
+        parts,
+      }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+  }
+
+  async function onContinue() {
+    try {
+      setError(null);
+      setUploading(true);
+
+      // 1) Upload to Cloudflare storage (returns IDs)
+      const parts = await uploadAll();
+
+      // 2) Attach uploads to cart lines in DB
+      await attachToCart(parts);
+
+      setDone(true);
+      setUploading(false);
+
+      // 3) Security gate: if not signed in, send to sign-in with redirect to /cart/review
+      if (!isSignedIn) {
+        const redirectUrl = encodeURIComponent("/cart/review");
+        router.push(`/sign-in?redirect_url=${redirectUrl}`);
+        return;
+      }
+
+      // 4) Signed in → go straight to Review Order
+      router.push("/cart/review");
+    } catch (e: any) {
+      setUploading(false);
+      setError(e?.message || "Upload failed.");
+    }
   }
 
   return (
     <div className="space-y-4">
-      {Array.from({ length: numSides }).map((_, i) => (
-        <div key={i} className="border rounded p-3">
-          <label className="block text-sm font-medium mb-2">Artwork Side {i + 1}</label>
-          <input
-            type="file"
-            accept="application/pdf,image/*"
-            onChange={(e) => setFile(i, e.target.files?.[0] || null)}
-          />
-        </div>
-      ))}
+      <h3 className="text-lg font-semibold">Upload Artwork</h3>
 
-      <button className="btn btn-primary" onClick={startUpload} disabled={uploading}>
-        {uploading ? "Uploading…" : "Upload Artwork"}
-      </button>
+      <div className="grid gap-3">
+        {Array.from({ length: numSides }).map((_, i) => (
+          <label key={i} className="block">
+            <span className="text-sm font-medium">Side {i + 1}</span>
+            <input
+              type="file"
+              accept="image/*,.pdf,.ai,.eps"
+              className="mt-1 block w-full border rounded p-2"
+              onChange={(e) => handleFileChange(i, e.target.files?.[0] ?? null)}
+            />
+          </label>
+        ))}
+      </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <div className="text-sm text-red-600 whitespace-pre-wrap">{error}</div>}
 
-      {done && (
-        <div className="mt-3 space-y-2">
-          <p className="text-green-600">Upload complete! 🎉</p>
-          <ul className="list-disc ml-5">
-            {publicUrls.map((u, i) => (
-              <li key={i}>
-                <a className="underline" href={u} target="_blank" rel="noreferrer">
-                  {u}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          <button className="btn btn-secondary mt-3" onClick={goReview}>
-            Continue to Review Order
-          </button>
-        </div>
-      )}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          disabled={uploading}
+          onClick={onContinue}
+          className="rounded bg-black text-white px-4 py-2 disabled:opacity-50"
+        >
+          {uploading ? "Processing…" : "Go to review order"}
+        </button>
+        {done && <span className="text-sm text-green-700">Artwork saved to your cart.</span>}
+      </div>
     </div>
   );
 }

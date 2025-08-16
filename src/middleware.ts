@@ -2,37 +2,38 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// ---- EXPLICITLY PROTECT THE UPLOAD ROUTE FIRST ----
+// ── PROTECTED: Upload route (signed-in required)
 const isProductUpload = createRouteMatcher([
   "/product/:productId/upload-artwork(.*)",
   "/products/:productId/upload-artwork(.*)", // legacy safety
 ]);
 
-// ---- OTHER PROTECTED ROUTES ----
+// ── PROTECTED: App areas
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
   "/account(.*)",
   "/orders(.*)",
   "/checkout(.*)",
-  "/review-order(.*)",
+  "/cart/review(.*)",      // your real review page
+  "/review-order(.*)",     // legacy review (still protected)
   "/api/artwork/:path*",
   "/api/r2/presign(.*)",
   "/api/order/place",
   "/api/orders(.*)",
 ]);
 
-// ---- PUBLIC API (no auth) ----
+// ── PUBLIC API (no auth)
 const isPublicApiRoute = createRouteMatcher([
   "/api/products/:path*",
   "/api/sinalite/:path*",
   "/api/stripe/:path*",
   "/api/hero-analytics",
-  "/api/sessions(.*)",   
-  "/api/shippingEstimate(.*)",
+  "/api/sessions(.*)",
+  "/api/shipping/estimate(.*)", // fixed path
 ]);
 
-// ---- PUBLIC PAGES ----
+// ── PUBLIC PAGES
 const isExplicitPublic = createRouteMatcher([
   "/",
   "/search(.*)",
@@ -43,7 +44,6 @@ const isExplicitPublic = createRouteMatcher([
   "/shipping-info(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/api/sessions(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

@@ -21,7 +21,10 @@
     "watch:hashes": "nodemon --watch drizzle/migrations/schema.ts --exec \"pnpm build:hashes\"",
     "sync:sinalite": "node scripts/syncSinalite.js",
     "export:hero-analytics": "node scripts/parse-hero-analytics.js",
-    "deploy:full": "bash scripts/deploy.sh develop origin"
+    "deploy:full": "bash scripts/deploy.sh develop origin",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@algolia/autocomplete-theme-classic": "^1.19.2",
