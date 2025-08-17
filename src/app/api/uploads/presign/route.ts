@@ -1,88 +1,48 @@
-// Force Node runtime so AWS SDK works
-export const runtime = "nodejs";
-
+import "server-only";
 import { NextResponse } from "next/server";
-import crypto from "node:crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-function need(name: string) {
-  const v = process.env[name]?.trim();
-  if (!v) {
-    throw new Error(`[presign] Missing env ${name}`);
-  }
-  return v;
-}
+const ACCOUNT_ID = process.env.R2_ACCOUNT_ID!;
+const ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!;
+const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!;
+const BUCKET = process.env.R2_BUCKET_NAME!;
+const PUBLIC_BASE = (process.env.R2_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+const PREFIX = (process.env.R2_UPLOAD_PREFIX || "uploads").replace(/^\/+|\/+$/g, "");
+const EXPIRES = Number(process.env.R2_PRESIGN_EXPIRES_SECONDS || 900);
 
-// Accept your exact env names, with safe fallbacks
-const ACCOUNT_ID = need("R2_ACCOUNT_ID");
-const ACCESS_KEY = need("R2_ACCESS_KEY_ID");
-const SECRET_KEY = need("R2_SECRET_ACCESS_KEY");
-// You provided R2_BUCKET_NAME (not R2_BUCKET) – support both:
-const BUCKET = (process.env.R2_BUCKET_NAME || process.env.R2_BUCKET)?.trim();
-if (!BUCKET) {
-  throw new Error("[presign] Missing env R2_BUCKET_NAME (or R2_BUCKET)");
-}
-
-const PUBLIC_BASE = need("R2_PUBLIC_BASE_URL"); // e.g. https://cdn.adap.com/artwork
-const UPLOAD_PREFIX = (process.env.R2_UPLOAD_PREFIX ?? "uploads").replace(/^\/+|\/+$/g, "");
-const EXPIRES = Number(process.env.R2_PRESIGN_EXPIRES_SECONDS ?? 900);
-
+// R2 uses region "auto" + account endpoint
 const s3 = new S3Client({
   region: "auto",
   endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: { accessKeyId: ACCESS_KEY, secretAccessKey: SECRET_KEY },
+  credentials: { accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY },
 });
-
-type ReqBody = {
-  filename: string;
-  contentType: string;
-  lineId?: string;
-  side?: number;
-};
 
 export async function POST(req: Request) {
   try {
-    const text = await req.text();
-    let body: ReqBody;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
+    const { filename, contentType, lineId, side } = await req.json();
 
-    const { filename, contentType } = body;
     if (!filename || !contentType) {
-      return NextResponse.json(
-        { error: "Missing filename or contentType" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "filename and contentType required" }, { status: 400 });
     }
 
-    // Stable key under your prefix
-    const ext = filename.includes(".") ? filename.split(".").pop()!.toLowerCase() : "bin";
-    const key = `${UPLOAD_PREFIX}/${crypto.randomUUID()}.${ext}`;
+    const safeName = String(filename).replace(/[^\w.\-()+ ]+/g, "_");
+    const key = `${PREFIX}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
 
-    // Presign PUT
+    // IMPORTANT: include ContentType in the command so the signature expects it
     const cmd = new PutObjectCommand({
       Bucket: BUCKET,
       Key: key,
       ContentType: contentType,
+      // (Optional) you can add CacheControl, Metadata, etc.
+      // CacheControl: "private, max-age=31536000, immutable",
     });
+
     const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: EXPIRES });
+    const publicUrl = PUBLIC_BASE ? `${PUBLIC_BASE}/${key}` : uploadUrl; // fallback
 
-    // Public CDN URL for immediate read
-    const publicUrl = `${PUBLIC_BASE.replace(/\/+$/, "")}/${key}`;
-
-    return NextResponse.json({
-      uploadUrl,
-      publicUrl,
-      key,
-      bucket: BUCKET,
-      expiresIn: EXPIRES,
-    });
+    return NextResponse.json({ uploadUrl, publicUrl, key });
   } catch (e: any) {
-    console.error("[presign] error:", e);
     return NextResponse.json({ error: e?.message || "presign failed" }, { status: 500 });
   }
 }

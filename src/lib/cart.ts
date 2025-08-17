@@ -1,57 +1,46 @@
 // src/lib/cart.ts
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema/cart";
-import { and, eq } from "drizzle-orm";
+import { carts } from "@/db/schema/cart";
+import { eq } from "drizzle-orm";
+import { getOrSetSid } from "@/lib/sid";
 
-export async function getOpenCartBySid(sid: string) {
-  return db.query.carts.findFirst({
-    where: and(eq(carts.sid, sid), eq(carts.status, "open")),
-  });
+export type CartRow = typeof carts.$inferSelect;
+
+const CART_COOKIE = "sid";
+
+export async function getCartForSession(): Promise<CartRow | null> {
+  const jar = cookies();                       // no await
+  const raw = jar.get(CART_COOKIE)?.value;     // string | undefined
+  if (!raw) {
+    return null;
+  }
+  const sid = String(raw);                     // narrow to string
+
+  const rows = await db.select().from(carts).where(eq(carts.sid, sid));
+  return rows[0] ?? null;
 }
 
-export async function createOpenCart(sid: string, userId?: string | null) {
-  const [row] = await db
+export async function getOrCreateCartForSession(): Promise<CartRow> {
+  const jar = cookies();                       // no await
+  let raw = jar.get(CART_COOKIE)?.value as string | undefined;
+
+  if (!raw) {
+    raw = await getOrSetSid();              // must return string
+  }
+  const sid = String(raw);                     // narrow to string
+
+  // Try get
+  const found = await db.select().from(carts).where(eq(carts.sid, sid));
+  if (found[0]) {
+    return found[0];
+  }
+
+  // Create
+  const inserted = await db
     .insert(carts)
-    .values({ sid, userId: userId ?? null })
+    .values({ sid, status: "open" })           // sid is now definitely string
     .returning();
-  return row;
-}
 
-export async function getOrCreateOpenCartBySid(sid: string, userId?: string | null) {
-  const existing = await getOpenCartBySid(sid);
-  if (existing) {
-    return existing;
-  }
-  return createOpenCart(sid, userId);
-}
-
-export async function addOrMergeLine(args: {
-  cartId: string;
-  productId: number;
-  optionIds: number[] | null;
-  quantity: number;
-}) {
-  const existing = await db.query.cartLines.findFirst({
-    where: and(eq(cartLines.cartId, args.cartId), eq(cartLines.productId, args.productId)),
-  });
-
-  if (existing && JSON.stringify(existing.optionIds || []) === JSON.stringify(args.optionIds || [])) {
-    const [updated] = await db
-      .update(cartLines)
-      .set({ quantity: existing.quantity + args.quantity, updatedAt: new Date().toISOString() })
-      .where(eq(cartLines.id, existing.id))
-      .returning();
-    return { line: updated, merged: true };
-  }
-
-  const [inserted] = await db
-    .insert(cartLines)
-    .values({
-      cartId: args.cartId,
-      productId: args.productId,
-      optionIds: args.optionIds,
-      quantity: Math.max(1, args.quantity),
-    })
-    .returning();
-  return { line: inserted, merged: false };
+  return inserted[0];
 }

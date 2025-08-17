@@ -1,46 +1,56 @@
 // src/app/api/cart/add/route.ts
 import { NextResponse } from "next/server";
-import { getOrCreateOpenCartBySid, addOrMergeLine } from "@/lib/cart";
-import { getOrSetSid } from "@/lib/sid";
+import { db } from "@/lib/db";
+import { cartLines } from "@/db/schema/cart";
+import { priceByOptionIds, resolveStoreCode } from "@/lib/sinalite.server";
+import { getOrCreateCartForSession } from "@/lib/cart";
 
 type Body = {
   productId: number;
-  qty?: number;
-  optionIdsByGroup?: Record<string, string | number>;
-  optionIds?: Array<string | number>;
-  price?: number;
-  currency?: string;
+  optionIds: (string | number)[];
+  quantity?: number;
+  shipCountry?: "US" | "CA";
 };
 
 export async function POST(req: Request) {
   try {
-    const sid = getOrSetSid();
-    const body = (await req.json()) as Body;
+    const { productId, optionIds, quantity = 1, shipCountry = "US" } = (await req.json()) as Body;
 
-    const cart = await getOrCreateOpenCartBySid(sid);
-
-    // Minimal: store optionIds if supplied, else null (you can resolve by group later)
-    // src/app/api/cart/add/route.ts  (only the inner part changes)
-    let optionIds: number[] | null = null;
-
-    if (Array.isArray(body.optionIds) && body.optionIds.length) {
-      optionIds = body.optionIds.map(Number).filter(Number.isFinite);
-    } else if (body.optionIdsByGroup && typeof body.optionIdsByGroup === "object") {
-      optionIds = Object.values(body.optionIdsByGroup)
-        .map((v) => Number(v))
-        .filter(Number.isFinite);
+    if (!productId || !Array.isArray(optionIds) || optionIds.length === 0) {
+      return NextResponse.json({ error: "Missing productId or optionIds" }, { status: 400 });
     }
 
-
-    const { line, merged } = await addOrMergeLine({
-      cartId: cart.id,
-      productId: Number(body.productId),
+    const storeCode = resolveStoreCode(shipCountry);
+    const priced = await priceByOptionIds({
+      productId,
+      storeCode,
       optionIds,
-      quantity: Math.max(1, Number(body.qty ?? 1)),
     });
 
-    return NextResponse.json({ ok: true, merged, line, cartId: cart.id });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "Add to cart failed" }, { status: 500 });
+    // IMPORTANT: numeric columns in Drizzle expect string values
+    const unitPriceNumber = Number(priced.price) || 0;
+    const unitPrice = unitPriceNumber.toFixed(2); // <- string
+
+    const optionsByGroup = priced.productOptions || {};
+    const sinalitePackageInfo = priced.packageInfo || {};
+
+    const cart = await getOrCreateCartForSession();
+
+    await db.insert(cartLines).values({
+      cartId: cart.id,                       // uuid string
+      productId,                             // integer
+      optionIds: optionIds.map(String),      // jsonb string[]
+      quantity,                              // integer
+      unitPrice,                             // <-- string for numeric column
+      optionsByGroup,                        // jsonb
+      sinalitePackageInfo,                   // jsonb
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err?.message || "Add to cart failed" },
+      { status: 500 }
+    );
   }
 }

@@ -1,16 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { k } from "@upstash/redis/zmscore-CgRD7oFR";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 
 /**
- * Sinalite REST client (server-only, TypeScript)
- * - Auth via Client Credentials (per SinaLite API docs)
- * - Token caching w/ expiry
- * - Strong error handling, optional timeouts, no Next cache
- * - Full set of helpers you showed (meta, arrays, pricing, shippingEstimate, SEO snapshot)
- * - Plus storefront helpers (categories, subcategories, product details/options/pricing by hash)
- *
- * NOTE: For any image thumbnails you render from product data or your uploads,
- * serve via Cloudflare CDN variants for max performance. ⚡
+ * SinaLite REST client (server-only, TypeScript)
+ * - Client Credentials auth with token cache
+ * - Single low-level JSON fetch with timeout + error surfacing
+ * - Catalog, pricing, shipping estimate helpers
+ * - Exposes env(), buildUrl(), apiFetchJson() for other server routes
  */
 
 // ─────────────────────────────────────────────────────────────
@@ -21,14 +19,12 @@ let tokenCache: Token | null = null;
 
 const DEFAULT_TIMEOUT_MS: number = Number(process.env.SINALITE_HTTP_TIMEOUT_MS ?? 10_000);
 
-function env() {
-  // Primary “modern” base (used by most docs)
+export function env() {
   const API_BASE =
     process.env.SINALITE_API_BASE?.trim() ||
     process.env.SINALITE_BASE_URL?.trim() ||
     "https://api.sinaliteuppy.com";
 
-  // Some older docs call the OAuth audience apiconnect
   const AUDIENCE =
     process.env.SINALITE_AUDIENCE?.trim() ||
     process.env.SINALITE_API_AUDIENCE?.trim() ||
@@ -36,8 +32,6 @@ function env() {
 
   const CLIENT_ID = process.env.SINALITE_CLIENT_ID?.trim();
   const CLIENT_SECRET = process.env.SINALITE_CLIENT_SECRET?.trim();
-
-  // Store code used by storefront + some endpoints
   const STORE = process.env.NEXT_PUBLIC_STORE_CODE?.trim() || "en_us";
 
   if (!API_BASE || !CLIENT_ID || !CLIENT_SECRET || !AUDIENCE) {
@@ -59,7 +53,7 @@ function withBearer(token: string): string {
   return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
 }
 
-function buildUrl(base: string, path: string) {
+export function buildUrl(base: string, path: string) {
   return `${base}/${path.replace(/^\/+/, "")}`;
 }
 
@@ -90,8 +84,7 @@ async function getAccessTokenRaw(): Promise<string> {
       audience: AUDIENCE,
       grant_type: "client_credentials",
     }),
-    cache: "no-store",
-    next: { revalidate: 0 },
+    cache: "no-store", // keep only this; do not mix with next.revalidate
   });
 
   if (!res.ok) {
@@ -128,7 +121,7 @@ class UpstreamError extends Error {
   }
 }
 
-async function apiFetchJson<T = unknown>(
+export async function apiFetchJson<T = unknown>(
   path: string,
   init: Omit<RequestInit, "headers"> & { headers?: Record<string, string> } = {}
 ): Promise<T> {
@@ -148,7 +141,6 @@ async function apiFetchJson<T = unknown>(
         ...(init.headers || {}),
       },
       cache: "no-store",
-      next: { revalidate: 0 },
     });
 
     const raw = await res.text();
@@ -161,10 +153,7 @@ async function apiFetchJson<T = unknown>(
       );
     }
 
-    if (!raw) {
-      // many endpoints return JSON; a totally empty body is unusual but handle gracefully
-      return undefined as T;
-    }
+    if (!raw) return undefined as T;
 
     try {
       return JSON.parse(raw) as T;
@@ -181,7 +170,7 @@ async function apiFetchJson<T = unknown>(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Public types (kept minimal; wire exact types later if you have OpenAPI)
+// Public types
 // ─────────────────────────────────────────────────────────────
 export type SinaliteProductMeta = {
   id: number;
@@ -255,12 +244,11 @@ export async function getProductPricingByHash(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Classic endpoints from your existing file (kept intact)
+// Classic endpoints from your existing file
 // ─────────────────────────────────────────────────────────────
 export async function getSinaliteProductMeta(
   productId: string | number
 ): Promise<SinaliteProductMeta> {
-  const { API_BASE } = env();
   return apiFetchJson<SinaliteProductMeta>(`product/${productId}`);
 }
 
@@ -272,7 +260,7 @@ async function fetchSinaliteProductArrays(
   productId: string | number,
   storeCode?: string
 ): Promise<{ optionsArray: any[]; pricingArray: any[]; metaArray: any[] }> {
-  const { API_BASE, STORE } = env();
+  const { STORE } = env();
   const sc = resolveStoreCode(storeCode ?? STORE);
 
   try {
@@ -343,7 +331,7 @@ export function normalizeOptionGroups(optionsArray: any[]): SinaliteOptionGroup[
       addValue(r.group, r.group, Number(r.id), String(r.name));
       continue;
     }
-    if (row && typeof row === "object" && "option_id" in row && "opt_val_id" in row && "option_val" in row) {
+    if (row && typeof row === "object" && "opt_val_id" in row && "option_val" in row && "name" in row) {
       const rr = row as RawOptionRollLabel;
       addValue(rr.name, rr.label || rr.name, Number(rr.opt_val_id), String(rr.option_val));
       continue;
@@ -375,11 +363,9 @@ export async function getSinalitePriceRegular(
   optionIds: number[],
   storeCode?: string
 ): Promise<any> {
-  const { API_BASE, STORE } = env();
+  const { STORE } = env();
   const sc = resolveStoreCode(storeCode ?? STORE);
-
-  const url = buildUrl(API_BASE, `price/${productId}/${sc}`);
-  return apiFetchJson(url.replace(`${API_BASE}/`, ""), {
+  return apiFetchJson(`price/${productId}/${sc}`, {
     method: "POST",
     body: JSON.stringify({ productOptions: optionIds }),
   });
@@ -387,9 +373,6 @@ export async function getSinalitePriceRegular(
 
 // ─────────────────────────────────────────────────────────────
 // Configured price (exact selections → unit price)
-// NOTE: In SinaLite, quantity is represented as an option ID in the chain.
-// If you pass `qty`, we try to map it to the Qty group and ensure it's present.
-// Otherwise we assume your `optionIds` already include the qty selection.
 // ─────────────────────────────────────────────────────────────
 
 /** Try to find the Qty group and return the option id that matches a numeric qty value */
@@ -407,7 +390,6 @@ async function resolveQtyOptionId(
   );
   if (!g) return null;
 
-  // Find exact numeric match; if none, pick the closest higher, else lowest.
   const parsed = g.values
     .map((v) => ({
       id: v.id,
@@ -429,8 +411,7 @@ async function resolveQtyOptionId(
 
 /**
  * Compute configured unit price for a product given its selected option IDs.
- * `optionIds` should be the canonical ordered chain (per SinaLite).
- * If `qty` is provided and the Qty group isn't represented, we’ll try to add it.
+ * If `qty` is provided and Qty isn't in the chain, we try to inject it.
  */
 export async function getConfiguredPrice(
   productId: string | number,
@@ -442,19 +423,14 @@ export async function getConfiguredPrice(
 
   let chain = Array.from(new Set(optionIds.map((v) => Number(v)).filter(Number.isFinite)));
 
-  // If qty provided but likely missing from chain, try to inject the matching Qty option id
   if (qty && Number.isFinite(qty)) {
-    // naive check: if any option name is qty-like we assume it's present; otherwise try to resolve id
     const qtyId = await resolveQtyOptionId(productId, qty, sc);
     if (qtyId && !chain.includes(qtyId)) {
-      chain = [qtyId, ...chain]; // place early (order generally doesn't hurt SinaLite here)
+      chain = [qtyId, ...chain];
     }
   }
 
-  // Call classic pricing endpoint
   const priceResp = await getSinalitePriceRegular(productId, chain, sc);
-
-  // Normalize price from possible shapes we’ve seen in the wild
   const rawPrice =
     (priceResp as any)?.price ??
     (priceResp as any)?.price2?.price ??
@@ -466,7 +442,6 @@ export async function getConfiguredPrice(
   const currency: "USD" | "CAD" = sc.toLowerCase().includes("ca") ? "CAD" : "USD";
   return { unitPrice: Number(rawPrice), currency };
 }
-
 
 // ─────────────────────────────────────────────────────────────
 // Shipping estimate + helpers (IDs by group)
@@ -527,8 +502,8 @@ async function resolveOptionIds(params: {
 
     const list = groupIndex.get(gKey) || [];
     const found =
-      list.find((x) => norm(x.name) === norm(sval)) ||
-      list.find((x) => norm(x.name).includes(norm(sval)));
+      list.find((x: { id: number; name: string }) => norm(x.name) === norm(sval)) ||
+      list.find((x: { id: number; name: string }) => norm(x.name).includes(norm(sval)));
 
     if (found) out.push(found.id);
     else if (Number.isFinite(asNum) && idIndex.has(asNum)) out.push(asNum);
@@ -577,19 +552,18 @@ export async function estimateShipping(params: {
     },
   };
 
-  const url = buildUrl(API_BASE, "order/shippingEstimate");
-  return apiFetchJson(url.replace(`${API_BASE}/`, ""), {
+  const data = await apiFetchJson<any>("order/shippingEstimate", {
     method: "POST",
     body: JSON.stringify(payload),
-  }).then((data: any) => {
-    const rows: [string, string, number, number][] = Array.isArray(data?.body) ? data.body : [];
-    return rows.map((r) => ({
-      carrier: String(r[0]),
-      method: String(r[1]),
-      price: Number(r[2]),
-      days: Number(r[3]),
-    }));
   });
+
+  const rows: [string, string, number, number][] = Array.isArray(data?.body) ? data.body : [];
+  return rows.map((r) => ({
+    carrier: String(r[0]),
+    method: String(r[1]),
+    price: Number(r[2]),
+    days: Number(r[3]),
+  }));
 }
 
 export { estimateShipping as getSinaliteShippingQuote };

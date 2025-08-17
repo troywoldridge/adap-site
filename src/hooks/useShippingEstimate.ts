@@ -5,8 +5,8 @@ import { useCallback, useState } from 'react';
 
 export type EstimateLine = {
   productId: number;
-  optionIds: number[];
-  quantity: number;
+  optionIds: number[];   // Sinalite qty is an OPTION, not this numeric quantity field
+  quantity?: number;     // optional & ignored by the shipping API (kept for cart convenience)
 };
 
 export type EstimateInput = {
@@ -25,9 +25,18 @@ export type ShippingRate = {
   eta?: string | null;
 };
 
-type EstimateResponse =
-  | { ok: true; rates: ShippingRate[] }
+type ServerRate = {
+  carrier: string;
+  method: string;
+  price: number | string;
+  days?: string | number;
+};
+
+type ServerResponse =
+  | { ok: true; rates: ServerRate[] }
   | { ok: false; error: string };
+
+// --- helpers ---
 
 async function fetchCurrentCartLines(): Promise<EstimateLine[]> {
   const res = await fetch('/api/cart/current', { method: 'GET', cache: 'no-store' });
@@ -42,6 +51,17 @@ async function fetchCurrentCartLines(): Promise<EstimateLine[]> {
     quantity: Number(l.quantity) || 1,
   }));
 }
+
+function currencyForCountry(country: 'US' | 'CA'): 'USD' | 'CAD' {
+  return country === 'US' ? 'USD' : 'CAD';
+}
+
+function toNumber(n: unknown): number {
+  const x = typeof n === 'string' ? parseFloat(n) : (n as number);
+  return Number.isFinite(x) ? Number(x) : 0;
+}
+
+// --- hook ---
 
 export function useCartShippingEstimate() {
   const [rates, setRates] = useState<ShippingRate[]>([]);
@@ -62,26 +82,44 @@ export function useCartShippingEstimate() {
         throw new Error('Your cart is empty.');
       }
 
-      const res = await fetch('/api/shipping/estimate', {
+      // Our server route expects `lines: { productId, optionIds }[]`
+      const lines = items.map(i => ({
+        productId: i.productId,
+        optionIds: i.optionIds,
+      }));
+
+      const res = await fetch('/api/cart/estimate-shipping', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           shipCountry: input.shipCountry,
           shipState: input.shipState.trim(),
           shipZip: input.shipZip.trim(),
-          items,
+          lines,
         }),
       });
 
-      const data: EstimateResponse = await res.json();
-
-      if (!res.ok || !data.ok) {
+      const data: ServerResponse = await res.json();
+      if (!res.ok || !('ok' in data) || !data.ok) {
         throw new Error(('error' in data && data.error) || 'Failed to get rates');
       }
 
-      setRates(data.rates || []);
+      // Map server rates -> UI ShippingRate shape
+      const curr = currencyForCountry(input.shipCountry);
+      const mapped: ShippingRate[] = (data.rates || []).map((r) => ({
+        serviceCode: `${r.carrier}:${r.method}`,
+        serviceName: r.method,
+        carrier: r.carrier,
+        amount: toNumber(r.price),
+        currency: curr,
+        eta: typeof r.days === 'number' || typeof r.days === 'string'
+          ? String(r.days)
+          : null,
+      }));
+
+      setRates(mapped);
       setLoading(false);
-      return data.rates || [];
+      return mapped;
     } catch (e: any) {
       setError(e?.message || 'Failed to get rates');
       setLoading(false);
@@ -92,6 +130,6 @@ export function useCartShippingEstimate() {
   return { getRates, rates, loading, error };
 }
 
-// Export a compatibility alias so older imports still work
+// Compatibility alias for older imports
 export const useShippingEstimate = useCartShippingEstimate;
 export default useCartShippingEstimate;

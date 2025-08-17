@@ -1,40 +1,36 @@
-// src/app/api/cart/artwork/route.ts
 import { NextResponse } from "next/server";
-import { getOrSetSid } from "@/lib/sid";
-import { getOrCreateOpenCartBySid } from "@/lib/cart";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema/cart";
-import { and, eq } from "drizzle-orm";
+import { cartLines } from "@/db/schema/cart";
 
 export async function PATCH(req: Request) {
   try {
-    const { lineId, side, url } = await req.json() as { lineId: string; side: number; url: string };
-    if (!lineId || !Number.isFinite(side) || !url) {
-      return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 });
+    const { lineId, side, url } = await req.json();
+    const s = String(side);
+
+    // fetch current artwork
+    const line = await db.query.cartLines.findFirst({ where: eq(cartLines.id, lineId) });
+    if (!line) {
+      return NextResponse.json({ error: "Line not found" }, { status: 404 });
     }
 
-    const sid = getOrSetSid();
-    const cart = await getOrCreateOpenCartBySid(sid);
+    const current = (line.artwork ?? {}) as Record<string, string>;
+    const next = { ...current };
 
-    // get current artwork record
-    const row = await db.query.cartLines.findFirst({
-      where: and(eq(cartLines.id, lineId), eq(cartLines.cartId, cart.id)),
-      columns: { id: true, artwork: true },
-    });
-    if (!row) {
-      return NextResponse.json({ ok: false, error: "Line not found" }, { status: 404 });
+    if (url) {
+      next[s] = String(url);
+    } else {
+      delete next[s];
     }
-
-    const artwork = (row.artwork ?? {}) as Record<string, string>;
-    artwork[String(side)] = url;
 
     const [updated] = await db
       .update(cartLines)
-      .set({ artwork, updatedAt: new Date().toISOString() })
+      .set({ artwork: next, updatedAt: new Date().toISOString() })
       .where(eq(cartLines.id, lineId))
       .returning();
-    return NextResponse.json({ ok: true, line: updated });
+
+    return NextResponse.json({ ok: true, artwork: updated.artwork });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "Save failed" }, { status: 500 });
+    return NextResponse.json({ error: e?.message || "Failed to save artwork" }, { status: 500 });
   }
 }
