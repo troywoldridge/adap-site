@@ -1462,3 +1462,38 @@ section.shop-by-category .section-title {
 .btn { display: inline-block; padding: 10px 14px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; }
 .btn-primary { background: #2563eb; color: #fff; border-color: #1d4ed8; }
 .btn-primary:hover { background: #1d4ed8; }
+
+/* Cart layout & elements */
+.cart-line { border-bottom: 1px solid #e5e7eb; padding: 16px 0; }
+.cart-line-head { display: flex; justify-content: space-between; gap: 16px; }
+.cart-line-left { display: flex; gap: 12px; align-items: center; }
+.cart-thumb { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
+.cart-line-name { font-weight: 600; }
+.cart-line-meta { color: #6b7280; font-size: .925rem; margin-top: 2px; }
+.cart-line-total { font-weight: 700; }
+.cart-qty-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.qty-btn { width:32px; height:32px; border:1px solid #e5e7eb; border-radius:6px; background:#fff; cursor:pointer; }
+.qty-display { min-width:28px; text-align:center; }
+.trash-btn { margin-left:12px; background:none; border:none; cursor:pointer; font-size:18px; }
+
+.upload-cta { display:flex; gap:10px; flex-wrap:wrap; }
+.art-thumb { width:96px; height:96px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; }
+
+.cart-summary { margin-top: 8px; }
+.cart-summary-row { display:flex; justify-content:space-between; margin:8px 0; }
+
+/* Shipping estimator */
+.ship-est { margin-top: 12px; }
+.ship-row { display:flex; gap:8px; flex-wrap:wrap; }
+.ship-row select, .ship-row input { border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; }
+
+/* Simple UI atoms already used across the site */
+.ui-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
+.section-title { font-weight:700; margin:4px 0 8px; }
+.input { width:100%; border:1px solid #e5e7eb; border-radius:6px; padding:8px 10px; }
+.btn { border:1px solid #e5e7eb; border-radius:8px; background:#fff; padding:8px 12px; cursor:pointer; }
+.btn-primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+.btn-primary:hover { background:#1d4ed8; }
+.muted { color:#6b7280; }
+.divider { border-top:1px solid #e5e7eb; margin:10px 0; }
+

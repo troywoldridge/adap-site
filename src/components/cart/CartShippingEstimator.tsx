@@ -1,70 +1,74 @@
+// src/components/cart/CartShippingEstimator.tsx
 "use client";
-
 import { useState } from "react";
 
-type Rate = { name: string; amount: number; currency: string; days: number };
-
-type Props = {
-  defaultCountry?: "US" | "CA";
-  defaultRegion?: string;
-  defaultPostal?: string;
-  onQuote?: (q: { methods: Rate[]; cheapest?: Rate | null }) => void;
-};
+type Rate = { carrier: string; method: string; price: number; days: number };
 
 export default function CartShippingEstimator({
-  defaultCountry = "US",
-  defaultRegion = "",
-  defaultPostal = "",
   onQuote,
-}: Props = {}) {
-  const [country, setCountry] = useState<"US" | "CA">(defaultCountry);
-  const [region, setRegion] = useState(defaultRegion);
-  const [postal, setPostal] = useState(defaultPostal);
+}: {
+  onQuote?: (r: { rates: Rate[]; cheapest: Rate | null }) => void;
+}) {
+  const [country, setCountry] = useState<"US" | "CA">("US");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
   const [loading, setLoading] = useState(false);
-  const [quote, setQuote] = useState<{ methods: Rate[]; cheapest?: Rate | null } | null>(null);
+  const [rates, setRates] = useState<Rate[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const canQuote = Boolean(country && region && postal);
-
-  async function handleEstimate() {
+  async function fetchRates() {
+    if (!state || !zip) {
+      return;
+    }
     setLoading(true);
-    setQuote(null);
-    const res = await fetch("/api/shipping/estimate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ country, region, postal }),
-    });
-    const data = await res.json();
-    setQuote(data);
-    onQuote?.(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const res = await fetch("/api/cart/estimate-shipping", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ country, state, zip }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Failed to estimate");
+      }
+      setRates(data.rates || []);
+      onQuote?.({ rates: data.rates || [], cheapest: data.cheapest || null });
+    } catch (e: any) {
+      setError(e?.message || "Failed to estimate");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className="ship-est">
       <div className="ship-row">
-        <select value={country} onChange={(e) => setCountry((e.target.value as "US" | "CA") || "US")}>
+        <select className="input" value={country} onChange={(e) => setCountry(e.target.value as "US" | "CA")}>
           <option value="US">United States</option>
           <option value="CA">Canada</option>
         </select>
-        <input placeholder="State/Province" value={region} onChange={(e) => setRegion(e.target.value)} />
-        <input placeholder="Postal Code" value={postal} onChange={(e) => setPostal(e.target.value)} />
-        <button className="btn-primary" onClick={handleEstimate} disabled={loading || !canQuote}>
-          {loading ? "Getting rates…" : "Estimate shipping"}
+        <input className="input" placeholder={country === "US" ? "State (NY)" : "Prov (ON)"} value={state}
+               onChange={(e) => setState(e.target.value.toUpperCase())} />
+        <input className="input" placeholder={country === "US" ? "ZIP (10001)" : "Postal (M5V 2T6)"} value={zip}
+               onChange={(e) => setZip(e.target.value)} />
+        <button className="btn" onClick={fetchRates} disabled={loading}>
+          {loading ? "Getting rates…" : "Get rates"}
         </button>
       </div>
 
-      {quote?.methods?.length ? (
+      {error && <p className="muted" style={{ color: "#991b1b", marginTop: 8 }}>{error}</p>}
+
+      {rates.length > 0 && (
         <div className="ship-methods">
-          {quote.methods.map((m, i) => (
+          {rates.map((r, i) => (
             <div key={i} className="ship-line">
-              <span>{m.name}</span>
-              <span>
-                {m.currency} {Number(m.amount).toFixed(2)}
-              </span>
+              <span>{r.carrier} — {r.method} ({r.days} business day{r.days === 1 ? "" : "s"})</span>
+              <strong>${r.price.toFixed(2)}</strong>
             </div>
           ))}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

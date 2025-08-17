@@ -20,10 +20,17 @@ export async function POST(req: Request) {
     const cart = await getOrCreateOpenCartBySid(sid);
 
     // Minimal: store optionIds if supplied, else null (you can resolve by group later)
+    // src/app/api/cart/add/route.ts  (only the inner part changes)
     let optionIds: number[] | null = null;
-    if (Array.isArray(body.optionIds)) {
-      optionIds = body.optionIds.map((v) => Number(v)).filter(Number.isFinite);
+
+    if (Array.isArray(body.optionIds) && body.optionIds.length) {
+      optionIds = body.optionIds.map(Number).filter(Number.isFinite);
+    } else if (body.optionIdsByGroup && typeof body.optionIdsByGroup === "object") {
+      optionIds = Object.values(body.optionIdsByGroup)
+        .map((v) => Number(v))
+        .filter(Number.isFinite);
     }
+
 
     const { line, merged } = await addOrMergeLine({
       cartId: cart.id,
