@@ -386,6 +386,89 @@ export async function getSinalitePriceRegular(
 }
 
 // ─────────────────────────────────────────────────────────────
+// Configured price (exact selections → unit price)
+// NOTE: In SinaLite, quantity is represented as an option ID in the chain.
+// If you pass `qty`, we try to map it to the Qty group and ensure it's present.
+// Otherwise we assume your `optionIds` already include the qty selection.
+// ─────────────────────────────────────────────────────────────
+
+/** Try to find the Qty group and return the option id that matches a numeric qty value */
+async function resolveQtyOptionId(
+  productId: string | number,
+  qty: number | undefined,
+  storeCode?: string
+): Promise<number | null> {
+  if (!qty || !Number.isFinite(qty)) return null;
+
+  const { optionsArray } = await fetchSinaliteProductArrays(productId, storeCode);
+  const groups = normalizeOptionGroups(optionsArray || []);
+  const g = groups.find(
+    (x) => /^(qty|quantity)$/i.test(x.group) || /qty|quantity/i.test(x.label)
+  );
+  if (!g) return null;
+
+  // Find exact numeric match; if none, pick the closest higher, else lowest.
+  const parsed = g.values
+    .map((v) => ({
+      id: v.id,
+      n: Number(String(v.name).replace(/[^\d.]/g, "")),
+    }))
+    .filter((x) => Number.isFinite(x.n))
+    .sort((a, b) => a.n - b.n);
+
+  if (!parsed.length) return null;
+
+  const exact = parsed.find((x) => x.n === qty);
+  if (exact) return exact.id;
+
+  const higher = parsed.find((x) => x.n >= qty);
+  if (higher) return higher.id;
+
+  return parsed[0].id; // fallback: smallest available qty
+}
+
+/**
+ * Compute configured unit price for a product given its selected option IDs.
+ * `optionIds` should be the canonical ordered chain (per SinaLite).
+ * If `qty` is provided and the Qty group isn't represented, we’ll try to add it.
+ */
+export async function getConfiguredPrice(
+  productId: string | number,
+  optionIds: number[],
+  qty?: number,
+  storeCode?: string
+): Promise<{ unitPrice: number; currency: "USD" | "CAD" } | null> {
+  const sc = resolveStoreCode(storeCode);
+
+  let chain = Array.from(new Set(optionIds.map((v) => Number(v)).filter(Number.isFinite)));
+
+  // If qty provided but likely missing from chain, try to inject the matching Qty option id
+  if (qty && Number.isFinite(qty)) {
+    // naive check: if any option name is qty-like we assume it's present; otherwise try to resolve id
+    const qtyId = await resolveQtyOptionId(productId, qty, sc);
+    if (qtyId && !chain.includes(qtyId)) {
+      chain = [qtyId, ...chain]; // place early (order generally doesn't hurt SinaLite here)
+    }
+  }
+
+  // Call classic pricing endpoint
+  const priceResp = await getSinalitePriceRegular(productId, chain, sc);
+
+  // Normalize price from possible shapes we’ve seen in the wild
+  const rawPrice =
+    (priceResp as any)?.price ??
+    (priceResp as any)?.price2?.price ??
+    (priceResp as any)?.response?.price ??
+    null;
+
+  if (rawPrice == null) return null;
+
+  const currency: "USD" | "CAD" = sc.toLowerCase().includes("ca") ? "CAD" : "USD";
+  return { unitPrice: Number(rawPrice), currency };
+}
+
+
+// ─────────────────────────────────────────────────────────────
 // Shipping estimate + helpers (IDs by group)
 // ─────────────────────────────────────────────────────────────
 function norm(s: string) {
@@ -508,6 +591,8 @@ export async function estimateShipping(params: {
     }));
   });
 }
+
+export { estimateShipping as getSinaliteShippingQuote };
 
 /**
  * Default price snapshot for SEO/snippets.

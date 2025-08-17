@@ -1,10 +1,12 @@
 // src/lib/cart.ts
 import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { carts, cartLines } from "@/db/schema/cart";
+import { and, eq } from "drizzle-orm";
 
 export async function getOpenCartBySid(sid: string) {
-  return db.query.carts.findFirst({ where: and(eq(carts.sid, sid), eq(carts.status, "open")) });
+  return db.query.carts.findFirst({
+    where: and(eq(carts.sid, sid), eq(carts.status, "open")),
+  });
 }
 
 export async function createOpenCart(sid: string, userId?: string | null) {
@@ -17,7 +19,9 @@ export async function createOpenCart(sid: string, userId?: string | null) {
 
 export async function getOrCreateOpenCartBySid(sid: string, userId?: string | null) {
   const existing = await getOpenCartBySid(sid);
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
   return createOpenCart(sid, userId);
 }
 
@@ -50,9 +54,4 @@ export async function addOrMergeLine(args: {
     })
     .returning();
   return { line: inserted, merged: false };
-}
-
-export async function getCurrentCartFull(cartId: string) {
-  const lines = await db.query.cartLines.findMany({ where: eq(cartLines.cartId, cartId) });
-  return { lines };
 }

@@ -12,7 +12,8 @@ import {
 import { productImagesForProductId } from "@/lib/product-images";
 import { productJsonLd, breadcrumbJsonLd, absoluteUrl } from "@/lib/seo";
 import ProductConfigurator from "@/components/product/ProductConfigurator";
-import UploadCta from "@/components/UploadCta";
+// ✅ Use the BuyBox wrapper to wire configurator ↔ add-to-cart
+import ProductBuyBox from "@/components/product/ProductBuyBox";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +28,13 @@ export async function generateMetadata({
   try {
     meta = await getSinaliteProductMeta(id);
   } catch {
-    // ignore: product may be unavailable; we'll handle in the page
+    // ignore
   }
 
   const name = meta?.name || `Product ${id}`;
   const desc = meta?.description || `Order ${name} online — trade pricing via SinaLite.`;
   const url = absoluteUrl(`/product/${id}`);
-  const images = productImagesForProductId(id); // served via Cloudflare Images CDN
+  const images = productImagesForProductId(id); // Cloudflare Images CDN
 
   return {
     title: name,
@@ -63,13 +64,13 @@ export default async function ProductPage({
 }) {
   const id = params.productId;
 
-  // Guard against invalid ids (e.g. /product/0)
+  // Guard against invalid ids
   const idNum = Number(id);
   if (!Number.isFinite(idNum) || idNum <= 0) {
     return notFound();
   }
 
-  // Meta (per SinaLite API docs, product can be unavailable)
+  // Meta
   let meta: any = null;
   try {
     meta = await getSinaliteProductMeta(id);
@@ -80,7 +81,7 @@ export default async function ProductPage({
     return notFound();
   }
 
-  // Options (array → normalized groups). If upstream returns no arrays, we still render safely.
+  // Options (array → normalized groups)
   const { optionsArray } = await getSinaliteProductArrays(id);
   const optionGroups = normalizeOptionGroups(optionsArray || []);
 
@@ -89,7 +90,7 @@ export default async function ProductPage({
   const hero = gallery[0] || "https://placehold.co/800x600?text=No+Image";
   const url = absoluteUrl(`/product/${id}`);
 
-  // Best-effort default price (safe if upstream has no data)
+  // Best-effort default price (for JSON-LD offer)
   const offer = await getDefaultPriceSnapshot(id); // { price, currency } | null
 
   // JSON-LD
@@ -118,7 +119,7 @@ export default async function ProductPage({
   ]);
 
   return (
-    <main className="container" style={{ padding: 24 }}>
+    <main className="page-container">
       {/* JSON-LD (server-rendered) */}
       <script
         type="application/ld+json"
@@ -131,64 +132,36 @@ export default async function ProductPage({
       />
 
       {/* Title row */}
-      <header style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: "1.8rem" }}>{meta?.name}</h1>
-        {meta?.description ? (
-          <p className="muted" style={{ marginTop: 8, maxWidth: 720 }}>
-            {meta.description}
-          </p>
-        ) : null}
+      <header className="product-header">
+        <h1 className="product-title">{meta?.name}</h1>
+        {meta?.description ? <p className="product-desc">{meta.description}</p> : null}
       </header>
 
       {/* Main layout: gallery + config */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(320px, 1fr) 420px",
-          gap: 24,
-          alignItems: "start",
-        }}
-      >
-        {/* Left: images (Cloudflare delivery keeps it blazing fast) */}
+      <section className="product-grid">
+        {/* Left: images */}
         <div>
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              aspectRatio: "4 / 3",
-              overflow: "hidden",
-              borderRadius: 12,
-              background: "#f5f5f5",
-            }}
-          >
+          <div className="product-hero">
             <Image
               src={hero}
               alt={meta?.name || `Product ${id}`}
               fill
               sizes="(max-width: 900px) 100vw, 600px"
-              style={{ objectFit: "cover" }}
+              className="object-cover"
               priority
             />
           </div>
+
           {gallery.length > 1 && (
-            <ul
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
-                gap: 10,
-                padding: 0,
-                listStyle: "none",
-                marginTop: 12,
-              }}
-            >
+            <ul className="thumb-grid">
               {gallery.map((u, i) => (
-                <li key={i} style={{ position: "relative", aspectRatio: "1 / 1" }}>
+                <li key={i} className="thumb">
                   <Image
                     src={u}
                     alt={`${meta?.name} ${i + 1}`}
                     fill
                     sizes="92px"
-                    style={{ objectFit: "cover", borderRadius: 8 }}
+                    className="object-cover thumb-img"
                   />
                 </li>
               ))}
@@ -196,14 +169,9 @@ export default async function ProductPage({
           )}
         </div>
 
-        {/* Right: live pricing configurator (client) + shipping estimator + upload CTA */}
-        <div className="space-y-4">
-          <ProductConfigurator productId={id} options={optionGroups} />
-          {/* Upload Artwork step (presigned PUT to Cloudflare R2) */}
-          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
-            <UploadCta productId={id} />
-          </div>
-        </div>
+        {/* Right: configurator + add-to-cart (wired via BuyBox) */}
+        {/* Right: configurator + add-to-cart (via BuyBox) */}
+  <ProductBuyBox productId={id} optionGroups={optionGroups} />
       </section>
     </main>
   );

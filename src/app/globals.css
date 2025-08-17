@@ -1293,3 +1293,172 @@ section.shop-by-category .section-title {
 .header-search .ais-Hits,
 .header-search .ais-InfiniteHits,
 .header-search .ais-Panel { display:none !important; }
+
+/* Layout */
+.page-container {
+  padding: 24px;
+}
+
+.product-header {
+  margin-bottom: 16px;
+}
+
+.product-title {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.product-desc {
+  margin-top: 8px;
+  max-width: 720px;
+  color: #6b7280; /* muted */
+}
+
+/* Grid */
+.product-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 420px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Hero image frame */
+.product-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f5f5f5;
+}
+
+/* Thumbs */
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+  margin-top: 12px;
+}
+
+.thumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.thumb-img {
+  border-radius: 8px;
+}
+
+/* Right rail */
+.right-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.divider {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+/* Buttons */
+.btn-primary {
+  margin-top: 6px;
+  padding: 12px 24px;
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Cart */
+.cart-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.cart-line {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 0;
+}
+
+.cart-line-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-line-name {
+  font-weight: 500;
+}
+
+.cart-line-price {
+  font-variant-numeric: tabular-nums;
+}
+
+.buybox-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.price-pill {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cart lines ─────────────────────────────────────────── */
+.cart-line { border-bottom: 1px solid #e5e7eb; padding: 16px 0; }
+.cart-line-head { display: flex; justify-content: space-between; gap: 16px; }
+.cart-line-left { display: flex; gap: 12px; align-items: center; }
+.cart-thumb { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; }
+.cart-line-name { font-weight: 600; }
+.cart-line-meta { color: #6b7280; font-size: 0.925rem; margin-top: 2px; }
+.cart-line-total { font-weight: 700; }
+
+/* ── Qty controls / remove ──────────────────────────────── */
+.cart-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.qty-btn { width: 32px; height: 32px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; cursor: pointer; }
+.qty-btn:hover { background: #f3f4f6; }
+.qty-display { min-width: 28px; text-align: center; }
+.trash-btn { margin-left: 12px; background: none; border: none; cursor: pointer; font-size: 18px; }
+.trash-btn:hover { opacity: 0.8; }
+
+/* ── Upload artwork (thumbnails per side) ───────────────── */
+.upload-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+.upload-slot { display: flex; align-items: center; gap: 8px; } /* consolidated */
+.hidden-input { display: none; }
+.upload-btn { display: inline-block; padding: 10px 14px; background: #2563eb; color: #fff; border-radius: 8px; cursor: pointer; }
+.upload-btn:hover { background: #1d4ed8; }
+.art-thumb { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+
+/* ── Summary / shipping / CTA ───────────────────────────── */
+.cart-summary { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
+.cart-summary-row { display: flex; justify-content: space-between; margin: 8px 0; }
+
+.ship-est { margin-top: 12px; }
+.ship-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ship-row select, .ship-row input { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; }
+.ship-methods { margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+.ship-line { display: flex; justify-content: space-between; margin: 6px 0; }
+
+.btn { display: inline-block; padding: 10px 14px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; }
+.btn-primary { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+.btn-primary:hover { background: #1d4ed8; }

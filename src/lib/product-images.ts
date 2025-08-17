@@ -1,33 +1,30 @@
 // src/lib/product-images.ts
-import productAssetsRaw from "@/data/productAssets.json";
-import { cfUrl } from "@/lib/data";
+import images from "@/data/images.json";
+import { cfImageUrl } from "src/lib/cloudflare-image";
 
-type ProductAsset = {
-  category_id?: string | number;
-  subcategory_id?: string | number;
-  name?: string;
-  image_name?: string;
-  cloudflare_id: string | null; // ID or full URL (cfUrl handles both)
-  product_id: number | string;
-  matched_sku?: string | null;
+type RawImageRow = {
+  category_id: number;
+  subcategory_id: number;
+  name: string;
+  image_name: string;
+  cloudflare_id: string | null;
+  product_id: number | null;
+  matched_sku: string | null;
 };
 
-const productAssets: ProductAsset[] = Array.isArray(productAssetsRaw)
-  ? (productAssetsRaw as ProductAsset[])
-  : [];
+export function productImagesForProductId(pid: string, sku?: string): string[] {
+  const pidNum = Number(pid);
 
-/** Return Cloudflare image URLs for a given product ID (always at least one URL). */
-export function productImagesForProductId(productId: number | string): string[] {
-  const pid = Number(productId);
+  const rows = (images as RawImageRow[]).filter((r) => {
+    if (Number.isFinite(pidNum) && r.product_id === pidNum) return true;
+    if (sku && r.matched_sku && r.matched_sku === sku) return true;
+    return false;
+  });
 
-  const direct = productAssets
-    .filter((a) => Number(a.product_id) === pid && !!a.cloudflare_id)
-    .map((a) => cfUrl(a.cloudflare_id!));
+  const urls = rows
+    .filter((r) => typeof r.cloudflare_id === "string" && r.cloudflare_id.length > 0)
+    .map((r) => cfImageUrl(r.cloudflare_id as string, "public"))
+    .filter((u): u is string => !!u); // drop nulls if hash missing
 
-  if (direct.length) {
-    return Array.from(new Set(direct));
-  }
-
-  const any = productAssets.find((a) => !!a.cloudflare_id);
-  return any ? [cfUrl(any.cloudflare_id!)] : [cfUrl(null)];
+  return urls;
 }

@@ -1,42 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { cookies } from "next/headers";
-import { addOrMergeLine, getOrCreateOpenCartBySid } from "@/lib/cart";
+// src/app/api/cart/add/route.ts
+import { NextResponse } from "next/server";
+import { getOrCreateOpenCartBySid, addOrMergeLine } from "@/lib/cart";
+import { getOrSetSid } from "@/lib/sid";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+type Body = {
+  productId: number;
+  qty?: number;
+  optionIdsByGroup?: Record<string, string | number>;
+  optionIds?: Array<string | number>;
+  price?: number;
+  currency?: string;
+};
 
-const SID_COOKIE = "adap_sid";
-const ONE_YEAR = 60 * 60 * 24 * 365;
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const productId = Number(body?.productId);
-    const optionIds = Array.isArray(body?.optionIds) ? body.optionIds.map((n: any) => Number(n)) : null;
-    const quantity = Math.max(1, Number(body?.quantity || 1));
-    if (!Number.isFinite(productId)) {
-      return NextResponse.json({ ok: false, error: "productId is required (number)" }, { status: 400 });
+    const sid = getOrSetSid();
+    const body = (await req.json()) as Body;
+
+    const cart = await getOrCreateOpenCartBySid(sid);
+
+    // Minimal: store optionIds if supplied, else null (you can resolve by group later)
+    let optionIds: number[] | null = null;
+    if (Array.isArray(body.optionIds)) {
+      optionIds = body.optionIds.map((v) => Number(v)).filter(Number.isFinite);
     }
 
-    let sid = cookies().get(SID_COOKIE)?.value;
-    if (!sid) {
-      sid = crypto.randomUUID();
-      cookies().set(SID_COOKIE, sid, {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: true,
-        maxAge: ONE_YEAR,
-      });
-    }
+    const { line, merged } = await addOrMergeLine({
+      cartId: cart.id,
+      productId: Number(body.productId),
+      optionIds,
+      quantity: Math.max(1, Number(body.qty ?? 1)),
+    });
 
-    const { userId } = await auth();
-    const cart = await getOrCreateOpenCartBySid(sid, userId ?? null);
-    const { line, merged } = await addOrMergeLine({ cartId: cart.id, productId, optionIds, quantity });
-
-    return NextResponse.json({ ok: true, cartId: cart.id, lineId: line.id, merged });
+    return NextResponse.json({ ok: true, merged, line, cartId: cart.id });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "Failed to add to cart" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e?.message || "Add to cart failed" }, { status: 500 });
   }
 }
