@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
@@ -8,6 +9,8 @@ import { db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema/cart";
 import { cartArtwork } from "@/db/schema/cart-artwork";
 import { getConfiguredPrice } from "@/lib/sinalite.client";
+// ✅ SERVER-SAFE Cloudflare image id lookup (pure JSON map)
+import { cfImageIdForProduct } from "@/lib/productAssets";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -27,43 +30,33 @@ function getOrSetSid(): string {
   return sid;
 }
 
-/** Normalize a drizzle `jsonb` (runtime: unknown) into `number[]`. */
 function toNumberArray(u: unknown): number[] {
-  if (!Array.isArray(u)) {
-    return [];
-  }
+  if (!Array.isArray(u)) return [];
   const out: number[] = [];
   for (const v of u) {
     const n = Number(v as any);
-    if (Number.isFinite(n)) {
-      out.push(n);
-    }
+    if (Number.isFinite(n)) out.push(n);
   }
   return out;
 }
 
-/** Force any numeric-ish value to a positive int (>=1). */
 function toPositiveInt(u: unknown, fallback = 1): number {
   const n = Number(u as any);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
-/** Convert `{ [side]: url }` (or bad shapes) into a sanitized record. */
 function sanitizeArtworkRecord(u: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (u && typeof u === "object" && !Array.isArray(u)) {
     for (const [k, v] of Object.entries(u as Record<string, unknown>)) {
       const side = String(k).trim();
       const url = String(v ?? "").trim();
-      if (side && url) {
-        out[side] = url;
-      }
+      if (side && url) out[side] = url;
     }
   }
   return out;
 }
 
-/** Merge two per-side artwork records, rows override base. */
 function mergeArtwork(
   base: Record<string, string>,
   rows: Array<{ side: number; url: string }>
@@ -71,31 +64,26 @@ function mergeArtwork(
   const out: Record<string, string> = { ...base };
   for (const r of rows) {
     const s = Number(r.side);
-    if (Number.isFinite(s) && r.url) {
-      out[String(s)] = String(r.url);
-    }
+    if (Number.isFinite(s) && r.url) out[String(s)] = String(r.url);
   }
   return out;
 }
 
 // ─────────────────────────────────────────────────────────────
-// Types for local select coercion (remove “unknown” headaches)
+// Types
 // ─────────────────────────────────────────────────────────────
 type RowRaw = {
   id: string;
   productId: number;
   quantity: number;
   optionIdsRaw: unknown; // jsonb
-  artworkRaw?: unknown;  // jsonb { [side]: url } (your cart_lines.artwork)
-  name?: string | null;  // optional future column
-  image?: string | null; // optional future column
+  artworkRaw?: unknown;  // jsonb { [side]: url }
 };
 
 // ─────────────────────────────────────────────────────────────
-// GET /api/cart
+// GET /api/cart  → DB-backed cart with live SinaLite pricing
 // ─────────────────────────────────────────────────────────────
 export async function GET() {
-  // 1) Ensure open cart
   const sid = getOrSetSid();
 
   let cart = await db.query.carts.findFirst({
@@ -107,32 +95,25 @@ export async function GET() {
     cart = row;
   }
 
-  // 2) Fetch cart lines (use explicit field names to keep types happy)
   const rowsDb = (await db
     .select({
       id: cartLines.id,
       productId: cartLines.productId,
       quantity: cartLines.quantity,
-      optionIdsRaw: cartLines.optionIds, // jsonb<number[] | null> at the DB level
-      // cart_lines.artwork exists in your schema; we’ll read it but sanitize
+      optionIdsRaw: cartLines.optionIds,
       artworkRaw: cartLines.artwork,
-      // Optional future columns (presently not in your schema, so we omit them from select)
-      // name: (cartLines as any).name,
-      // image: (cartLines as any).image,
     })
     .from(cartLines)
     .where(eq(cartLines.cartId, cart.id))) as RowRaw[];
 
   if (!rowsDb.length) {
     return NextResponse.json({
-      id: cart.id,
-      currency: "USD",
-      subtotal: 0,
-      items: [],
+      ok: true,
+      cart: { id: cart.id, currency: "USD", subtotal: 0, items: [] },
     });
   }
 
-  // 3) Fetch per-side artwork rows from cart_artwork and index by line
+  // artwork rows
   const lineIds = rowsDb.map((r) => r.id);
   const artRows = await db
     .select({
@@ -145,28 +126,27 @@ export async function GET() {
 
   const artworkByLine: Record<string, Array<{ side: number; url: string }>> = {};
   for (const ar of artRows) {
-    if (!artworkByLine[ar.cartLineId]) {
-      artworkByLine[ar.cartLineId] = [];
-    }
-    artworkByLine[ar.cartLineId].push({ side: ar.side, url: ar.url });
+    (artworkByLine[ar.cartLineId] ||= []).push({ side: ar.side, url: ar.url });
   }
 
-  // 4) Build items with pricing + merged artwork
   const items = await Promise.all(
     rowsDb.map(async (r) => {
       const productId = Number(r.productId);
       const quantity = toPositiveInt(r.quantity, 1);
       const optionIds = toNumberArray(r.optionIdsRaw);
 
-      // Sinalite price (assists qty when needed)
+      // Live price from SinaLite (per docs)
       const priced = await getConfiguredPrice(productId, optionIds, quantity);
-      const unitPrice = priced?.unitPrice ?? 0;
+      const unitPrice = Number(priced?.unitPrice ?? 0);
       const currency = (priced?.currency ?? "USD") as "USD" | "CAD";
 
-      // Merge artwork map from cart_lines.artwork with cart_artwork rows (rows win)
+      // artwork merge
       const artMapFromLine = sanitizeArtworkRecord(r.artworkRaw);
       const artRowsForLine = artworkByLine[r.id] ?? [];
-      const artwork: Record<string, string> = mergeArtwork(artMapFromLine, artRowsForLine);
+      const artwork = mergeArtwork(artMapFromLine, artRowsForLine);
+
+      // ✅ Cloudflare-only image id from JSON map
+      const cloudflareId = cfImageIdForProduct(productId) ?? null;
 
       return {
         id: r.id,
@@ -176,24 +156,18 @@ export async function GET() {
         unitPrice,
         lineTotal: unitPrice * quantity,
         currency,
-        // You can wire these later if you add columns
         name: null as string | null,
-        image: null as string | null,
-        // Per-side artwork record: { "1": "https://…", "2": "https://…" }
+        image: cloudflareId, // CF Image ID only
         artwork,
       };
     })
   );
 
-  // 5) Totals
   const currency = (items[0]?.currency ?? "USD") as "USD" | "CAD";
   const subtotal = items.reduce((sum, it) => sum + (it.lineTotal ?? 0), 0);
 
-  // 6) Return
   return NextResponse.json({
-    id: cart.id,
-    currency,
-    subtotal,
-    items,
+    ok: true,
+    cart: { id: cart.id, currency, subtotal, items },
   });
 }

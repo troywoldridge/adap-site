@@ -11,8 +11,6 @@ import {
 } from "@/lib/sinalite.client";
 import { productImagesForProductId } from "@/lib/product-images";
 import { productJsonLd, breadcrumbJsonLd, absoluteUrl } from "@/lib/seo";
-import ProductConfigurator from "@/components/product/ProductConfigurator";
-// ✅ Use the BuyBox wrapper to wire configurator ↔ add-to-cart
 import ProductBuyBox from "@/components/product/ProductBuyBox";
 
 export const dynamic = "force-dynamic";
@@ -27,14 +25,12 @@ export async function generateMetadata({
   let meta: any = null;
   try {
     meta = await getSinaliteProductMeta(id);
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   const name = meta?.name || `Product ${id}`;
   const desc = meta?.description || `Order ${name} online — trade pricing via SinaLite.`;
   const url = absoluteUrl(`/product/${id}`);
-  const images = productImagesForProductId(id); // Cloudflare Images CDN
+  const images = productImagesForProductId(id);
 
   return {
     title: name,
@@ -63,12 +59,8 @@ export default async function ProductPage({
   params: { productId: string };
 }) {
   const id = params.productId;
-
-  // Guard against invalid ids
   const idNum = Number(id);
-  if (!Number.isFinite(idNum) || idNum <= 0) {
-    return notFound();
-  }
+  if (!Number.isFinite(idNum) || idNum <= 0) return notFound();
 
   // Meta
   let meta: any = null;
@@ -77,15 +69,30 @@ export default async function ProductPage({
   } catch {
     return notFound();
   }
-  if (!meta) {
-    return notFound();
-  }
+  if (!meta) return notFound();
 
-  // Options (array → normalized groups)
+  // Options (array → normalized groups, then adapt to BuyBox OG shape)
   const { optionsArray } = await getSinaliteProductArrays(id);
-  const optionGroups = normalizeOptionGroups(optionsArray || []);
+  const sinaliteGroups = normalizeOptionGroups(optionsArray || []);
 
-  // Gallery (Cloudflare CDN)
+  // 🔧 ADAPTER: map SinaliteOptionGroup -> { name, options[{id,name}] }
+  const buyboxGroups = (Array.isArray(sinaliteGroups) ? sinaliteGroups : []).map((g: any) => {
+    const name =
+      (g.name ?? g.group ?? g.displayName ?? g.title ?? "").toString() ||
+      "Option";
+    const rawOptions = g.options ?? g.values ?? g.items ?? [];
+    const options = (Array.isArray(rawOptions) ? rawOptions : [])
+      .map((o: any) => {
+        const idNum = Number(o.id ?? o.optionId ?? o.value);
+        const label =
+          (o.name ?? o.label ?? o.text ?? o.title ?? `Option ${idNum}`).toString();
+        return Number.isFinite(idNum) ? { id: idNum, name: label } : null;
+      })
+      .filter(Boolean) as { id: number; name: string }[];
+    return { name, options };
+  });
+
+  // Gallery (Cloudflare Images CDN)
   const gallery = productImagesForProductId(id);
   const hero = gallery[0] || "https://placehold.co/800x600?text=No+Image";
   const url = absoluteUrl(`/product/${id}`);
@@ -169,9 +176,12 @@ export default async function ProductPage({
           )}
         </div>
 
-        {/* Right: configurator + add-to-cart (wired via BuyBox) */}
-        {/* Right: configurator + add-to-cart (via BuyBox) */}
-  <ProductBuyBox productId={id} optionGroups={optionGroups} />
+        {/* Right: configurator + add-to-cart */}
+        <ProductBuyBox
+          productId={idNum}
+          productName={meta?.name || `Product ${id}`}
+          optionGroups={buyboxGroups}  
+        />
       </section>
     </main>
   );

@@ -1,68 +1,25 @@
 // src/app/api/cart/lines/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import crypto from "node:crypto";
+import { getCartServer, setCartServer, type CartLine } from "@/lib/cartSession";
 
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
-
-const SID_COOKIE = "adap_sid";
-const ONE_YEAR = 60 * 60 * 24 * 365;
-
-function readSid(req: NextRequest): string | null {
-  try {
-    const v = req.cookies.get(SID_COOKIE)?.value;
-    if (v && v.trim()) return v.trim();
-  } catch {}
-  return null;
-}
-
-function makeSid(): string {
-  try {
-    return crypto.randomUUID();
-  } catch {
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+export async function POST(req: NextRequest) {
+  const { productId, name, optionIds, quantity, cloudflareImageId } = await req.json();
+  const pid = Number(productId);
+  const qty = Number(quantity || 1);
+  if (!Number.isFinite(pid) || !Array.isArray(optionIds) || optionIds.length === 0) {
+    return Response.json({ ok: false, error: "productId, optionIds[] required" }, { status: 400 });
   }
-}
-
-function makeLineId(sid: string, productId: number | string): string {
-  return `sid:${sid}:p:${productId}`;
-}
-
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const productIdRaw = url.searchParams.get("productId");
-  const qtyRaw = url.searchParams.get("qty");
-  const qty = Math.max(1, Number(qtyRaw || 1));
-
-  const productId = Number(productIdRaw);
-  if (!Number.isFinite(productId)) {
-    return NextResponse.json({ ok: false, error: "productId is required (number)" }, { status: 400 });
-  }
-
-  let sid = readSid(req);
-  let shouldSetCookie = false;
-  if (!sid) {
-    sid = makeSid();
-    shouldSetCookie = true;
-  }
-
-  const lineId = makeLineId(sid, productId);
-
-  // Build response FIRST (don’t mutate body later)
-  const resp = NextResponse.json({
-    ok: true,
-    lines: [{ lineId, quantity: qty }],
-  });
-
-  // Then set cookie if we created a new session id
-  if (shouldSetCookie) {
-    resp.cookies.set(SID_COOKIE, sid, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: true,
-      maxAge: ONE_YEAR,
-    });
-  }
-
-  return resp;
+  const cart = getCartServer();
+  const line: CartLine = {
+    id: crypto.randomUUID(),
+    productId: pid,
+    name: String(name || `Product ${pid}`),
+    optionIds: optionIds.map((x: any) => Number(x)).filter((n: number) => Number.isFinite(n)),
+    quantity: Math.max(1, Math.min(9999, qty)),
+    cloudflareImageId: cloudflareImageId ?? null,
+  };
+  cart.lines.push(line);
+  setCartServer(cart);
+  return Response.json({ ok: true, cart, line });
 }

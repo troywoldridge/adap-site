@@ -1,19 +1,18 @@
-// src/hooks/useShippingEstimate.ts
 'use client';
 
 import { useCallback, useState } from 'react';
 
 export type EstimateLine = {
   productId: number;
-  optionIds: number[];   // Sinalite qty is an OPTION, not this numeric quantity field
-  quantity?: number;     // optional & ignored by the shipping API (kept for cart convenience)
+  optionIds: number[];
+  quantity?: number;
 };
 
 export type EstimateInput = {
   shipCountry: 'US' | 'CA';
   shipState: string;
   shipZip: string;
-  items?: EstimateLine[]; // optional: if not provided, we’ll fetch from /api/cart/current
+  items?: EstimateLine[];
 };
 
 export type ShippingRate = {
@@ -25,43 +24,73 @@ export type ShippingRate = {
   eta?: string | null;
 };
 
-type ServerRate = {
-  carrier: string;
-  method: string;
-  price: number | string;
-  days?: string | number;
-};
-
-type ServerResponse =
-  | { ok: true; rates: ServerRate[] }
-  | { ok: false; error: string };
-
-// --- helpers ---
-
-async function fetchCurrentCartLines(): Promise<EstimateLine[]> {
-  const res = await fetch('/api/cart/current', { method: 'GET', cache: 'no-store' });
-  const data = await res.json();
-  if (!res.ok || !data?.ok) {
-    throw new Error(data?.error || 'Failed to load cart');
-  }
-  const lines = Array.isArray(data?.lines) ? data.lines : [];
-  return lines.map((l: any) => ({
-    productId: Number(l.productId),
-    optionIds: Array.isArray(l.optionIds) ? l.optionIds.map((n: any) => Number(n)) : [],
-    quantity: Number(l.quantity) || 1,
-  }));
-}
+type ServerRate = { carrier: string; method: string; price: number | string; days?: string | number; };
+type ServerResponse = { ok: true; rates: ServerRate[] } | { ok: false; error: string };
 
 function currencyForCountry(country: 'US' | 'CA'): 'USD' | 'CAD' {
   return country === 'US' ? 'USD' : 'CAD';
 }
-
 function toNumber(n: unknown): number {
   const x = typeof n === 'string' ? parseFloat(n) : (n as number);
-  return Number.isFinite(x) ? Number(x) : 0;
+  return Number.isFinite(x) ? x : 0;
 }
 
-// --- hook ---
+async function fetchCurrentCartLines(): Promise<EstimateLine[]> {
+  const res = await fetch('/api/cart', { method: 'GET', cache: 'no-store' });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data) {
+    throw new Error('Failed to load cart.');
+  }
+  const items = Array.isArray(data.items) ? data.items : [];
+  return items.map((it: any) => ({
+    productId: Number(it.productId),
+    optionIds: Array.isArray(it.optionIds) ? it.optionIds.map((n: any) => Number(n)) : [],
+    quantity: Number(it.quantity) || 1,
+  }));
+}
+
+async function parseJsonSafe(res: Response) {
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) {
+    return await res.json();
+  }
+  const txt = await res.text().catch(() => '');
+  return { ok: false, error: txt || `HTTP ${res.status}` };
+}
+
+export async function estimate(input: EstimateInput): Promise<ShippingRate[]> {
+  const items = input.items && input.items.length > 0 ? input.items : await fetchCurrentCartLines();
+  if (!items.length) {
+    throw new Error('Your cart is empty.');
+  }
+
+  const lines = items.map(i => ({ productId: i.productId, optionIds: i.optionIds }));
+  const res = await fetch('/api/cart/estimate-shipping', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      shipCountry: input.shipCountry,
+      shipState: input.shipState.trim(),
+      shipZip: input.shipZip.trim(),
+      lines,
+    }),
+  });
+
+  const data = await parseJsonSafe(res) as ServerResponse;
+  if (!res.ok || !('ok' in data) || !data.ok) {
+    throw new Error(('error' in data && data.error) || `Failed to get rates (HTTP ${res.status})`);
+  }
+
+  const curr = currencyForCountry(input.shipCountry);
+  return (data.rates || []).map(r => ({
+    serviceCode: `${r.carrier}:${r.method}`,
+    serviceName: r.method,
+    carrier: r.carrier,
+    amount: toNumber(r.price),
+    currency: curr,
+    eta: typeof r.days === 'number' || typeof r.days === 'string' ? String(r.days) : null,
+  }));
+}
 
 export function useCartShippingEstimate() {
   const [rates, setRates] = useState<ShippingRate[]>([]);
@@ -72,64 +101,20 @@ export function useCartShippingEstimate() {
     setLoading(true);
     setError(null);
     setRates([]);
-
     try {
-      const items = input.items && input.items.length > 0
-        ? input.items
-        : await fetchCurrentCartLines();
-
-      if (!items.length) {
-        throw new Error('Your cart is empty.');
-      }
-
-      // Our server route expects `lines: { productId, optionIds }[]`
-      const lines = items.map(i => ({
-        productId: i.productId,
-        optionIds: i.optionIds,
-      }));
-
-      const res = await fetch('/api/cart/estimate-shipping', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          shipCountry: input.shipCountry,
-          shipState: input.shipState.trim(),
-          shipZip: input.shipZip.trim(),
-          lines,
-        }),
-      });
-
-      const data: ServerResponse = await res.json();
-      if (!res.ok || !('ok' in data) || !data.ok) {
-        throw new Error(('error' in data && data.error) || 'Failed to get rates');
-      }
-
-      // Map server rates -> UI ShippingRate shape
-      const curr = currencyForCountry(input.shipCountry);
-      const mapped: ShippingRate[] = (data.rates || []).map((r) => ({
-        serviceCode: `${r.carrier}:${r.method}`,
-        serviceName: r.method,
-        carrier: r.carrier,
-        amount: toNumber(r.price),
-        currency: curr,
-        eta: typeof r.days === 'number' || typeof r.days === 'string'
-          ? String(r.days)
-          : null,
-      }));
-
-      setRates(mapped);
-      setLoading(false);
-      return mapped;
+      const r = await estimate(input);
+      setRates(r);
+      return r;
     } catch (e: any) {
       setError(e?.message || 'Failed to get rates');
-      setLoading(false);
       return [];
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   return { getRates, rates, loading, error };
 }
 
-// Compatibility alias for older imports
 export const useShippingEstimate = useCartShippingEstimate;
 export default useCartShippingEstimate;

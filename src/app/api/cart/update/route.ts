@@ -6,54 +6,84 @@ import { eq } from "drizzle-orm";
 import { priceByOptionIds, resolveStoreCode } from "@/lib/sinalite.server";
 
 type Body = {
-  lineId: string; // the cartLines.id (uuid)
+  lineId: string;
   productId: number;
   optionIds: (string | number)[];
   quantity?: number;
   shipCountry?: "US" | "CA";
 };
 
+function asStringArray(ids: (string | number)[]) {
+  return ids.map(String);
+}
+function positiveInt(n: unknown): number | null {
+  const x = Number(n);
+  return Number.isInteger(x) && x > 0 ? x : null;
+}
+
 export async function POST(req: Request) {
   try {
-    const { lineId, productId, optionIds, quantity = 1, shipCountry = "US" } = (await req.json()) as Body;
-
-    if (!lineId || !productId || !Array.isArray(optionIds) || optionIds.length === 0) {
-      return NextResponse.json({ error: "Missing lineId, productId, or optionIds" }, { status: 400 });
+    // ---------- 1) Parse & validate ----------
+    let json: Body;
+    try {
+      json = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const storeCode = resolveStoreCode(shipCountry);
+    const { lineId } = json;
+    const productId = positiveInt(json.productId);
+    const quantity = positiveInt(json.quantity ?? 1) ?? 1;
+    const shipCountry = (json.shipCountry === "CA" ? "CA" : "US") as "US" | "CA";
+    const optionIds = Array.isArray(json.optionIds) ? asStringArray(json.optionIds) : [];
 
-    // 1) Re-price current optionIds
+    if (!lineId) {
+      return NextResponse.json({ error: "lineId is required" }, { status: 400 });
+    }
+    if (!productId) {
+      return NextResponse.json({ error: "productId must be a positive integer" }, { status: 400 });
+    }
+    if (optionIds.length === 0) {
+      return NextResponse.json({ error: "optionIds must be a non-empty array" }, { status: 400 });
+    }
+
+    // ---------- 2) Re-price current optionIds ----------
+    const storeCode = resolveStoreCode(shipCountry);
     const priced = await priceByOptionIds({
       productId,
       storeCode,
       optionIds,
     });
 
-    const unitPrice = Number(priced.price) || 0;
+    const unitPriceStr = (Number(priced.price) || 0).toFixed(2); // numeric -> string
     const optionsByGroup = priced.productOptions || {};
     const sinalitePackageInfo = priced.packageInfo || {};
 
-    // 2) Persist the recalculated values
-// src/app/api/cart/update/route.ts
-// ...
-// BEFORE .set({ ... }) compute unitPrice string:
-const unitPriceStr = (Number(priced.price) || 0).toFixed(2);
+    // ---------- 3) Persist update ----------
+    const res = await db
+      .update(cartLines)
+      .set({
+        productId,
+        optionIds,                 // jsonb string[]
+        quantity,
+        unitPrice: unitPriceStr,   // numeric as string
+        optionsByGroup,
+        sinalitePackageInfo,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(cartLines.id, lineId))
+      .returning({ id: cartLines.id });
 
-await db
-  .update(cartLines)
-  .set({
-    optionIds: optionIds.map(String),
-    quantity,
-    unitPrice: unitPriceStr,          // <-- string, not number ✅
-    optionsByGroup,
-    sinalitePackageInfo,
-    updatedAt: new Date().toISOString(),
-  })
-  .where(eq(cartLines.id, lineId));
+    if (!res[0]) {
+      return NextResponse.json({ error: "Line not found" }, { status: 404 });
+    }
 
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      lineId: res[0].id,
+      quantity,
+      unitPrice: unitPriceStr,
+    });
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || "Update cart failed" },

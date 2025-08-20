@@ -1,28 +1,42 @@
-// lib/rateLimit.ts
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-import { NextRequest, NextResponse } from "next/server";
+// src/lib/basicRateLimit.ts
+type Bucket = { count: number; resetAt: number };
+const buckets = new Map<string, Bucket>();
 
-const redis = Redis.fromEnv();
+function keyFor(req: Request, scope: string) {
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
+  return `${scope}:${ip}`;
+}
 
-export const rateLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.fixedWindow(60, "1 m"), // 60 requests per minute per IP
-  analytics: true,
-});
-
-export async function enforceRateLimit(req: NextRequest) {
-  const ip = req.ip ?? req.headers.get("x-forwarded-for") ?? "unknown";
-  const { success, remaining, reset } = await rateLimiter.limit(String(ip));
-
-  if (!success) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      {
-        status: 429,
-        headers: { "Retry-After": Math.max(1, Math.ceil((reset - Date.now()) / 1000)).toString() },
-      }
-    );
+/** Allow `limit` requests per `windowMs` per IP+scope */
+export async function rateLimit(req: Request, scope: string, limit = 20, windowMs = 60_000) {
+  const now = Date.now();
+  const key = keyFor(req, scope);
+  const b = buckets.get(key) ?? { count: 0, resetAt: now + windowMs };
+  if (now > b.resetAt) {
+    b.count = 0;
+    b.resetAt = now + windowMs;
   }
-  return null;
+  b.count++;
+  buckets.set(key, b);
+  const remaining = Math.max(0, limit - b.count);
+  const resetSec = Math.ceil((b.resetAt - now) / 1000);
+
+  if (b.count > limit) {
+    const err = new Error(`Rate limit exceeded. Try again in ${resetSec}s.`);
+    (err as any).status = 429;
+    (err as any).headers = {
+      "Retry-After": String(resetSec),
+      "X-RateLimit-Limit": String(limit),
+      "X-RateLimit-Remaining": String(remaining),
+      "X-RateLimit-Reset": String(resetSec),
+    };
+    throw err;
+  }
+  return {
+    headers: {
+      "X-RateLimit-Limit": String(limit),
+      "X-RateLimit-Remaining": String(remaining),
+      "X-RateLimit-Reset": String(resetSec),
+    },
+  };
 }

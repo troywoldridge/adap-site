@@ -1,78 +1,47 @@
 // src/lib/r2-url.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
+const DEV = process.env.NODE_ENV !== "production";
 
-// When running in the browser, prefer NEXT_PUBLIC_ var.
-// On the server, prefer R2_PUBLIC_BASE_URL.
-const R2_BASE =
-  (typeof window === "undefined"
-    ? process.env.R2_PUBLIC_BASE_URL
-    : (process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL as string | undefined)) || "";
+// Public base (can be http://localhost:3000/artwork in dev)
+const R2_PUBLIC_BASEURL = (process.env.R2_PUBLIC_BASEURL || "").replace(/\/+$/, "");
 
-const CLEAN_BASE = R2_BASE.replace(/\/+$/, ""); // strip trailing slash
+// Optional direct R2 host like xyz.r2.cloudflarestorage.com (no path)
+const R2_DIRECT_HOST = (process.env.R2_DIRECT_HOST || "").trim();
 
-/** Extract the "key" part after the base, e.g.
- * BASE: https://cdn.adap.com/artwork  URL: https://cdn.adap.com/artwork/uploads/foo.png
- * => key = uploads/foo.png
- */
-export function extractR2Key(input: string): string | null {
-  if (!input) {
-    return null;
-  }
+const DIRECT_HTTPS = R2_DIRECT_HOST ? `https://${R2_DIRECT_HOST}` : "";
 
-  // If caller already passed just a key (no scheme/host), use it directly
-  if (!/^https?:\/\//i.test(input)) {
-    return input.replace(/^\/+/, ""); // remove leading slash if present
-  }
-
-  // If we know the base, strip it
-  if (CLEAN_BASE && input.startsWith(CLEAN_BASE)) {
-    const key = input.slice(CLEAN_BASE.length).replace(/^\/+/, "");
-    return key || null;
-  }
-
-  // Otherwise, try to parse and guess the key by chopping off host and the bucket prefix.
-  // e.g. https://<account>.r2.cloudflarestorage.com/<bucket>/uploads/foo.png
-  try {
-    const u = new URL(input);
-    const path = u.pathname.replace(/^\/+/, ""); // "<bucket>/uploads/foo.png" or "artwork/uploads/foo.png"
-    // If your BASE includes the bucket (e.g. .../artwork), we can’t infer it reliably.
-    // Try to strip first segment as bucket.
-    const parts = path.split("/");
-    if (parts.length >= 2) {
-      // remove first segment (bucket)
-      parts.shift();
-      return parts.join("/");
-    }
-    return path || null;
-  } catch {
-    return null;
-  }
-}
-
-/** Build the proxy URL (/api/r2/<key>) from either a public R2 URL or a raw key */
 export function toProxyArtworkUrl(input: string): string {
-  if (!input) {
+  const raw = String(input || "").trim();
+  if (!raw) {
     return "";
   }
-  // Already pointing to our proxy?
-  if (input.startsWith("/api/r2/")) {
-    return input;
-  }
 
-  const key = extractR2Key(input);
-  if (!key) {
-    return input;
-  } // fallback: return as-is
-  // Ensure no accidental double slashes
-  return `/api/r2/${key.replace(/^\/+/, "")}`;
-}
+  try {
+    const u = new URL(raw);
 
-/** Map an array of {side,url} to proxy URLs (helper for cart artwork arrays) */
-export function mapArtworkArrayToProxy<T extends { side: number; url: string }>(
-  arr: T[] | null | undefined
-): T[] | null {
-  if (!Array.isArray(arr)) {
-    return null;
+    // If it points at cdn.adap.com (prod CDN) but we're in dev,
+    // rewrite to R2_PUBLIC_BASEURL or fall back to DIRECT_HTTPS.
+    if (DEV && u.hostname === "cdn.adap.com") {
+      if (R2_PUBLIC_BASEURL) {
+        return `${R2_PUBLIC_BASEURL}${u.pathname}`;
+      }
+      if (DIRECT_HTTPS) {
+        return `${DIRECT_HTTPS}${u.pathname}`;
+      }
+    }
+
+    // Otherwise just return it
+    return u.toString();
+  } catch {
+    // Not an absolute URL. If it's already a path like /artwork/..., prefix dev base.
+    if (raw.startsWith("/")) {
+      if (R2_PUBLIC_BASEURL) {
+        return `${R2_PUBLIC_BASEURL}${raw}`;
+      }
+      if (DIRECT_HTTPS) {
+        return `${DIRECT_HTTPS}${raw}`;
+      }
+      return raw; // last resort
+    }
+    return raw;
   }
-  return arr.map((row) => ({ ...row, url: toProxyArtworkUrl(row.url || "") }));
 }

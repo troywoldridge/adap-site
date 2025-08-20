@@ -3,19 +3,34 @@
 const isDev = process.env.NODE_ENV !== "production";
 const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || process.env.R2_PUBLIC_BASE || "";
 const R2_DIRECT_HOST = process.env.R2_DIRECT_HOST || "";
-const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false"; // default true
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
+const R2_BUCKET = process.env.R2_BUCKET || "";
+const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false";
 
+// Compute public origin pieces
 let R2_PUBLIC_ORIGIN = "";
 let R2_PUBLIC_HOST = "";
+let R2_PUBLIC_PROTOCOL = "";
+let R2_PUBLIC_PORT = "";
+
 try {
   if (R2_PUBLIC_BASEURL) {
     const u = new URL(R2_PUBLIC_BASEURL);
     R2_PUBLIC_ORIGIN = u.origin;
     R2_PUBLIC_HOST = u.hostname;
+    R2_PUBLIC_PROTOCOL = u.protocol.replace(":", "");
+    R2_PUBLIC_PORT = u.port || "";
   }
 } catch {}
 
-/* --- CSP: allow SinaLite (sandbox + live per Sinalite API docs) and Cloudflare CDN --- */
+// Direct bucket host (presigned PUT target)
+const R2_BUCKET_HOST =
+  R2_BUCKET && R2_ACCOUNT_ID ? `${R2_BUCKET}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : "";
+
+const R2_DIRECT_HTTPS = R2_DIRECT_HOST ? `https://${R2_DIRECT_HOST}` : "";
+const R2_DIRECT_HTTP = R2_DIRECT_HOST ? `http://${R2_DIRECT_HOST}` : "";
+
+/* --- CSP --- */
 const scriptSrcList = [
   `'self'`,
   `'unsafe-inline'`,
@@ -43,15 +58,37 @@ const connectSrcList = [
   `https://clerk-assets.com`,
   `https://assets.clerk.dev`,
   `https://api.clerk.com`,
-  `https://*.clerk.com`,
-  `https://*.clerk.dev`,
-  `https://*.clerk.services`,
+  `https://clerk.dev`,
+  `https://clerk.services`,
+  `https://clerk.accounts.dev`,
   `https://*.clerk.accounts.dev`,
   `https://cdn.jsdelivr.net`,
-  `https://*.r2.cloudflarestorage.com`,
+  // R2 endpoints
+  `https://r2.cloudflarestorage.com`,
+  `https://*.r2.cloudflarestorage.com`, // ← wildcard for bucket subdomains (presigned PUT)
+  R2_BUCKET_HOST ? `https://${R2_BUCKET_HOST}` : "",
+  R2_PUBLIC_ORIGIN, // if you ever fetch via your public CDN origin
+  R2_DIRECT_HTTPS,
+  R2_DIRECT_HTTP,
   `https://clerk-telemetry.com`,
   isDev ? `ws:` : ``,
   isDev ? `wss:` : ``,
+  isDev ? `http://localhost:3000` : ``,
+].filter(Boolean);
+
+const imgSrcList = [
+  `'self'`,
+  `data:`,
+  `blob:`,
+  `https://imagedelivery.net`,           // Cloudflare Images CDN
+  `https://api.sinaliteuppy.com`,
+  `https://liveapi.sinalite.com`,
+  `https://r2.cloudflarestorage.com`,
+  `https://*.r2.cloudflarestorage.com`,  // ← bucket subdomains for direct preview if used
+  R2_PUBLIC_ORIGIN,
+  R2_DIRECT_HTTPS,
+  R2_DIRECT_HTTP,
+  isDev ? `http://localhost:3000` : ``,
 ].filter(Boolean);
 
 const directives = {
@@ -65,26 +102,17 @@ const directives = {
     `https://unpkg.com`,
     `https://fonts.googleapis.com`,
   ].join(" "),
-  "img-src": [
-    `'self'`,
-    `data:`,
-    `blob:`,
-    `https://imagedelivery.net`,      // Cloudflare Images (CDN variants)
-    `https://api.sinaliteuppy.com`,   // sandbox docs
-    `https://liveapi.sinalite.com`,   // live docs
-    `https://placehold.co`,
-    `https://r2.cloudflarestorage.com`,
-    R2_PUBLIC_ORIGIN,                 // your custom CDN host if set
-  ].filter(Boolean).join(" "),
+  "img-src": imgSrcList.join(" "),
   "font-src": `'self' data: https://fonts.gstatic.com`,
   "media-src": `'self' https: data: blob:`,
   "worker-src": `'self' blob:`,
   "connect-src": connectSrcList.join(" "),
-  "frame-src": `https://js.stripe.com https://hooks.stripe.com https://*.clerk.com https://*.clerk.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com`,
+  "frame-src":
+    `https://js.stripe.com https://hooks.stripe.com https://clerk.com https://clerk.dev https://clerk.accounts.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com`,
   "object-src": `'none'`,
   "base-uri": `'self'`,
   "form-action": `'self' https://api.stripe.com`,
-  "frame-ancestors": `'none'`, // pairs with X-Frame-Options: DENY
+  "frame-ancestors": `'none'`,
 };
 
 const ContentSecurityPolicy = Object.entries(directives)
@@ -100,19 +128,37 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
-/* --- Next/Image remote patterns (Cloudflare Images + R2 + placeholders + SinaLite) --- */
+/* --- next/image remotePatterns --- */
 const imageRemotePatterns = [
   { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
-  { protocol: "https", hostname: "placehold.co", pathname: "/**" },
+  { protocol: "https", hostname: "*.r2.dev" }, // keep if you need it
+  { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
 ];
 
+// Add public CDN origin host (from R2_PUBLIC_BASEURL)
 if (R2_PUBLIC_HOST) {
-  imageRemotePatterns.push({ protocol: "https", hostname: R2_PUBLIC_HOST, pathname: "/**" });
+  imageRemotePatterns.push(
+    R2_PUBLIC_PORT
+      ? { protocol: R2_PUBLIC_PROTOCOL || "https", hostname: R2_PUBLIC_HOST, pathname: "/**", port: R2_PUBLIC_PORT }
+      : { protocol: R2_PUBLIC_PROTOCOL || "https", hostname: R2_PUBLIC_HOST, pathname: "/**" }
+  );
 }
+
+// Add direct bucket host (env override)
 if (R2_DIRECT_HOST) {
   imageRemotePatterns.push({ protocol: "https", hostname: R2_DIRECT_HOST, pathname: "/**" });
+  imageRemotePatterns.push({ protocol: "http", hostname: R2_DIRECT_HOST, pathname: "/**" });
+}
+
+// Add computed bucket host if available (bucket.account.r2.cloudflarestorage.com)
+if (R2_BUCKET_HOST) {
+  imageRemotePatterns.push({ protocol: "https", hostname: R2_BUCKET_HOST, pathname: "/**" });
+}
+
+if (isDev) {
+  imageRemotePatterns.push({ protocol: "http", hostname: "localhost", port: "3000", pathname: "/**" });
 }
 
 const nextConfig = {
@@ -120,19 +166,19 @@ const nextConfig = {
   images: {
     remotePatterns: imageRemotePatterns,
     unoptimized: !USE_NEXT_IMAGE_OPTIMIZER,
+    formats: ["image/avif", "image/webp"],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async redirects() {
-    // Hard redirect legacy review pages → canonical
     return [
       { source: "/review-order", destination: "/cart/review", permanent: true },
       { source: "/revieworder", destination: "/cart/review", permanent: true },
       { source: "/order/review", destination: "/cart/review", permanent: true },
     ];
   },
-    experimental: {
+  experimental: {
     serverComponentsExternalPackages: ["pg", "pg-connection-string", "pg-pool"],
   },
 };

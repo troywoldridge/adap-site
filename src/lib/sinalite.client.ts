@@ -45,7 +45,9 @@ export function env() {
 function resolveStoreCode(input?: string | null): string {
   const { STORE } = env();
   const sc = (input ?? STORE ?? "").trim();
-  if (!sc) throw new Error("Missing storeCode. Pass a value or set NEXT_PUBLIC_STORE_CODE.");
+  if (!sc) {
+    throw new Error("Missing storeCode. Pass a value or set NEXT_PUBLIC_STORE_CODE.");
+  }
   return sc;
 }
 
@@ -153,7 +155,9 @@ export async function apiFetchJson<T = unknown>(
       );
     }
 
-    if (!raw) return undefined as T;
+    if (!raw) {
+      return undefined as T;
+    }
 
     try {
       return JSON.parse(raw) as T;
@@ -344,7 +348,9 @@ export function normalizeOptionGroups(optionsArray: any[]): SinaliteOptionGroup[
   groups.sort((a, b) => {
     const ai = indexIn(a.group, orderHint);
     const bi = indexIn(b.group, orderHint);
-    if (ai !== bi) return ai - bi;
+    if (ai !== bi) {
+      return ai - bi;
+    }
     return a.label.localeCompare(b.label);
   });
 
@@ -381,14 +387,18 @@ async function resolveQtyOptionId(
   qty: number | undefined,
   storeCode?: string
 ): Promise<number | null> {
-  if (!qty || !Number.isFinite(qty)) return null;
+  if (!qty || !Number.isFinite(qty)) {
+    return null;
+  }
 
   const { optionsArray } = await fetchSinaliteProductArrays(productId, storeCode);
   const groups = normalizeOptionGroups(optionsArray || []);
   const g = groups.find(
     (x) => /^(qty|quantity)$/i.test(x.group) || /qty|quantity/i.test(x.label)
   );
-  if (!g) return null;
+  if (!g) {
+    return null;
+  }
 
   const parsed = g.values
     .map((v) => ({
@@ -398,13 +408,19 @@ async function resolveQtyOptionId(
     .filter((x) => Number.isFinite(x.n))
     .sort((a, b) => a.n - b.n);
 
-  if (!parsed.length) return null;
+  if (!parsed.length) {
+    return null;
+  }
 
   const exact = parsed.find((x) => x.n === qty);
-  if (exact) return exact.id;
+  if (exact) {
+    return exact.id;
+  }
 
   const higher = parsed.find((x) => x.n >= qty);
-  if (higher) return higher.id;
+  if (higher) {
+    return higher.id;
+  }
 
   return parsed[0].id; // fallback: smallest available qty
 }
@@ -437,7 +453,9 @@ export async function getConfiguredPrice(
     (priceResp as any)?.response?.price ??
     null;
 
-  if (rawPrice == null) return null;
+  if (rawPrice == null) {
+    return null;
+  }
 
   const currency: "USD" | "CAD" = sc.toLowerCase().includes("ca") ? "CAD" : "USD";
   return { unitPrice: Number(rawPrice), currency };
@@ -460,7 +478,9 @@ async function buildIdIndexes(productId: number, storeCode?: string) {
       const r = row as RawOptionRegular;
       idIndex.set(Number(r.id), { group: String(r.group), name: String(r.name) });
       const k = norm(String(r.group));
-      if (!groupIndex.has(k)) groupIndex.set(k, []);
+      if (!groupIndex.has(k)) {
+        groupIndex.set(k, []);
+      }
       groupIndex.get(k)!.push({ id: Number(r.id), name: String(r.name) });
       continue;
     }
@@ -468,7 +488,9 @@ async function buildIdIndexes(productId: number, storeCode?: string) {
       const rr = row as RawOptionRollLabel;
       idIndex.set(Number(rr.opt_val_id), { group: String(rr.name), name: String(rr.option_val) });
       const k = norm(String(rr.name));
-      if (!groupIndex.has(k)) groupIndex.set(k, []);
+      if (!groupIndex.has(k)) {
+        groupIndex.set(k, []);
+      }
       groupIndex.get(k)!.push({ id: Number(rr.opt_val_id), name: String(rr.option_val) });
       continue;
     }
@@ -505,8 +527,11 @@ async function resolveOptionIds(params: {
       list.find((x: { id: number; name: string }) => norm(x.name) === norm(sval)) ||
       list.find((x: { id: number; name: string }) => norm(x.name).includes(norm(sval)));
 
-    if (found) out.push(found.id);
-    else if (Number.isFinite(asNum) && idIndex.has(asNum)) out.push(asNum);
+    if (found) {
+      out.push(found.id);
+    } else if (Number.isFinite(asNum) && idIndex.has(asNum)) {
+             out.push(asNum);
+           }
   }
 
   return Array.from(new Set(out));
@@ -593,8 +618,12 @@ export async function getDefaultPriceSnapshot(
     }
 
     for (const g of groups) {
-      if (qtyGroup && g.group === qtyGroup.group) continue;
-      if (g.values.length) optionIds.push(g.values[0].id);
+      if (qtyGroup && g.group === qtyGroup.group) {
+        continue;
+      }
+      if (g.values.length) {
+        optionIds.push(g.values[0].id);
+      }
     }
 
     optionIds = Array.from(new Set(optionIds));
@@ -606,7 +635,9 @@ export async function getDefaultPriceSnapshot(
       (priceResp as any)?.response?.price ??
       null;
 
-    if (rawPrice == null) return null;
+    if (rawPrice == null) {
+      return null;
+    }
 
     const currency: "USD" | "CAD" = sc.toLowerCase().includes("ca") ? "CAD" : "USD";
     return { price: Number(rawPrice), currency };
