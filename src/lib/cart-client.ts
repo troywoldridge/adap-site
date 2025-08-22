@@ -1,75 +1,59 @@
 // src/lib/cart-client.ts
-"use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useCallback, useEffect, useState } from "react";
-
-export type CartItem = {
-  id: string;
+export type AddLineInput = {
   productId: number;
-  name?: string | null;
+  optionIds: number[];
   quantity: number;
-  optionIds: number[] | null;
-  image?: string | null;
-  // pricing fields (optional if you don’t compute them yet)
-  currency?: "USD" | "CAD";
-  unitPrice?: number | null;
-  lineTotal?: number | null;
-  numSides?: number | null;
-  artwork?: { side: number; url: string }[]; // if you populate later
+  name?: string;
+  cloudflareImageId?: string | null;
 };
 
-export type CartState = {
-  cartId: string;
-  currency: "USD" | "CAD";
-  items: CartItem[];
-  subtotal: number; // computed or 0
-};
+export async function addToCart(input: AddLineInput) {
+  const res = await fetch("/api/cart/lines", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.ok === false) {
+    throw new Error(json?.error || `addToCart failed: ${res.status}`);
+  }
+  return json;
+}
 
-const DEFAULT_CART: CartState = {
-  cartId: "",
-  currency: "USD",
-  items: [],
-  subtotal: 0,
-};
+export async function updateLineQuantity(lineId: string, quantity: number) {
+  const res = await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ quantity }),
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.ok === false) {
+    throw new Error(json?.error || `updateLineQuantity failed: ${res.status}`);
+  }
+  return json;
+}
 
-export function useCart() {
-  const [cart, setCart] = useState<CartState>(DEFAULT_CART);
-  const [loading, setLoading] = useState(true);
+export async function removeLine(lineId: string) {
+  const res = await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.ok === false) {
+    throw new Error(json?.error || `removeLine failed: ${res.status}`);
+  }
+  return json;
+}
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/cart", { cache: "no-store" });
-      const text = await res.text();
-      let data: CartState = DEFAULT_CART;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        // keep default; avoid crashing on HTML error pages
-      }
-      setCart(data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const addToCart = useCallback(async (payload: {
-    productId: number;
-    qty: number;
-    optionIdsByGroup?: Record<string, string | number>;
-    price?: number;
-    currency?: string;
-  }) => {
-    const res = await fetch("/api/cart/add", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    // ensure server sent JSON (avoid “Unexpected end of JSON input”)
-    await res.text();
-  }, []);
-
-  useEffect(() => { void refresh(); }, [refresh]);
-
-  return { cart, loading, refresh, addToCart };
+export async function getCart() {
+  const res = await fetch("/api/cart", { cache: "no-store" });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.ok === false) {
+    throw new Error(json?.error || `getCart failed: ${res.status}`);
+  }
+  return json;
 }

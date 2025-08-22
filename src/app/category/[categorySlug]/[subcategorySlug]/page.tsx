@@ -9,8 +9,13 @@ import productAssetsRaw from "@/data/productAssets.json";
 
 import { humanizeName } from "@/lib/data";
 import { productImagesForProductId } from "@/lib/product-images";
-import { getSinaliteProductMeta } from "@/lib/sinalite.client"; // per Sinalite API docs
+import { getSinaliteProductMeta } from "@/lib/sinalite.client";
 
+export const dynamic = "force-dynamic";
+
+/* ──────────────────────────────────────────────────────────
+   Types
+   ────────────────────────────────────────────────────────── */
 type CategoryAsset = {
   [slug: string]: {
     imageId?: string | null;
@@ -22,7 +27,7 @@ type CategoryAsset = {
 
 type SubAsset = {
   id: number;
-  category_id: string;
+  category_id: string;   // matches category slug
   slug: string;
   name: string;
   description?: string | null;
@@ -39,10 +44,14 @@ type ProductAsset = {
   matched_sku?: string | null;
 };
 
+/* ──────────────────────────────────────────────────────────
+   Local data coercion + helpers
+   ────────────────────────────────────────────────────────── */
 const productAssets: ProductAsset[] = Array.isArray(productAssetsRaw)
   ? (productAssetsRaw as ProductAsset[])
   : [];
 
+/** Prefer API meta name; else SKU/name fallbacks. */
 function titleFromMetaOrLocal(meta: any | null, p: ProductAsset): string {
   const apiName = (meta?.name ?? "").toString().trim();
   if (apiName) return apiName;
@@ -55,7 +64,7 @@ function titleFromMetaOrLocal(meta: any | null, p: ProductAsset): string {
   return `Product ${p.product_id}`;
 }
 
-// ---- helper: dedupe by product_id while preserving first occurrence order
+/** Dedupe by product_id while preserving first occurrence order. */
 function dedupeByProductId(rows: ProductAsset[]) {
   const seen = new Set<string>();
   const out: ProductAsset[] = [];
@@ -68,12 +77,15 @@ function dedupeByProductId(rows: ProductAsset[]) {
   return out;
 }
 
+/* ──────────────────────────────────────────────────────────
+   Page
+   ────────────────────────────────────────────────────────── */
 export default async function SubcategoryPage({
   params,
 }: {
-  params: { categorySlug: string; subcategorySlug: string };
+  params: Promise<{ categorySlug: string; subcategorySlug: string }>;
 }) {
-  const { categorySlug, subcategorySlug } = params;
+  const { categorySlug, subcategorySlug } = await params;
 
   // Validate category
   const catMap = categoryAssets as unknown as CategoryAsset;
@@ -90,25 +102,28 @@ export default async function SubcategoryPage({
   const sub = subs.find((s) => s.slug === subcategorySlug);
   if (!sub) return notFound();
 
-  // Find all products mapped to this subcategory, then DEDUPE by product_id
+  // Products mapped to this subcategory → DEDUPE by product_id
   const subId = Number(sub.id);
   const mappedProductsRaw = productAssets.filter(
     (p) => Number(p.subcategory_id) === subId && p.product_id != null
   );
   const mappedProducts = dedupeByProductId(mappedProductsRaw);
 
-  // Fetch live meta for each product (SinaLite API uses Bearer token per docs)
+  // Fetch live meta (SinaLite docs) + Cloudflare image per product
   const productsWithMeta = await Promise.all(
     mappedProducts.map(async (p) => {
       const id = String(p.product_id);
-      const cfImage = productImagesForProductId(id)[0] || "https://placehold.co/640x480?text=Product";
+      const cfImage =
+        productImagesForProductId(id)[0] ||
+        "https://imagedelivery.net/placeholder/placeholder/public";
+
       try {
         const meta = await getSinaliteProductMeta(id);
         return {
           id,
           title: titleFromMetaOrLocal(meta, p),
           category: meta?.category ?? "",
-          image: cfImage, // Cloudflare CDN URL if available
+          image: cfImage, // Cloudflare CDN URL
         };
       } catch {
         return {
@@ -121,7 +136,7 @@ export default async function SubcategoryPage({
     })
   );
 
-  // Optional: stable sort by title for consistent UX
+  // Stable sort for consistent UX
   productsWithMeta.sort((a, b) => a.title.localeCompare(b.title));
 
   const titleCat = categorySlug
@@ -160,7 +175,6 @@ export default async function SubcategoryPage({
           }}
         >
           {productsWithMeta.map((p) => (
-            // ✅ unique, stable key: subcategory + product id
             <li
               key={`${subcategorySlug}-${p.id}`}
               style={{

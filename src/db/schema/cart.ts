@@ -1,53 +1,37 @@
-// db/schema/cart.ts
-import { pgTable, uuid, text, integer, timestamp, jsonb, numeric, index } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { pgTable, text, integer, timestamp, jsonb, uuid, pgEnum } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+
+export const cartStatusEnum = pgEnum("cart_status", ["open", "submitted", "abandoned"]);
 
 export const carts = pgTable("carts", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  sid: text("sid").notNull(),
+  id: uuid("id").defaultRandom().primaryKey(),
+  sid: text("sid").notNull(),                         // session cookie value
+  status: cartStatusEnum("status").notNull().default("open"),
   userId: text("user_id"),
-  status: text("status").notNull().default("open"),
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
-}, (t) => [
-  index("idx_carts_sid").on(t.sid),
-  index("idx_carts_user").on(t.userId),
-  index("idx_carts_status").on(t.status),
-]);
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: false }).defaultNow().notNull(),
+});
 
 export const cartLines = pgTable("cart_lines", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id").defaultRandom().primaryKey(),
   cartId: uuid("cart_id").notNull().references(() => carts.id, { onDelete: "cascade" }),
   productId: integer("product_id").notNull(),
-
-  // 🔁 tighten to string[] (Sinalite sends/receives optionIds as strings)
-  optionIds: jsonb("option_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-
   quantity: integer("quantity").notNull().default(1),
+  optionIds: jsonb("option_ids").$type<number[]>().notNull().default([] as unknown as number[]),
+  // Optional per-line JSON map like { "1": "https://..." }
+  artwork: jsonb("artwork").$type<Record<string, string> | null>().default(null),
+  createdAt: timestamp("created_at", { withTimezone: false }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: false }).defaultNow().notNull(),
+});
 
-  // 💰 new: persisted price from Sinalite /price/{productId}/{storeCode}
-  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull().default("0"),
+export const cartsRelations = relations(carts, ({ many }) => ({
+  lines: many(cartLines),
+}));
 
-  // 🧭 new: canonical group -> optionId map from Sinalite's price response
-  optionsByGroup: jsonb("options_by_group")
-    .$type<Record<string, string>>()
-    .notNull()
-    .default(sql`'{}'::jsonb`),
-
-  // 📦 new: package details (weight/box size/etc.) from Sinalite pricing
-  sinalitePackageInfo: jsonb("sinalite_package_info")
-    .$type<Record<string, string>>()
-    .notNull()
-    .default(sql`'{}'::jsonb`),
-
-  // already present
-  artwork: jsonb("artwork").$type<Record<string, string>>().notNull().default(sql`'{}'::jsonb`),
-
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow().notNull(),
-}, (t) => [
-  index("idx_cart_lines_cart").on(t.cartId),
-  index("idx_cart_lines_product").on(t.productId),
-  // Optional: search/filter by price later
-  index("idx_cart_lines_unit_price").on(t.unitPrice),
-]);
+export const cartLinesRelations = relations(cartLines, ({ one }) => ({
+  cart: one(carts, {
+    fields: [cartLines.cartId],
+    references: [carts.id],
+  }),
+}));

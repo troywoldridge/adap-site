@@ -1,18 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "lib": [
-      "DOM",
-      "DOM.Iterable",
-      "ES2020"
+      "dom",
+      "dom.iterable",
+      "esnext"
     ],
-
-    "typeRoots": ["src/types", "node_modules/@types"],
-
-    "jsx": "preserve",
-    "module": "ESNext",                  // For Next.js
-    "moduleResolution": "node",
-   
+    // ✅ Let Next/TS include the right type packages automatically
+    // (removing custom typeRoots + hard-coded "types")
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    // ✅ Required for Next 14 subpath exports like "next/navigation"
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    // Aliases
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -34,34 +41,21 @@
         "src/drizzle/migrations/*"
       ]
     },
-    "allowJs": true,                     // Allow JS in scripts/
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "incremental": true,
-    "types": [
-      "node"
-    ],
+    // Next plugin
     "plugins": [
       {
         "name": "next"
       }
-    ]
+    ],
+    "jsx": "preserve"
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*.ts",                // <--- Ensures src/ is fully covered
+    "src/**/*.ts",
     "src/**/*.tsx",
-    "scripts/**/*.ts",            // <--- Ensures TypeScript scripts work!
-    "scripts/**/*.js",            // <--- JS scripts too
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/global.d.ts",
+    "scripts/**/*.ts",
+    "scripts/**/*.js",
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

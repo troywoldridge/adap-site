@@ -53,12 +53,12 @@
     "instantsearch.css": "^8.5.1",
     "json2csv": "6.0.0-alpha.2",
     "lucide-react": "^0.536.0",
-    "next": "14.2.3",
+    "next": "15.5.0",
     "node-fetch": "^3.3.2",
     "p-limit": "^7.1.0",
     "pdfkit": "^0.17.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-icons": "^5.5.0",
     "react-instantsearch": "^7",
     "react-instantsearch-hooks-web": "^6.47.3",
@@ -87,6 +87,6 @@
     "tailwindcss": "^4.1.11",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
-    "typescript": "^5"
+    "typescript": "^5.5"
   }
 }

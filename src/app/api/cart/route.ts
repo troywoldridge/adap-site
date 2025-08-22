@@ -1,34 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
-import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema/cart";
 import { cartArtwork } from "@/db/schema/cart-artwork";
-import { getConfiguredPrice } from "@/lib/sinalite.client";
-// ✅ SERVER-SAFE Cloudflare image id lookup (pure JSON map)
+import { getOrSetSid } from "@/lib/sid";
+
+// 💸 SinaLite pricing + options (per official docs you provided)
+import {
+  getConfiguredPrice,
+  getSinaliteProductArrays,
+  normalizeOptionGroups,
+} from "@/lib/sinalite.client";
+
+// 📸 Cloudflare Images (we return the id; client builds CDN URL)
 import { cfImageIdForProduct } from "@/lib/productAssets";
 
-// ─────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────
-function getOrSetSid(): string {
-  const jar = cookies();
-  let sid = jar.get("sid")?.value;
-  if (!sid) {
-    sid = crypto.randomUUID();
-    jar.set("sid", sid, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
-  return sid;
-}
+/* ───────────────── helpers ───────────────── */
+
+type RowRaw = {
+  id: string;
+  productId: number;
+  quantity: number;
+  optionIdsRaw: unknown;
+  artworkRaw?: unknown;
+};
 
 function toNumberArray(u: unknown): number[] {
   if (!Array.isArray(u)) return [];
@@ -39,12 +37,10 @@ function toNumberArray(u: unknown): number[] {
   }
   return out;
 }
-
 function toPositiveInt(u: unknown, fallback = 1): number {
   const n = Number(u as any);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
-
 function sanitizeArtworkRecord(u: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (u && typeof u === "object" && !Array.isArray(u)) {
@@ -56,7 +52,6 @@ function sanitizeArtworkRecord(u: unknown): Record<string, string> {
   }
   return out;
 }
-
 function mergeArtwork(
   base: Record<string, string>,
   rows: Array<{ side: number; url: string }>
@@ -69,27 +64,36 @@ function mergeArtwork(
   return out;
 }
 
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
-type RowRaw = {
-  id: string;
-  productId: number;
-  quantity: number;
-  optionIdsRaw: unknown; // jsonb
-  artworkRaw?: unknown;  // jsonb { [side]: url }
-};
+/** Resolve a sane default config from SinaLite product options (per docs). */
+async function resolveDefaultOptionIds(productId: number): Promise<number[]> {
+  try {
+    const { optionsArray } = await getSinaliteProductArrays(String(productId));
+    const groups = normalizeOptionGroups(optionsArray || []);
+    // Pick explicit default if present, else the first option in each group.
+    const ids: number[] = [];
+    for (const g of (groups as any[])) {
+      const opts: any[] =
+        Array.isArray((g as any)?.options) ? (g as any).options : [];
+      if (!opts.length) continue;
+      const def =
+        opts.find((o) => o?.isDefault || o?.default === true) ?? opts[0];
+      const idNum = Number(def?.id);
+      if (Number.isFinite(idNum) && idNum > 0) ids.push(idNum);
+    }
+    return ids;
+  } catch {
+    return [];
+  }
+}
 
-// ─────────────────────────────────────────────────────────────
-// GET /api/cart  → DB-backed cart with live SinaLite pricing
-// ─────────────────────────────────────────────────────────────
+/* ───────────────── GET /api/cart ───────────────── */
+
 export async function GET() {
-  const sid = getOrSetSid();
+  const sid = await getOrSetSid();
 
   let cart = await db.query.carts.findFirst({
     where: and(eq(carts.sid, sid), eq(carts.status, "open")),
   });
-
   if (!cart) {
     const [row] = await db.insert(carts).values({ sid }).returning();
     cart = row;
@@ -113,7 +117,7 @@ export async function GET() {
     });
   }
 
-  // artwork rows
+  // gather per-side artwork
   const lineIds = rowsDb.map((r) => r.id);
   const artRows = await db
     .select({
@@ -125,27 +129,38 @@ export async function GET() {
     .where(inArray(cartArtwork.cartLineId, lineIds));
 
   const artworkByLine: Record<string, Array<{ side: number; url: string }>> = {};
-  for (const ar of artRows) {
-    (artworkByLine[ar.cartLineId] ||= []).push({ side: ar.side, url: ar.url });
-  }
+  for (const ar of artRows) (artworkByLine[ar.cartLineId] ||= []).push({ side: ar.side, url: ar.url });
 
+  // build items (heal empty option_ids using SinaLite defaults)
   const items = await Promise.all(
     rowsDb.map(async (r) => {
       const productId = Number(r.productId);
       const quantity = toPositiveInt(r.quantity, 1);
-      const optionIds = toNumberArray(r.optionIdsRaw);
+      let optionIds = toNumberArray(r.optionIdsRaw);
 
-      // Live price from SinaLite (per docs)
+      if (optionIds.length === 0) {
+        const healed = await resolveDefaultOptionIds(productId);
+        if (healed.length) {
+          optionIds = healed;
+          // Persist back so the cart line is healthy going forward
+          await db
+            .update(cartLines)
+            .set({ optionIds: healed })
+            .where(eq(cartLines.id, r.id));
+        }
+      }
+
+      // Live price (SinaLite docs: price depends on configured options + qty)
       const priced = await getConfiguredPrice(productId, optionIds, quantity);
       const unitPrice = Number(priced?.unitPrice ?? 0);
       const currency = (priced?.currency ?? "USD") as "USD" | "CAD";
 
-      // artwork merge
+      // artwork combine
       const artMapFromLine = sanitizeArtworkRecord(r.artworkRaw);
       const artRowsForLine = artworkByLine[r.id] ?? [];
       const artwork = mergeArtwork(artMapFromLine, artRowsForLine);
 
-      // ✅ Cloudflare-only image id from JSON map
+      // Cloudflare Image ID (client builds imagedelivery URL)
       const cloudflareId = cfImageIdForProduct(productId) ?? null;
 
       return {
@@ -153,11 +168,11 @@ export async function GET() {
         productId,
         quantity,
         optionIds,
-        unitPrice,
+        unitPrice,                          // server-seeded unit price
         lineTotal: unitPrice * quantity,
         currency,
         name: null as string | null,
-        image: cloudflareId, // CF Image ID only
+        image: cloudflareId,                // CF image id only
         artwork,
       };
     })

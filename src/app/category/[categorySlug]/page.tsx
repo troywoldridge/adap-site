@@ -1,3 +1,4 @@
+// src/app/category/[categorySlug]/page.tsx
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -35,14 +36,15 @@ type ProductAsset = {
 
 // 🔎 image resolver (prefers images.json mapping)
 function imageForSub(s: SubAsset): string {
-  // 1) images.json by subcategory_id (authoritative)
   const bySub = getImageBySubcategoryId(s.id);
-  if (bySub.record) return bySub.url;
+  if (bySub.record) {
+    return bySub.url;
+  }
 
-  // 2) subcategory's own id
-  if (s.cloudflare_image_id) return cfUrl(s.cloudflare_image_id);
+  if (s.cloudflare_image_id) {
+    return cfUrl(s.cloudflare_image_id);
+  }
 
-  // 3) productAssets fallback (slug/name)
   const products = productAssets as unknown as ProductAsset[];
   const simple = (t: string) => t.toLowerCase().replace(/[_-]+/g, " ").trim();
 
@@ -58,16 +60,18 @@ function imageForSub(s: SubAsset): string {
   );
   if (byNameProd?.cloudflare_image_id) return cfUrl(byNameProd.cloudflare_image_id);
 
-  // 4) images.json by "name"
   const byNameImg = getImageByName(s.name);
   if (byNameImg.record) return byNameImg.url;
 
-  // 5) placeholder
   return cfUrl(null);
 }
 
-export default function CategoryPage({ params }: { params: { categorySlug: string } }) {
-  const { categorySlug } = params;
+export default async function CategoryPage({
+  params,
+}: {
+  params: Promise<{ categorySlug: string }>;
+}) {
+  const { categorySlug } = await params; // ✅ must await in Next 14.2+
 
   const catMap = categoryAssets as unknown as CategoryAsset;
   const cat = catMap[categorySlug];
@@ -108,7 +112,6 @@ export default function CategoryPage({ params }: { params: { categorySlug: strin
         >
           {subs.map((s) => {
             const imgUrl = imageForSub(s);
-
             return (
               <li
                 key={s.slug}

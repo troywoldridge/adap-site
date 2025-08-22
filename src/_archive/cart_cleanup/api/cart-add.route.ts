@@ -1,133 +1,72 @@
-// src/app/api/cart/add/route.ts
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { cartLines } from "@/db/schema/cart";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import "server-only";
+import { NextRequest } from "next/server";
 import { and, eq } from "drizzle-orm";
-import { priceByOptionIds, resolveStoreCode } from "@/lib/sinalite.server";
-import { getOrCreateCartForSession } from "@/lib/cart";
-import { rateLimit } from "@/lib/rateLimit";
 
-type Body = {
-  productId: number;
-  optionIds: (string | number)[];
-  quantity?: number;
-  shipCountry?: "US" | "CA";
-};
+import { db } from "@/lib/db";
+import { carts, cartLines } from "@/db/schema/cart";
+import { getOrSetSid } from "@/lib/sid";
 
-function asStringArray(ids: (string | number)[]) {
-  return ids.map(String);
-}
-function positiveInt(n: unknown): number | null {
-  const x = Number(n);
-  return Number.isInteger(x) && x > 0 ? x : null;
-}
+export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    // ---------- 1) Parse & validate ----------
-    let json: Body;
-    try {
-      json = await req.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    const body = await req.json();
+
+    // ── validate/coerce
+    const pid = Number(body?.productId);
+    if (!Number.isFinite(pid) || pid <= 0) {
+      return Response.json({ ok: false, error: "invalid productId" }, { status: 400 });
     }
 
-    const productId = positiveInt(json.productId);
-    const quantity = positiveInt(json.quantity ?? 1) ?? 1;
-    const shipCountry = (json.shipCountry === "CA" ? "CA" : "US") as "US" | "CA";
-    const optionIds = Array.isArray(json.optionIds) ? asStringArray(json.optionIds) : [];
+    const rawOpts = Array.isArray(body?.optionIds) ? body.optionIds : [];
+    const optsNum: number[] = rawOpts.map((v: any) => Number(v)).filter((n: unknown) => Number.isFinite(n));
+    const optsStr: string[] = optsNum.map(String); // your schema expects text[] (string[])
 
-    if (!productId) {
-      return NextResponse.json({ error: "productId must be a positive integer" }, { status: 400 });
-    }
-    if (optionIds.length === 0) {
-      return NextResponse.json({ error: "optionIds must be a non-empty array" }, { status: 400 });
-    }
+    const qtyNum = Number(body?.quantity);
+    const qty = Number.isFinite(qtyNum) && qtyNum > 0 ? Math.floor(qtyNum) : 1;
 
-    // ---------- 2) Price via Sinalite (canonical) ----------
-    const storeCode = resolveStoreCode(shipCountry); // US=9, CA=6 per docs
-    const priced = await priceByOptionIds({
-      productId,
-      storeCode,
-      optionIds,
+    // ✅ MUST await (cookies() is async in Next 14.2+)
+    const sid = await getOrSetSid();
+
+    // find or create open cart for this sid
+    let cart = await db.query.carts.findFirst({
+      where: and(eq(carts.sid, sid), eq(carts.status, "open")),
     });
+    if (!cart) {
+      const [row] = await db.insert(carts).values({ sid }).returning();
+      cart = row;
+    }
 
-    // Drizzle numeric => string
-    const unitPrice = (Number(priced.price) || 0).toFixed(2);
-    const optionsByGroup = priced.productOptions || {};     // { qty:"...", size:"...", ... }
-    const sinalitePackageInfo = priced.packageInfo || {};   // weight/box size, etc.
-
-    // ---------- 3) Ensure cart ----------
-    const cart = await getOrCreateCartForSession();
-
-    // ---------- 4) Idempotent merge: if same product + exact same optionIds, bump quantity ----------
-    // NOTE: comparing JSON arrays: we store optionIds as string[] jsonb; equality check done app-side
-    const existingLines = await db
+    // merge: same product + same exact options => bump qty
+    const existing = await db
       .select()
       .from(cartLines)
-      .where(and(eq(cartLines.cartId, cart.id), eq(cartLines.productId, productId)));
+      .where(and(eq(cartLines.cartId, cart.id), eq(cartLines.productId, pid)));
 
-    // Find a line whose optionIds match exactly (order-sensitive). If your data may vary in order,
-    // sort both arrays before comparing.
-    const match = existingLines.find((l) => {
-      const a = Array.isArray(l.optionIds) ? l.optionIds : [];
-      if (a.length !== optionIds.length) {
-        return false;
-      }
-      for (let i = 0; i < a.length; i++) {
-        if (String(a[i]) !== optionIds[i]) {
-          return false;
-        }
-      }
-      return true;
-    });
+    const match = existing.find(
+      (l) => JSON.stringify(l.optionIds ?? []) === JSON.stringify(optsStr)
+    );
 
     if (match) {
-      const newQty = (Number(match.quantity) || 1) + quantity;
       await db
         .update(cartLines)
-        .set({
-          quantity: newQty,
-          unitPrice,                 // re-sync price in case catalog changed
-          optionsByGroup,
-          sinalitePackageInfo,
-          updatedAt: new Date().toISOString(),
-        })
+        .set({ quantity: (match.quantity ?? 1) + qty })
         .where(eq(cartLines.id, match.id));
-
-      return NextResponse.json({
-        ok: true,
-        merged: true,
-        lineId: match.id,
-        quantity: newQty,
-        unitPrice,
+    } else {
+      await db.insert(cartLines).values({
+        cartId: cart.id,
+        productId: pid,
+        optionIds: optsStr, // ← text[] OK
+        quantity: qty,
       });
     }
 
-    // ---------- 5) Insert new line ----------
-    const inserted = await db
-      .insert(cartLines)
-      .values({
-        cartId: cart.id,
-        productId,
-        optionIds,                 // jsonb string[]
-        quantity,
-        unitPrice,                 // numeric as string
-        optionsByGroup,            // jsonb
-        sinalitePackageInfo,       // jsonb
-      })
-      .returning({ id: cartLines.id });
-
-    return NextResponse.json({
-      ok: true,
-      merged: false,
-      lineId: inserted[0]?.id,
-      quantity,
-      unitPrice,
-    });
+    // Pricing comes from Sinalite (configured price) in GET /api/cart per their docs
+    return Response.json({ ok: true, cartId: cart.id });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message || "Add to cart failed" },
+    return Response.json(
+      { ok: false, error: err?.message ?? "add to cart error" },
       { status: 500 }
     );
   }

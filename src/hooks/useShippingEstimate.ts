@@ -1,120 +1,85 @@
-'use client';
+"use client";
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from "react";
 
-export type EstimateLine = {
+export type ShippingLine = {
   productId: number;
   optionIds: number[];
-  quantity?: number;
-};
-
-export type EstimateInput = {
-  shipCountry: 'US' | 'CA';
-  shipState: string;
-  shipZip: string;
-  items?: EstimateLine[];
+  quantity: number;
 };
 
 export type ShippingRate = {
-  serviceCode: string;
-  serviceName: string;
-  carrier?: string;
-  amount: number;
-  currency: string;
-  eta?: string | null;
+  service: string;
+  eta: string;
+  cost: number;
+  currency: "USD" | "CAD" | string;
 };
 
-type ServerRate = { carrier: string; method: string; price: number | string; days?: string | number; };
-type ServerResponse = { ok: true; rates: ServerRate[] } | { ok: false; error: string };
+type Input = {
+  country: string;
+  state: string;
+  zip: string;
+  store?: "US" | "CA";
+  items: ShippingLine[];
+};
 
-function currencyForCountry(country: 'US' | 'CA'): 'USD' | 'CAD' {
-  return country === 'US' ? 'USD' : 'CAD';
-}
-function toNumber(n: unknown): number {
-  const x = typeof n === 'string' ? parseFloat(n) : (n as number);
-  return Number.isFinite(x) ? x : 0;
-}
-
-async function fetchCurrentCartLines(): Promise<EstimateLine[]> {
-  const res = await fetch('/api/cart', { method: 'GET', cache: 'no-store' });
-  const data = await res.json().catch(() => null);
-  if (!res.ok || !data) {
-    throw new Error('Failed to load cart.');
-  }
-  const items = Array.isArray(data.items) ? data.items : [];
-  return items.map((it: any) => ({
-    productId: Number(it.productId),
-    optionIds: Array.isArray(it.optionIds) ? it.optionIds.map((n: any) => Number(n)) : [],
-    quantity: Number(it.quantity) || 1,
-  }));
-}
-
-async function parseJsonSafe(res: Response) {
-  const ct = res.headers.get('content-type') || '';
-  if (ct.includes('application/json')) {
-    return await res.json();
-  }
-  const txt = await res.text().catch(() => '');
-  return { ok: false, error: txt || `HTTP ${res.status}` };
-}
-
-export async function estimate(input: EstimateInput): Promise<ShippingRate[]> {
-  const items = input.items && input.items.length > 0 ? input.items : await fetchCurrentCartLines();
-  if (!items.length) {
-    throw new Error('Your cart is empty.');
-  }
-
-  const lines = items.map(i => ({ productId: i.productId, optionIds: i.optionIds }));
-  const res = await fetch('/api/cart/estimate-shipping', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      shipCountry: input.shipCountry,
-      shipState: input.shipState.trim(),
-      shipZip: input.shipZip.trim(),
-      lines,
-    }),
-  });
-
-  const data = await parseJsonSafe(res) as ServerResponse;
-  if (!res.ok || !('ok' in data) || !data.ok) {
-    throw new Error(('error' in data && data.error) || `Failed to get rates (HTTP ${res.status})`);
-  }
-
-  const curr = currencyForCountry(input.shipCountry);
-  return (data.rates || []).map(r => ({
-    serviceCode: `${r.carrier}:${r.method}`,
-    serviceName: r.method,
-    carrier: r.carrier,
-    amount: toNumber(r.price),
-    currency: curr,
-    eta: typeof r.days === 'number' || typeof r.days === 'string' ? String(r.days) : null,
-  }));
-}
-
-export function useCartShippingEstimate() {
-  const [rates, setRates] = useState<ShippingRate[]>([]);
+export function useShippingEstimate() {
   const [loading, setLoading] = useState(false);
+  const [rates, setRates] = useState<ShippingRate[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const getRates = useCallback(async (input: EstimateInput) => {
+  const estimate = useCallback(async (input: Input) => {
     setLoading(true);
     setError(null);
     setRates([]);
+
+    const body = {
+      shipCountry: input.country.toUpperCase(),
+      shipState: input.state.toUpperCase(),
+      shipZip: String(input.zip),
+      store: input.store ?? "US",
+      // Filter out invalid lines here too, so we don't hit a 400 upstream:
+      items: (input.items || [])
+        .map((l) => ({
+          productId: Number(l.productId),
+          optionIds: Array.isArray(l.optionIds)
+            ? l.optionIds.map(Number).filter((n) => Number.isFinite(n))
+            : [],
+          quantity: Number(l.quantity) > 0 ? Number(l.quantity) : 1,
+        }))
+        .filter((l) => l.productId && l.optionIds.length > 0 && l.quantity > 0),
+    };
+
     try {
-      const r = await estimate(input);
-      setRates(r);
-      return r;
+      const res = await fetch("/api/cart/estimate-shipping", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify(body),
+      });
+
+      const json = (await res.json().catch(() => ({}))) as
+        | { ok: true; rates: ShippingRate[] }
+        | { ok: false; error: string; detail?: any };
+
+      if (!res.ok || !("ok" in json) || !json.ok) {
+        setError(
+          (json as any)?.error ||
+            `Shipping estimate failed (${res.status} ${res.statusText})`
+        );
+        return;
+      }
+
+      setRates(json.rates || []);
     } catch (e: any) {
-      setError(e?.message || 'Failed to get rates');
-      return [];
+      setError(String(e?.message || e));
     } finally {
       setLoading(false);
     }
   }, []);
 
-  return { getRates, rates, loading, error };
+  return useMemo(
+    () => ({ loading, rates, error, estimate }),
+    [loading, rates, error, estimate]
+  );
 }
-
-export const useShippingEstimate = useCartShippingEstimate;
-export default useCartShippingEstimate;

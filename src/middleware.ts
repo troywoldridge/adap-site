@@ -25,7 +25,7 @@ const isProtectedRoute = createRouteMatcher([
   "/cart/review(.*)",      // canonical review page
   "/review-order(.*)",     // legacy review (still protected if hit directly)
   "/api/artwork/:path*",
-  "/api/r2/presign(.*)",
+  "/api/uploads/presign(.*)",
   "/api/order/place",
   "/api/orders(.*)",
 ]);
