@@ -1,101 +1,226 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
-import CartLineItem, { type CartItem } from "@/components/CartLineItem";
+import { useEffect, useMemo, useState } from "react";
 import CartSummary from "@/components/CartSummary";
+import type { ShippingRate } from "@/components/CartShippingEstimator";
+
+type AnyItem = {
+  id: string;
+  productId: number;
+  name?: string | null;
+  optionIds: number[];
+  quantity: number;
+  cloudflareImageId?: string | null;
+  serverUnitPrice?: number;
+  unitPrice?: number;
+};
+
+type Props = {
+  initialItems: AnyItem[];
+  currency: "USD" | "CAD";
+  store: "US" | "CA";
+  initialShipping: ShippingRate | null;
+};
+
+function money(n: number, currency: "USD" | "CAD") {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
+    n || 0
+  );
+}
 
 export default function CartPageClient({
   initialItems,
   currency,
-  store = "US",
-}: {
-  initialItems: CartItem[];
-  currency: "USD" | "CAD";
-  store?: "US" | "CA";
-}) {
-  const [items, setItems] = useState<CartItem[]>(initialItems);
-  const [priceByLine, setPriceByLine] = useState<Record<string, number>>({});
+  store,
+  initialShipping,
+}: Props) {
+  const [items, setItems] = useState<AnyItem[]>(initialItems || []);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingRate | null>(
+    initialShipping || null
+  );
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  // quantity change → persist to API + update state
-  const onQtyChange = useCallback((id: string, qty: number) => {
-    setItems(prev => prev.map(it => (it.id === id ? { ...it, quantity: qty } : it)));
-    // best-effort server persist (PATCH)
-    void fetch(`/api/cart/lines/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ quantity: qty }),
-      cache: "no-store",
-    }).catch(() => {});
-  }, []);
+  const subtotal = useMemo(() => {
+    return (items || []).reduce((sum, it) => {
+      const unit =
+        typeof it.serverUnitPrice === "number"
+          ? it.serverUnitPrice
+          : typeof it.unitPrice === "number"
+          ? it.unitPrice
+          : 0;
+      return sum + unit * (it.quantity || 1);
+    }, 0);
+  }, [items]);
 
-  // live unit price reported by line item (from /api/sinalite/price per docs)
-  const onUnitPrice = useCallback((id: string, unit: number) => {
-    setPriceByLine(prev => (prev[id] === unit ? prev : { ...prev, [id]: unit }));
-  }, []);
+  const miniLines = useMemo(
+    () =>
+      (items || []).map((it) => ({
+        productId: it.productId,
+        optionIds: it.optionIds || [],
+        quantity: it.quantity || 1,
+      })),
+    [items]
+  );
 
-  // remove line → call API then update UI
-  const onRemove = useCallback(async (id: string) => {
+  async function refreshFromServer() {
     try {
-      const res = await fetch(`/api/cart/lines/${id}`, { method: "DELETE", cache: "no-store" });
-      if (!res.ok) {
-        // soft-fail: still remove locally so the page feels responsive
-        // in practice you'd show a toast
+      const res = await fetch("/api/cart", { cache: "no-store" });
+      if (!res.ok) return;
+      const json = await res.json();
+      const srvItems =
+        (json?.cart?.items as AnyItem[])?.map((it) => ({
+          ...it,
+          serverUnitPrice:
+            typeof it.unitPrice === "number" ? it.unitPrice : it.serverUnitPrice,
+        })) || [];
+      setItems(srvItems);
+
+      const srvShip = json?.cart?.shipping;
+      if (srvShip && typeof srvShip?.cost === "number") {
+        setSelectedShipping({
+          carrier: srvShip.carrier,
+          method: srvShip.method,
+          cost: srvShip.cost,
+          days: srvShip.days ?? null,
+          currency: srvShip.currency,
+        });
       }
     } catch {
-      // ignore network error but still proceed locally
-    } finally {
-      setItems(prev => prev.filter(it => it.id !== id));
-      setPriceByLine(prev => {
-        const { [id]: _drop, ...rest } = prev;
-        return rest;
-      });
+      /* ignore */
     }
-  }, []);
+  }
 
-  // subtotal based on reported unit price (fallback to serverUnitPrice)
-  const subtotal = useMemo(() => {
-    return items.reduce((sum, it) => {
-      const unit = priceByLine[it.id] ?? it.serverUnitPrice ?? 0;
-      const qty = it.quantity ?? 1;
-      return sum + unit * qty;
-    }, 0);
-  }, [items, priceByLine]);
+  async function removeLine(lineId: string) {
+    setBusyId(lineId);
+    try {
+      await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, {
+        method: "DELETE",
+      });
+      await refreshFromServer();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function updateQty(lineId: string, qty: number) {
+    qty = Math.max(1, Math.min(9999, Math.floor(qty)));
+    setBusyId(lineId);
+    try {
+      await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ quantity: qty }),
+      });
+      await refreshFromServer();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // Persist selected shipping to the server carts.selected_shipping
+  async function persistShipping(rate: ShippingRate | null) {
+    setSelectedShipping(rate);
+    if (!rate) return;
+    try {
+      await fetch("/api/cart/shipping/choose", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          carrier: rate.carrier,
+          method: rate.method,
+          cost: rate.cost,
+          days: rate.days ?? null,
+          currency: rate.currency,
+          country: store === "CA" ? "CA" : "US",
+          state: "",
+          zip: "",
+        }),
+      });
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
-    <div className="cart | grid gap-6" style={{ gridTemplateColumns: "1fr 380px" }}>
-      <div className="cart-left">
-        <h1 className="cart-title">Your Cart</h1>
-        {items.length === 0 ? (
-          <p>Your cart is empty.</p>
-        ) : (
-          <ul className="cart-lines" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {items.map((item, idx) => (
-              <li key={item.id} className="cart-line">
-                <CartLineItem
-                  item={item}
-                  onQtyChange={onQtyChange}
-                  onUnitPrice={onUnitPrice}
-                  onRemove={onRemove}
-                  priority={idx === 0}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <main className="cartpg">
+      <div className="cartpg__grid">
+        {/* LEFT: items */}
+        <section>
+          <h1 style={{ margin: "0 0 12px" }}>Your Cart</h1>
 
-      <aside className="cart-right">
-        <CartSummary
-          lines={items.map(i => ({
-            productId: i.productId,
-            optionIds: i.optionIds,
-            quantity: i.quantity,
-          }))}
-          currency={currency}
-          subtotal={subtotal}
-          store={store}
-        />
-      </aside>
-    </div>
+          {items.length === 0 ? (
+            <p>Your cart is empty.</p>
+          ) : (
+            <ul style={{ padding: 0, listStyle: "none", margin: 0 }}>
+              {items.map((it) => {
+                const unit =
+                  typeof it.serverUnitPrice === "number"
+                    ? it.serverUnitPrice
+                    : typeof it.unitPrice === "number"
+                    ? it.unitPrice
+                    : 0;
+                const lineTotal = unit * (it.quantity || 1);
+
+                return (
+                  <li key={it.id} className="cartpg__row">
+                    <div className="cartpg__rowGrid">
+                      <div className="cartpg__thumb" />
+                      <div>
+                        <div className="cartpg__name">
+                          {it.name || `Product ${it.productId}`}
+                        </div>
+                        <div className="cartpg__each">
+                          {unit ? `${money(unit, currency)} each` : "$0.00 each"}
+                        </div>
+                        <div className="cartpg__qtyWrap">
+                          <label>Qty</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={it.quantity}
+                            disabled={busyId === it.id}
+                            onChange={(e) =>
+                              updateQty(it.id, Number(e.currentTarget.value))
+                            }
+                            className="cartpg__qtyInput"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="cartpg__rowRight">
+                        <div className="cartpg__lineTotal">
+                          {money(lineTotal, currency)}
+                        </div>
+                        <button
+                          onClick={() => removeLine(it.id)}
+                          disabled={busyId === it.id}
+                          className="cartpg__remove"
+                        >
+                          {busyId === it.id ? "Removing…" : "Remove"}
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        {/* RIGHT: summary with estimator */}
+        <aside className="cartpg__summary">
+          <div className="cartpg__summaryCard cart-summary">
+            <CartSummary
+              currency={currency}
+              subtotal={subtotal}
+              lines={miniLines}
+              store={store}
+              selectedShipping={selectedShipping}
+              onChangeShipping={persistShipping}
+            />
+          </div>
+        </aside>
+      </div>
+    </main>
   );
 }

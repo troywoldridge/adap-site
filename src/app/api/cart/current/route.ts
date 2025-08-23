@@ -1,14 +1,17 @@
-// src/app/api/cart/route.ts
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema";
 import { and, desc, eq } from "drizzle-orm";
-import { getOrSetSid } from "@/lib/sid"; // keep using your helper
 
 export async function GET(_req: NextRequest) {
   try {
-    const sid = await getOrSetSid();
+    const jar = await cookies();
+    const sid = jar.get("sid")?.value ?? jar.get("adap_sid")?.value;
+
+    if (!sid) {
+      return NextResponse.json({ ok: true, cart: null, lines: [] });
+    }
 
     const [cart] = await db
       .select()
@@ -28,7 +31,7 @@ export async function GET(_req: NextRequest) {
 
     return NextResponse.json({ ok: true, cart, lines });
   } catch (e: any) {
-    console.error("GET /api/cart failed:", e);
+    console.error("GET /api/cart/current failed:", e);
     return NextResponse.json(
       { ok: false, error: String(e?.message ?? e), stack: e?.stack },
       { status: 500 }

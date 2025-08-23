@@ -1,72 +1,85 @@
-// src/hooks/useCartShippingEstimate.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState, useCallback } from "react";
 
-export type EstimateLine = {
+export type CartLine = {
   productId: number;
   optionIds: number[];
   quantity: number;
 };
 
-export type ShippingQuote = {
+export type ShippingRate = {
   carrier: string;
-  service: string;
-  etaDays?: number | null;
+  method: string;
   cost: number;
+  days: number | null;
   currency: "USD" | "CAD";
 };
 
-type EstimateResponse =
-  | { ok: true; quotes: ShippingQuote[] }
-  | { ok: false; error: string };
-
-export function useCartShippingEstimate(lines?: EstimateLine[]) {
+export function useCartShippingEstimate() {
+  const [rates, setRates] = useState<ShippingRate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [quotes, setQuotes] = useState<ShippingQuote[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Make the dep stable
-  const payload = useMemo(() => {
-    if (Array.isArray(lines) && lines.length) {
-      return { items: lines };
-    }
-    return {}; // server will read the current cart
-  }, [JSON.stringify(lines ?? [])]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
+  const estimate = useCallback(
+    async ({
+      country,
+      state,
+      zip,
+      store,
+      items,
+    }: {
+      country: "US" | "CA";
+      state: string;
+      zip: string;
+      store?: "US" | "CA";
+      items: CartLine[];
+    }) => {
       setLoading(true);
       setError(null);
+      setRates([]);
+
       try {
         const res = await fetch("/api/cart/estimate-shipping", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-          cache: "no-store",
+          body: JSON.stringify({
+            shipCountry: country,
+            shipState: state,
+            shipZip: zip,
+            items,
+            store: store || country,
+          }),
         });
-        const json = (await res.json().catch(() => ({}))) as EstimateResponse;
+
+        const json = (await res.json()) as
+          | { ok: true; rates: ShippingRate[] }
+          | { ok: false; error: string; detail?: unknown };
+
         if (!res.ok || !("ok" in json) || !json.ok) {
-          throw new Error((json as any)?.error || `shipping estimate failed`);
+          throw new Error((json as any)?.error || "Failed to fetch rates");
         }
-        if (!cancelled) setQuotes(json.quotes);
-      } catch (err: unknown) {
-        if (!cancelled) {
-          setQuotes(null);
-          setError(err instanceof Error ? err.message : "shipping estimate error");
-        }
+
+        const normalized: ShippingRate[] = (json.rates || []).map((r) => ({
+          carrier: r.carrier || "",
+          method: r.method || "",
+          cost: Number(r.cost) || 0,
+          days: typeof r.days === "number" ? r.days : null,
+          currency: r.currency === "CAD" ? "CAD" : "USD",
+        }));
+
+        setRates(normalized);
+        return normalized;
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        setError(msg);
+        return [];
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [payload]);
+    },
+    []
+  );
 
-  return { loading, quotes, error };
+  return { rates, loading, error, estimate };
 }
-
-export default useCartShippingEstimate;

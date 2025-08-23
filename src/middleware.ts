@@ -1,91 +1,74 @@
 // src/middleware.ts
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import {
+  clerkMiddleware,
+  createRouteMatcher,
+  type ClerkMiddlewareAuth,
+} from "@clerk/nextjs/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-// ── Early redirect: legacy review paths → /cart/review
+// Legacy review paths → /cart/review
 const isLegacyReview = createRouteMatcher([
   "/review-order(.*)",
   "/revieworder(.*)",
   "/order/review(.*)",
 ]);
 
-// ── PROTECTED: Upload route (signed-in required)
+// PROTECTED: Upload route
 const isProductUpload = createRouteMatcher([
   "/product/:productId/upload-artwork(.*)",
   "/products/:productId/upload-artwork(.*)", // legacy safety
 ]);
 
-// ── PROTECTED: App areas
+// PROTECTED: App areas
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
   "/account(.*)",
   "/orders(.*)",
   "/checkout(.*)",
-  "/cart/review(.*)",      // canonical review page
-  "/review-order(.*)",     // legacy review (still protected if hit directly)
+  "/cart/review(.*)",
+  "/review-order(.*)",
+  // Protected APIs:
   "/api/artwork/:path*",
   "/api/uploads/presign(.*)",
   "/api/order/place",
   "/api/orders(.*)",
 ]);
 
-// ── PUBLIC API (no auth)
-const isPublicApiRoute = createRouteMatcher([
-  "/api/products/:path*",
-  "/api/sinalite/:path*",
-  "/api/stripe/:path*",
-  "/api/hero-analytics",
-  "/api/sessions(.*)",
-  "/api/shipping/estimate(.*)",
-  "/api/cart/:path*",
-  "/api/artwork/:path*",    
-]);
-
-// ── PUBLIC PAGES
-const isExplicitPublic = createRouteMatcher([
-  "/",
-  "/search(.*)",
-  "/categories(.*)",
-  "/subcategories(.*)",
-  "/blog(.*)",
-  "/shipping(.*)",
-  "/shipping-info(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-]);
-
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (auth: ClerkMiddlewareAuth, req: NextRequest) => {
   if (req.method === "HEAD" || req.method === "OPTIONS") {
     return NextResponse.next();
   }
 
-  // 0) Legacy → canonical
+  // 0) Legacy → canonical redirect
   if (isLegacyReview(req)) {
-    const url = new URL("/cart/review", req.url);
-    return NextResponse.redirect(url, { status: 308 });
+    return NextResponse.redirect(new URL("/cart/review", req.url), 308);
   }
 
-  // 1) Upload route must be signed in
-  if (isProductUpload(req)) {
-    const au = await auth();
-    if (!au.userId) {
-      return au.redirectToSignIn({ returnBackUrl: req.url });
-    }
-    return NextResponse.next();
+  const p = req.nextUrl.pathname;
+
+  // Resolve session once (TS expects Promise here)
+  const session = await auth();
+  const { userId, redirectToSignIn } = session;
+
+  // Allow guest mutations for these endpoints (everything else non-GET under /api requires auth)
+  const allowsGuestMutation =
+    p.startsWith("/api/cart") || p.startsWith("/api/shipping/estimate");
+  const isWebhook = p.startsWith("/api/webhooks/") || p.startsWith("/api/stripe/");
+
+  // 1) Require auth for mutating API calls (non-GET), except webhooks/Stripe and allowlist
+  if (p.startsWith("/api/") && req.method !== "GET" && !isWebhook && !allowsGuestMutation && !userId) {
+        return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
-  // 2) Public APIs + explicit public pages
-  if (isPublicApiRoute(req) || isExplicitPublic(req)) {
-    return NextResponse.next();
+  // 2) Uploads must be signed in
+  if (isProductUpload(req) && !userId) {
+    return redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  // 3) Other protected routes
-  if (isProtectedRoute(req)) {
-    const au = await auth();
-    if (!au.userId) {
-      return au.redirectToSignIn({ returnBackUrl: req.url });
-    }
+  // 3) App protected areas must be signed in
+  if (isProtectedRoute(req) && !userId) {
+    return redirectToSignIn({ returnBackUrl: req.url });
   }
 
   return NextResponse.next();
