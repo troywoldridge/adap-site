@@ -1,109 +1,70 @@
-// app/api/stripe/webhook/route.ts
+// src/app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
-import { enforceRateLimit } from "@/lib/rateLimit";
-import { markOrderPaid, saveSinaliteOrderId, getOrderSessionByStripeSession } from "@/lib/session";
+import Stripe from "stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-async function placeSinaliteOrder(orderSessionId: string, payload: any) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/order/place`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...payload, orderSessionId }),
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Sinalite place failed: ${res.status} ${txt}`);
-  }
-  return res.json() as Promise<{ orderId: number; status: string; message?: string }>;
-}
+// Make envs definitively strings
+const STRIPE_KEY: string =
+  process.env.STRIPE_SECRET_KEY ??
+  (() => {
+    throw new Error("Missing STRIPE_SECRET_KEY");
+  })();
+
+const STRIPE_WEBHOOK_SECRET: string =
+  process.env.STRIPE_WEBHOOK_SECRET ??
+  (() => {
+    throw new Error("Missing STRIPE_WEBHOOK_SECRET");
+  })();
+
+const stripe = new Stripe(STRIPE_KEY);
 
 export async function POST(req: NextRequest) {
-  // (Optional) keep a very light rate limit
-  const limited = await enforceRateLimit(req);
-  if (limited) {
-    return limited;
-  }
-
   const sig = req.headers.get("stripe-signature");
-  const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!sig || !whSecret) {
-    return NextResponse.json({ error: "Missing Stripe signature/secret" }, { status: 400 });
+  if (!sig) {
+    return NextResponse.json({ ok: false, error: "missing_signature" }, { status: 400 });
   }
 
-  // Get the **raw** request body (do NOT JSON.parse)
-  const rawBody = await req.text(); // stripe accepts string or Buffer
+  // Use raw text body for signature verification
+  const raw = await req.text();
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, whSecret);
+    event = stripe.webhooks.constructEvent(raw, sig, STRIPE_WEBHOOK_SECRET);
   } catch (err: any) {
-    console.error("[stripe.webhook] signature verify failed:", err?.message || err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    console.error("Webhook signature verification failed.", err?.message);
+    return NextResponse.json({ ok: false, error: "bad_signature" }, { status: 400 });
   }
 
   try {
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
 
-        const stripeSessionId = session.id;
-        const paymentIntentId =
-          typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id ?? null;
+      const origin =
+        process.env.PUBLIC_APP_ORIGIN ||
+        process.env.NEXT_PUBLIC_BASE_URL ||
+        "http://localhost:3000";
 
-        const orderSessionId = session.metadata?.orderSessionId ?? undefined;
-
-        // Mark paid in our DB
-        if (orderSessionId && paymentIntentId) {
-          await markOrderPaid(orderSessionId, paymentIntentId);
-        }
-
-        // Place Sinalite order
-        if (orderSessionId) {
-          const order = await getOrderSessionByStripeSession(
-            stripeSessionId,
-            paymentIntentId ?? undefined
-          );
-
-          if (order && order.shippingInfo && order.billingInfo) {
-            const payload = {
-              items: [
-                {
-                  productId: order.productId,
-                  options: order.options ?? [],
-                  files: order.files ?? [],
-                },
-              ],
-              shippingInfo: order.shippingInfo,
-              billingInfo: order.billingInfo,
-              notes: order.notes ?? undefined,
-            };
-
-            const placed = await placeSinaliteOrder(orderSessionId, payload);
-            if (placed?.orderId) {
-              await saveSinaliteOrderId(orderSessionId, placed.orderId);
-            }
-          }
-        }
-        break;
-      }
-
-      // Handle other events as needed
-      default:
-        break;
+      await fetch(`${origin}/api/orders/place`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-internal": "stripe-webhook",
+        },
+        body: JSON.stringify({
+          sid: session.metadata?.sid ?? null,
+          stripeSessionId: session.id,
+          store: (session.metadata?.store as "US" | "CA") ?? "US",
+          shipping: session.metadata?.shipping
+            ? JSON.parse(session.metadata.shipping)
+            : null,
+        }),
+      });
     }
-
-    return NextResponse.json({ received: true }, { status: 200 });
-  } catch (err: any) {
-    console.error("[stripe.webhook] handler error:", err?.message || err);
-    return NextResponse.json({ error: "Webhook handling failed" }, { status: 500 });
+  } catch (e) {
+    console.error("webhook handler failed:", e);
   }
+
+  return NextResponse.json({ received: true });
 }

@@ -1,87 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type OrderRow = {
-  id: string;
-  orderNumber: string;
-  status: string;
-  totalCents: number;
-  currency: string;
-  placedAt: string | null;
+type Props = {
+  initialOrders: any[];
 };
 
-type SummaryResponse = {
-  ok: boolean;
-  profile: { displayName?: string; email?: string; marketingOptIn?: boolean };
-  points: number;
-  recentOrders: OrderRow[];
-};
-
-export default function AccountClient() {
-  const [data, setData] = useState<SummaryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/me/summary", { cache: "no-store" });
-        const json = (await res.json()) as SummaryResponse;
-        setData(json);
-      } catch (e) {
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  if (loading) return <p>Loading…</p>;
-  if (!data?.ok) return <p>Could not load account.</p>;
-
-  const { profile, points, recentOrders } = data;
+export default function AccountClient({ initialOrders }: Props) {
+  const orders = Array.isArray(initialOrders) ? initialOrders : [];
 
   return (
-    <div className="grid gap-8">
-      <section className="card">
-        <h2 className="h2">Loyalty</h2>
-        <p className="muted">Points balance</p>
-        <div className="points">{points.toLocaleString()}</div>
-        <a className="link" href="/account/loyalty">View activity</a>
-      </section>
+    <main className="container" style={{ maxWidth: 980, margin: "0 auto", padding: 16 }}>
+      <h1 style={{ margin: "0 0 16px" }}>Your Account</h1>
 
-      <section className="card">
-        <h2 className="h2">Recent Orders</h2>
-        {recentOrders.length === 0 ? (
+      <section>
+        <h2 style={{ margin: "12px 0" }}>Recent orders</h2>
+
+        {orders.length === 0 ? (
           <p>No orders yet.</p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr><th>Order</th><th>Status</th><th>Total</th><th>Date</th></tr>
-            </thead>
-            <tbody>
-              {recentOrders.map(o => (
-                <tr key={o.id}>
-                  <td><a className="link" href={`/account/orders/${o.id}`}>{o.orderNumber}</a></td>
-                  <td>{o.status}</td>
-                  <td>{(o.totalCents / 100).toLocaleString(undefined, { style: "currency", currency: o.currency })}</td>
-                  <td>{o.placedAt ? new Date(o.placedAt).toLocaleDateString() : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {orders.map((o: any) => (
+              <li
+                key={o.id}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>
+                  Order #{o.id ?? "—"}{" "}
+                  <span style={{ fontWeight: 400, color: "#64748b" }}>
+                    {o.status ?? "NEW"}
+                  </span>
+                </div>
+                <div style={{ fontSize: 14, color: "#475569" }}>
+                  Placed {o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  Total:{" "}
+                  <strong>
+                    {o.currency ?? "USD"}{" "}
+                    {typeof o.total === "number" ? o.total.toFixed(2) : "—"}
+                  </strong>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
-        <a className="link" href="/account/orders">All orders</a>
       </section>
-
-      <section className="card">
-        <h2 className="h2">Profile</h2>
-        <p><strong>Name:</strong> {profile.displayName ?? "—"}</p>
-        <p><strong>Email:</strong> {profile.email ?? "—"}</p>
-        <p><strong>Marketing:</strong> {profile.marketingOptIn ? "Opted-in" : "Opted-out"}</p>
-        <a className="link" href="/account/profile">Edit profile</a>
-        <a className="link" href="/account/addresses">Manage addresses</a>
-      </section>
-    </div>
+    </main>
   );
 }

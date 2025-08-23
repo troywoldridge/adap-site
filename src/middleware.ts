@@ -6,33 +6,49 @@ import {
 } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Legacy review paths → /cart/review
+/** Legacy review URLs → canonical /cart/review */
 const isLegacyReview = createRouteMatcher([
   "/review-order(.*)",
   "/revieworder(.*)",
   "/order/review(.*)",
 ]);
 
-// PROTECTED: Upload route
+/** PROTECTED: Upload routes */
 const isProductUpload = createRouteMatcher([
   "/product/:productId/upload-artwork(.*)",
   "/products/:productId/upload-artwork(.*)", // legacy safety
 ]);
 
-// PROTECTED: App areas
+/** PUBLIC: Cart & estimator (UI + API) */
+const isPublicCartArea = createRouteMatcher([
+  "/cart(.*)",
+  "/api/cart/:path*",
+  "/api/shipping/estimate(.*)",
+  "/api/create-checkout-session", // ⬅ allow guests to start Stripe session
+  "/api/sinalite/price/:path*", 
+  "/api/checkout/:path*", 
+]);
+
+/** ✅ NEW: PUBLIC Sinalite pricing endpoints (per Sinalite docs POST /price/:id/:storeCode) */
+const isPublicSinalite = createRouteMatcher([
+  "/api/sinalite/price(.*)",     // allow both /price and /price/[id]
+  "/api/sinalite/products(.*)",  // optional: product meta/pricing data
+]);
+
+/** PROTECTED: App areas */
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
   "/account(.*)",
   "/orders(.*)",
   "/checkout(.*)",
-  "/cart/review(.*)",
   "/review-order(.*)",
   // Protected APIs:
   "/api/artwork/:path*",
   "/api/uploads/presign(.*)",
   "/api/order/place",
   "/api/orders(.*)",
+  "/api/create-checkout-session(.*)" 
 ]);
 
 export default clerkMiddleware(async (auth: ClerkMiddlewareAuth, req: NextRequest) => {
@@ -40,33 +56,33 @@ export default clerkMiddleware(async (auth: ClerkMiddlewareAuth, req: NextReques
     return NextResponse.next();
   }
 
-  // 0) Legacy → canonical redirect
   if (isLegacyReview(req)) {
     return NextResponse.redirect(new URL("/cart/review", req.url), 308);
   }
 
   const p = req.nextUrl.pathname;
-
-  // Resolve session once (TS expects Promise here)
   const session = await auth();
   const { userId, redirectToSignIn } = session;
 
-  // Allow guest mutations for these endpoints (everything else non-GET under /api requires auth)
-  const allowsGuestMutation =
-    p.startsWith("/api/cart") || p.startsWith("/api/shipping/estimate");
-  const isWebhook = p.startsWith("/api/webhooks/") || p.startsWith("/api/stripe/");
-
-  // 1) Require auth for mutating API calls (non-GET), except webhooks/Stripe and allowlist
-  if (p.startsWith("/api/") && req.method !== "GET" && !isWebhook && !allowsGuestMutation && !userId) {
-        return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  // ✅ Public zones (guest-friendly): cart + Sinalite pricing
+  if (isPublicCartArea(req) || isPublicSinalite(req)) {
+    return NextResponse.next();
   }
 
-  // 2) Uploads must be signed in
+  // Gateways/webhooks bypass
+  const isWebhook = p.startsWith("/api/webhooks/") || p.startsWith("/api/stripe/");
+
+  // Require auth for other mutating API calls
+  if (p.startsWith("/api/") && req.method !== "GET" && !isWebhook && !userId) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
+
+  // Uploads must be signed in
   if (isProductUpload(req) && !userId) {
     return redirectToSignIn({ returnBackUrl: req.url });
   }
 
-  // 3) App protected areas must be signed in
+  // Protected app areas
   if (isProtectedRoute(req) && !userId) {
     return redirectToSignIn({ returnBackUrl: req.url });
   }

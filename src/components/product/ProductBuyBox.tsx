@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import ProceedToCheckout from "@/components/ProceedToCheckout";
 
 type Option = { id: number; name: string };
 type Group = { name: string; options: Option[] };
@@ -11,7 +12,7 @@ type Props = {
   productName: string;
   optionGroups: Group[];
   store?: "US" | "CA";
-  cloudflareImageId?: string | null; // pass from page; guarantees Cloudflare CDN in cart
+  cloudflareImageId?: string | null;
 };
 
 type PriceResp =
@@ -54,7 +55,7 @@ export default function ProductBuyBox({
     return ids;
   }, [selected, optionGroups]);
 
-  // fetch live configured price (per SinaLite docs)
+  // fetch live configured price
   useEffect(() => {
     let abort = false;
     (async () => {
@@ -96,25 +97,31 @@ export default function ProductBuyBox({
 
   const router = useRouter();
 
+  /** Adds the current selection to the server cart (no navigation). */
+  async function addCurrentSelection() {
+    const payload = {
+      productId,
+      name: productName,
+      optionIds,
+      quantity: sets,
+      cloudflareImageId: cloudflareImageId ?? null,
+    };
+    const res = await fetch("/api/cart/lines", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json?.ok === false) {
+      throw new Error(json?.error || `addToCart failed: ${res.status}`);
+    }
+  }
+
+  /** “Add to Cart” then take user to /cart (keeps your previous behavior). */
   async function onAddToCart() {
     try {
-      const payload = {
-        productId,
-        name: productName,
-        optionIds,
-        quantity: sets,
-        cloudflareImageId: cloudflareImageId ?? null,
-      };
-      const res = await fetch("/api/cart/lines", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-        cache: "no-store",
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || json?.ok === false) {
-        throw new Error(json?.error || `addToCart failed: ${res.status}`);
-      }
+      await addCurrentSelection();
       router.push("/cart");
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to add to cart");
@@ -173,31 +180,31 @@ export default function ProductBuyBox({
       </div>
 
       <div style={{ marginTop: 16, fontWeight: 600 }}>
-        <div>Price{loadingPrice ? "…" : ""}: {currency} {unitPrice.toFixed(2)}</div>
-        <div>Subtotal: {currency} {subtotal.toFixed(2)}</div>
+        <div>Price{loadingPrice ? "…" : ""}: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(unitPrice)}</div>
+        <div>Subtotal: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(subtotal)}</div>
         {priceError ? (
           <div style={{ color: "#b91c1c", marginTop: 6 }}>{priceError}</div>
         ) : null}
       </div>
 
+      {/* Buttons – let globals.css style them via .btn.primary */}
       <button
         type="button"
         onClick={onAddToCart}
-        className="primary"
-        style={{
-          marginTop: 16,
-          width: "100%",
-          padding: "12px 16px",
-          borderRadius: 10,
-          background: "#1e40af",
-          color: "#fff",
-          fontWeight: 700,
-          border: "none",
-        }}
+        className="btn primary w-full"
+        style={{ marginTop: 16 }}
         disabled={optionIds.length === 0}
       >
         Add to Cart
       </button>
+
+      <ProceedToCheckout
+        to="/cart"
+        ensureAdded={addCurrentSelection}
+        className="btn primary w-full"
+      >
+        Checkout
+      </ProceedToCheckout>
     </div>
   );
 }

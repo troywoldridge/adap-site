@@ -1,127 +1,188 @@
-// app/api/create-checkout-session/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import type Stripe from "stripe"; // import type only
-import { requireUser } from "@/lib/auth";
+import { NextResponse, type NextRequest } from "next/server";
+import { cookies, headers } from "next/headers";
+import Stripe from "stripe";
 import { db } from "@/lib/db";
-import { orderSessions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { carts, cartLines } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
+function originFromHeaders(h: Headers): string {
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  return `${proto}://${host}`;
+}
+
+type SelectedShipping = {
+  carrier: string;
+  method: string;
+  cost: number;
+  days: number | null;
+  currency: "USD" | "CAD";
+  country: "US" | "CA";
+  state: string;
+  zip: string;
+} | null;
+
+async function getUnitPrice(
+  origin: string,
+  productId: number,
+  optionIds: number[],
+  store: "US" | "CA"
+) {
+  const res = await fetch(
+    `${origin}/api/sinalite/price/${productId}?store=${store}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ optionIds }),
+      cache: "no-store",
+    }
+  );
+  if (!res.ok) return 0;
+  const json = await res.json().catch(() => ({} as any));
+  const n = Number(json?.price ?? json?.unitPrice ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export async function POST(req: NextRequest) {
-  const isProd = process.env.NODE_ENV === "production";
-
   try {
-    const allowDevNoAuth = !isProd && process.env.ALLOW_DEV_NO_AUTH === "1";
-    const user = allowDevNoAuth ? { userId: "dev-user" } : await requireUser();
+    const h = await headers();
+    const origin = originFromHeaders(h);
+    const jar = await cookies();
 
-    const body = await req.json().catch(() => ({}));
-    const { orderSessionId, test: testFromBody } = body as {
-      orderSessionId?: string;
-      test?: boolean;
-    };
+    const body = await req.json().catch(() => ({} as any));
+    const shippingFromBody: SelectedShipping =
+      body?.shipping ?? body?.selectedShipping ?? null;
 
-    if (!orderSessionId) {
-      return NextResponse.json({ error: "orderSessionId required" }, { status: 400 });
+    const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
+    if (!sid) {
+      return NextResponse.json(
+        { ok: false, error: "missing_sid" },
+        { status: 400 }
+      );
     }
 
-    const testFromQuery = req.nextUrl.searchParams.get("test") === "1";
-    const keyLooksTest = (process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
-    const TEST_MODE = Boolean(testFromBody || testFromQuery || keyLooksTest);
+    const [cart] = await db
+      .select()
+      .from(carts)
+      .where(and(eq(carts.sid, sid), eq(carts.status, "open")))
+      .limit(1);
 
-    // 1) Load order session
-    const session = await db.query.orderSessions.findFirst({
-      where: (os, { eq }) => eq(os.id, orderSessionId),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Order session not found" }, { status: 404 });
-    }
-    if (!allowDevNoAuth && session.userId && session.userId !== user.userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!cart) {
+      return NextResponse.json(
+        { ok: false, error: "cart_not_found" },
+        { status: 404 }
+      );
     }
 
-    const toCents = (n: number | string | null | undefined) => Math.round(Number(n || 0) * 100);
-    const currencyCode = String(session.currency || "USD").toLowerCase();
-    const totalCents = toCents(session.total);
+    const lines = await db
+      .select()
+      .from(cartLines)
+      .where(eq(cartLines.cartId, cart.id));
 
-    const description = Array.isArray(session.options)
-      ? `Options: ${session.options.join(", ")}`
-      : `Options: ${JSON.stringify(session.options)}`;
+    // Prefer shipping sent from client; fallback to DB columns
+    const selectedShipping: SelectedShipping =
+      shippingFromBody ??
+      (cart as any)?.selectedShipping ??
+      (cart as any)?.shipping ??
+      null;
 
-    // ✅ Use the *create params* type for line items
-    let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-      {
+    const store: "US" | "CA" =
+      selectedShipping?.country === "CA" ? "CA" : "US";
+    const currency: "usd" | "cad" = store === "CA" ? "cad" : "usd";
+
+    // Price/normalize all items from Sinalite at checkout time (authoritative)
+    const priced = await Promise.all(
+      lines.map(async (ln) => {
+        const unitPrice = await getUnitPrice(
+          origin,
+          ln.productId,
+          (ln.optionIds as any) ?? [],
+          store
+        );
+        return {
+          productId: ln.productId,
+          quantity: Math.max(1, Math.min(9999, Number(ln.quantity || 1))),
+          optionIds: (ln.optionIds as any) ?? [],
+          unitPrice,
+        };
+      })
+    );
+
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+
+    for (const p of priced) {
+      if (!Number.isFinite(p.unitPrice) || p.unitPrice <= 0) continue;
+      line_items.push({
+        quantity: p.quantity,
+        price_data: {
+          currency,
+          unit_amount: Math.round(p.unitPrice * 100),
+          product_data: {
+            name: `Product ${p.productId}`,
+            metadata: {
+              productId: String(p.productId),
+              optionIds: JSON.stringify(p.optionIds ?? []),
+            },
+          },
+        },
+      });
+    }
+
+    if (
+      selectedShipping &&
+      Number.isFinite(selectedShipping.cost) &&
+      Number(selectedShipping.cost) > 0
+    ) {
+      line_items.push({
         quantity: 1,
         price_data: {
-          currency: currencyCode,
+          currency,
+          unit_amount: Math.round(Number(selectedShipping.cost) * 100),
           product_data: {
-            name: session.productId ?? "Custom Print Order",
-            description: description.slice(0, 499),
-          },
-          unit_amount: totalCents,
-        },
-      },
-    ];
-
-    // Test override: $20 item
-    if (TEST_MODE) {
-      lineItems = [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Test Order — $20.00",
-              description: "Demo checkout (automatic tax on).",
+            name: `Shipping — ${selectedShipping.carrier} ${selectedShipping.method}`,
+            metadata: {
+              kind: "shipping",
+              carrier: selectedShipping.carrier,
+              method: selectedShipping.method,
             },
-            unit_amount: 2000,
           },
         },
-      ];
+      });
     }
 
-    const base =
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      "http://localhost:3000";
+    if (line_items.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "no_billable_items" },
+        { status: 400 }
+      );
+    }
 
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      automatic_tax: { enabled: true },
-      shipping_address_collection: { allowed_countries: ["US", "CA"] },
-      phone_number_collection: { enabled: true },
-      customer_email:
-        (session.billingInfo as any)?.BillEmail ||
-        (session.shippingInfo as any)?.ShipEmail ||
-        undefined,
-      line_items: lineItems, // ← now correctly typed
-      success_url: `${base}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/review-order`,
+      line_items,
+      allow_promotion_codes: true,
+      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/cart/review`,
       metadata: {
-        orderSessionId: session.id,
-        productId: String(session.productId ?? ""),
-        testMode: TEST_MODE ? "1" : "0",
+        sid,
+        cartId: cart.id,
+        store,
+        shipping: JSON.stringify(selectedShipping ?? null),
       },
     });
 
-    await db
-      .update(orderSessions)
-      .set({ stripeCheckoutSessionId: checkoutSession.id })
-      .where(eq(orderSessions.id, orderSessionId));
-
-    return NextResponse.json({ url: checkoutSession.url }, { status: 200 });
-  } catch (err: any) {
-    console.error("[create-checkout-session] error:", err);
-    const message =
-      process.env.NODE_ENV === "production"
-        ? "Failed to create checkout session"
-        : err?.message || String(err);
-    const status =
-      err?.statusCode && Number(err.statusCode) >= 400 ? Number(err.statusCode) : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ ok: true, url: session.url });
+  } catch (e: any) {
+    console.error("create-checkout-session failed", e);
+    return NextResponse.json(
+      { ok: false, error: String(e?.message || e) },
+      { status: 500 }
+    );
   }
 }

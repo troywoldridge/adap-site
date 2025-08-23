@@ -11,7 +11,9 @@ declare global {
 }
 
 const connectionString = process.env.DATABASE_URL!;
-if (!connectionString) throw new Error("Missing env: DATABASE_URL");
+if (!connectionString) {
+  throw new Error("Missing env: DATABASE_URL");
+}
 
 export const pool = global.__adap_pg_pool ?? new Pool({ connectionString });
 
@@ -20,5 +22,9 @@ export const db =
   global.__adap_drizzle ?? drizzle(pool, { schema });
 
 // cache in dev (HMR)
-if (!global.__adap_pg_pool) global.__adap_pg_pool = pool;
-if (!global.__adap_drizzle) global.__adap_drizzle = db;
+if (!global.__adap_pg_pool) {
+  global.__adap_pg_pool = pool;
+}
+if (!global.__adap_drizzle) {
+  global.__adap_drizzle = db;
+}

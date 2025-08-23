@@ -1,26 +1,34 @@
-// app/checkout/success/page.tsx
 import Link from "next/link";
+import ClearCartCookie from "./ClearCartCookie";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 0;                // number or false (valid)
+export const dynamic = "force-dynamic";     // keep this if you want no caching
 
 export default async function SuccessPage({
   searchParams,
-}: { searchParams?: { session_id?: string } }) {
-  const sessionId = searchParams?.session_id;
-  // Optional: fetch the Stripe session + your order for display
-  // const session = await stripe.checkout.sessions.retrieve(sessionId!) // (server side)
-  // or call your internal /api to show latest order status
+}: {
+  searchParams: Promise<{ session_id?: string }>;
+}) {
+  const { session_id } = await searchParams;
 
   return (
-    <main className="container py-14 text-center">
-      <h1 className="text-3xl font-bold mb-3">Payment received 🎉</h1>
-      <p className="text-neutral-600 mb-6">
-        We’re processing your order now. You’ll receive an email with details shortly.
+    <main className="container" style={{ maxWidth: 880, margin: "24px auto" }}>
+      <ClearCartCookie />
+
+      <h1 style={{ marginBottom: 8 }}>Thanks for your order!</h1>
+      {session_id ? (
+        <p style={{ color: "#64748b", marginTop: 0 }}>
+          Stripe session: <code>{session_id}</code>
+        </p>
+      ) : null}
+
+      <p style={{ marginTop: 16 }}>
+        You can view details on <Link href="/orders">Your Orders</Link>.
       </p>
-      <div className="flex justify-center gap-4">
-        <Link className="btn btn-primary" href="/orders">View my orders</Link>
-        <Link className="btn" href="/">Continue shopping</Link>
+
+      <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
+        <Link href="/orders" className="btn btn-primary">View Orders</Link>
+        <Link href="/" className="btn">Continue Shopping</Link>
       </div>
     </main>
   );

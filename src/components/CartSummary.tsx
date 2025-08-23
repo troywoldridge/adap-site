@@ -1,21 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import CartShippingEstimator, {
-  CartLineMini,
-  ShippingRate,
+  type CartLineMini,
+  type ShippingRate,
 } from "./CartShippingEstimator";
+import ProceedToCheckout from "@/components/ProceedToCheckout";
+
 
 type Props = {
   currency: "USD" | "CAD";
-  /** Subtotal (items only) from current cart */
   subtotal: number;
-  /** Mini lines for estimator */
   lines: CartLineMini[];
-  /** "US" | "CA" */
   store: "US" | "CA";
-  /** Current selected shipping (can be null) */
   selectedShipping: ShippingRate | null;
-  /** Bubble selection up */
   onChangeShipping: (rate: ShippingRate | null) => void;
 };
 
@@ -33,94 +31,124 @@ export default function CartSummary({
   selectedShipping,
   onChangeShipping,
 }: Props) {
-  const shippingCost =
-    selectedShipping && selectedShipping.currency === currency
-      ? selectedShipping.cost
-      : selectedShipping
-      ? // defensive: if currencies ever differ, still add raw cost
-        selectedShipping.cost
-      : 0;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const total = (subtotal || 0) + (shippingCost || 0);
+  async function handleCheckout() {
+    setError(null);
+    if (!lines?.length) return;
+
+    try {
+      setBusy(true);
+
+      // (Optional) ensure the selected shipping is saved server-side
+      if (selectedShipping) {
+        await fetch("/api/cart/shipping/choose", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            carrier: selectedShipping.carrier,
+            method: selectedShipping.method,
+            cost: selectedShipping.cost,
+            days: selectedShipping.days ?? null,
+            currency: selectedShipping.currency,
+            country: store === "CA" ? "CA" : "US",
+            state: "",
+            zip: "",
+          }),
+        }).catch(() => {});
+      }
+
+      // Start Stripe Checkout — our API responds with { ok, url }
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          returnUrl: `${window.location.origin}/checkout/success`,
+        }),
+      });
+
+      if (res.status === 401) {
+        // If your middleware ever requires auth, send them to sign-in and back
+        window.location.assign(`/sign-in?redirect_url=/cart/review`);
+        return;
+      }
+
+      // Accept either {ok:true,url} or a 303 redirect (fallback below)
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const json = await res.json().catch(() => ({} as any));
+        if (!res.ok || !json?.url) {
+          throw new Error(json?.error || `Failed to start checkout`);
+        }
+        window.location.assign(json.url as string);
+        return;
+      }
+
+      // Fallback: if the API replies with a redirect and fetch swallowed it,
+      // just navigate to the endpoint; the server will redirect the browser.
+      window.location.assign("/api/create-checkout-session");
+    } catch (e: any) {
+      setError(String(e?.message || e));
+      setBusy(false);
+    }
+  }
+
+  const shippingCost = selectedShipping?.cost ?? 0;
+  const total = subtotal + (typeof shippingCost === "number" ? shippingCost : 0);
 
   return (
-    <aside
-      style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: 12,
-        padding: 16,
-        position: "sticky",
-        top: 16,
-      }}
-    >
-      <h3 style={{ margin: "0 0 12px" }}>Summary</h3>
+    <div className="cart-summary">
+      <aside style={{ margin: "0 0 12px" }}>
+        <h3 style={{ margin: "0 0 12px" }}>Summary</h3>
 
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "6px 0",
-          }}
-        >
-          <span>Subtotal</span>
-          <strong>{money(subtotal, currency)}</strong>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+          <div>Subtotal</div>
+          <div>{money(subtotal, currency)}</div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "6px 0",
-          }}
-        >
-          <span>Shipping</span>
-          <strong>
-            {selectedShipping
-              ? money(shippingCost, currency)
-              : money(0, currency)}
-          </strong>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+          <div>Shipping</div>
+          <div>{money(shippingCost, currency)}</div>
         </div>
 
         <div
           style={{
             marginTop: 8,
-            borderTop: "1px solid #e5e7eb",
             paddingTop: 10,
+            borderTop: "1px solid #e5e7eb",
             display: "flex",
             justifyContent: "space-between",
-            fontSize: 18,
             fontWeight: 800,
+            fontSize: 18,
           }}
         >
-          <span>Total</span>
-          <span>{money(total, currency)}</span>
+          <div>Total</div>
+          <div>{money(total, currency)}</div>
+        </div>
+      </aside>
+
+      <div className="shipping-estimator">
+        <h4 style={{ margin: "0 0 8px" }}>Estimate shipping</h4>
+        <div className="estimator">
+          <CartShippingEstimator
+            lines={lines}
+            store={store}
+            selected={selectedShipping}
+            onSelect={onChangeShipping}
+          />
         </div>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <h4 style={{ margin: "0 0 8px" }}>Estimate shipping</h4>
-        <CartShippingEstimator
-          lines={lines}
-          store={store}
-          selected={selectedShipping}
-          onSelect={onChangeShipping}
-        />
-      </div>
+      {error ? (
+        <div style={{ color: "#b42318", marginTop: 10 }}>{error}</div>
+      ) : null}
 
-      <button
-        className="btn-primary"
-        style={{
-          width: "100%",
-          padding: "12px 16px",
-          borderRadius: 8,
-          background: "var(--color-blue)",
-          color: "#fff",
-          fontWeight: 800,
-        }}
-      >
-        Checkout
-      </button>
-    </aside>
+      <ProceedToCheckout
+  shipping={selectedShipping}
+  className="btn btn-primary checkout-btn"
+/>
+
+     </div>
   );
 }

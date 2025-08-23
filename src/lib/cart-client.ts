@@ -1,59 +1,30 @@
 // src/lib/cart-client.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-export type AddLineInput = {
-  productId: number;
-  optionIds: number[];
-  quantity: number;
-  name?: string;
-  cloudflareImageId?: string | null;
+export type CartShape = {
+  id: string | null;
+  lines: any[];
+  subtotal: number;
+  lineCount: number;
 };
 
-export async function addToCart(input: AddLineInput) {
-  const res = await fetch("/api/cart/lines", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
-    cache: "no-store",
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.ok === false) {
-    throw new Error(json?.error || `addToCart failed: ${res.status}`);
+export async function getCart(): Promise<CartShape> {
+  const endpoints = ["/api/cart/current", "/api/cart"];
+  for (const url of endpoints) {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) {
+        continue;
+      }
+      const j = await r.json();
+      const cart = j?.cart ?? {};
+      return {
+        id: cart.id ?? null,
+        lines: Array.isArray(cart.lines) ? cart.lines : [],
+        subtotal: Number(cart.subtotal ?? 0),
+        lineCount: Number(cart.lineCount ?? (Array.isArray(cart.lines) ? cart.lines.length : 0)),
+      };
+    } catch {
+      // try next endpoint
+    }
   }
-  return json;
-}
-
-export async function updateLineQuantity(lineId: string, quantity: number) {
-  const res = await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ quantity }),
-    cache: "no-store",
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.ok === false) {
-    throw new Error(json?.error || `updateLineQuantity failed: ${res.status}`);
-  }
-  return json;
-}
-
-export async function removeLine(lineId: string) {
-  const res = await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, {
-    method: "DELETE",
-    cache: "no-store",
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.ok === false) {
-    throw new Error(json?.error || `removeLine failed: ${res.status}`);
-  }
-  return json;
-}
-
-export async function getCart() {
-  const res = await fetch("/api/cart", { cache: "no-store" });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.ok === false) {
-    throw new Error(json?.error || `getCart failed: ${res.status}`);
-  }
-  return json;
+  return { id: null, lines: [], subtotal: 0, lineCount: 0 };
 }

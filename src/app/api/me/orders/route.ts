@@ -1,37 +1,108 @@
 // src/app/api/me/orders/route.ts
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { orders, orderItems, customers } from "@/db/schema/customer";
-import { eq, desc } from "drizzle-orm";
+import { NextResponse, type NextRequest } from "next/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
+import { carts, orders } from "@/db/schema";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
-export async function GET(request: Request) {
-  const { userId } = auth();
-  if (!userId) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+export const runtime = "nodejs";
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
-  const url = new URL(request.url);
-  const page = Number(url.searchParams.get("page") ?? "1");
-  const pageSize = Math.min(50, Number(url.searchParams.get("pageSize") ?? "20"));
+export async function GET(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
+
+  // pagination
+  const url = new URL(req.url);
+  const page = Math.max(1, Number(url.searchParams.get("page") || 1));
+  const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") || 20)));
   const offset = (page - 1) * pageSize;
 
-  const [cust] = await db.select().from(customers).where(eq(customers.clerkUserId, userId)).limit(1);
-  if (!cust) return NextResponse.json({ ok: true, orders: [], total: 0 });
+  // ── Try to pull primary email from Clerk ─────────────────────────────
+  let primaryEmail: string | null = null;
+  try {
+    const cc = await clerkClient(); // in your setup, clerkClient is a function
+    const user = await cc.users.getUser(userId);
+    primaryEmail =
+      user?.primaryEmailAddress?.emailAddress ??
+      user?.emailAddresses?.[0]?.emailAddress ??
+      null;
+  } catch {
+    /* non-fatal */
+  }
 
-  const list = await db
+  // ── Claim guest orders by email (best-effort; column may differ) ─────
+  if (primaryEmail) {
+    try {
+      await db
+        .update(orders)
+        .set({ userId })
+        .where(
+          and(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            isNull((orders as any).userId),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            eq((orders as any).customerEmail, primaryEmail)
+          )
+        );
+    } catch {
+      // ignore if your schema doesn't have customerEmail
+    }
+  }
+
+  // ── Claim guest orders by cartId -> sid (from cookie) ────────────────
+  const jar = await cookies();
+  const sid =
+    jar.get("adap_sid")?.value ??
+    jar.get("sid")?.value ??
+    null;
+
+  if (sid) {
+    try {
+      // find carts for this sid
+      const cartRows = await db
+        .select({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          id: (carts as any).id,
+        })
+        .from(carts)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .where(eq((carts as any).sid, sid));
+
+      const cartIds = cartRows.map((r) => String(r.id));
+      if (cartIds.length) {
+        // attach orders with those cartIds to this user (where not already claimed)
+        await db
+          .update(orders)
+          .set({ userId })
+          .where(
+            and(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              isNull((orders as any).userId),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              inArray((orders as any).cartId, cartIds)
+            )
+          );
+      }
+    } catch {
+      // ignore if your schema uses a different column name than cartId
+    }
+  }
+
+  // ── Return this user's orders ────────────────────────────────────────
+  const rows = await db
     .select()
     .from(orders)
-    .where(eq(orders.customerId, cust.id))
-    .orderBy(desc(orders.placedAt))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .where(eq((orders as any).userId, userId))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .orderBy(desc((orders as any).createdAt))
     .limit(pageSize)
     .offset(offset);
 
-  // (Optional) fetch items per order – or lazy-load on client
-  // const itemsByOrder = await db.select().from(orderItems).where(inArray(orderItems.orderId, list.map(o=>o.id)))
-
-  const total = (await db
-    .select({ count: orders.id })
-    .from(orders)
-    .where(eq(orders.customerId, cust.id)))[0]?.count ?? 0;
-
-  return NextResponse.json({ ok: true, orders: list, total });
+  return NextResponse.json({ ok: true, page, pageSize, orders: rows });
 }

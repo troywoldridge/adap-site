@@ -2,56 +2,42 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-export type CartLineMini = {
-  productId: number;
-  optionIds: number[];
-  quantity: number;
-};
+export type CartLineMini = { productId: number; optionIds: number[]; quantity: number };
 
 export type ShippingRate = {
-  carrier: string;            // e.g. "UPS"
-  method: string;             // e.g. "UPS Standard"
-  cost: number;               // e.g. 31.53
-  days: number | null;        // business days (if provided)
+  carrier: string;
+  method: string;
+  cost: number;
+  days: number | null;
   currency: "USD" | "CAD";
 };
 
 type Props = {
-  /** Lines from the cart */
   lines: CartLineMini[];
-  /** "US" | "CA"; also determines default currency label */
   store: "US" | "CA";
-  /** Preselected rate, if any (persisted from earlier) */
   selected?: ShippingRate | null;
-  /** Bubble the selection up to parent */
   onSelect?: (rate: ShippingRate | null) => void;
 };
 
-function fmtMoney(v: number, currency: "USD" | "CAD") {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-    v || 0
-  );
+const fmtMoney = (v: number, c: "USD" | "CAD") =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: c }).format(v || 0);
+
+function toCurrency(c: unknown): "USD" | "CAD" {
+  return c === "CAD" ? "CAD" : "USD";
 }
 
-export default function CartShippingEstimator({
-  lines,
-  store,
-  selected,
-  onSelect,
-}: Props) {
-  const [shipCountry, setShipCountry] = useState<"US" | "CA">(
-    store === "CA" ? "CA" : "US"
-  );
+export default function CartShippingEstimator({ lines, store, selected, onSelect }: Props) {
+  const [shipCountry, setShipCountry] = useState<"US" | "CA">(store === "CA" ? "CA" : "US");
   const [shipState, setShipState] = useState("");
   const [shipZip, setShipZip] = useState("");
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [cheapestKey, setCheapestKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currency: "USD" | "CAD" = shipCountry === "CA" ? "CAD" : "USD";
 
-  // Keep UI selection in sync when parent provides a selected rate
   useEffect(() => {
     if (!selected) {
       setSelectedKey(null);
@@ -71,7 +57,7 @@ export default function CartShippingEstimator({
         optionIds: l.optionIds,
         quantity: l.quantity,
       })),
-      store: shipCountry, // API expects "US" | "CA"
+      store: shipCountry,
     }),
     [shipCountry, shipState, shipZip, lines]
   );
@@ -91,39 +77,45 @@ export default function CartShippingEstimator({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(requestBody),
       });
+
       const json = (await res.json()) as
-        | { ok: true; rates: ShippingRate[] }
-        | { ok: false; error: string; detail?: unknown };
+        | { ok: true; rates: any[] }
+        | { ok: false; error: string };
 
       if (!res.ok || !("ok" in json) || !json.ok) {
-        const msg =
-          (json as any)?.error || `Failed to get rates (${res.status})`;
-        setError(msg);
+        setError((json as any)?.error || `Failed to get rates (${res.status})`);
         setLoading(false);
         return;
       }
 
-      const normalized: ShippingRate[] = (json.rates || []).map((r) => ({
-        carrier: r.carrier || "",
-        method: r.method || "",
-        cost: Number(r.cost) || 0,
-        days: typeof r.days === "number" ? r.days : null,
-        currency: r.currency === "CAD" ? "CAD" : "USD",
+      // ⬇⬇⬇ EXPLICITLY typed as ShippingRate[] (currency narrowed)
+      const normalized: ShippingRate[] = (json.rates || []).map((r: any): ShippingRate => ({
+        carrier: String(r?.carrier ?? ""),
+        method: String(r?.method ?? ""),
+        cost: Number(r?.cost ?? 0) || 0,
+        days: typeof r?.days === "number" ? r.days : null,
+        currency: toCurrency(r?.currency),
       }));
 
-      // Sort by cost asc so the cheapest is on top
       normalized.sort((a, b) => a.cost - b.cost);
-
       setRates(normalized);
 
-      // If we already had a selected rate and it's still in the list, keep it;
-      // otherwise clear selection.
+      const cheapest = normalized[0] || null;
+      const cKey = cheapest ? `${cheapest.carrier}__${cheapest.method}__${cheapest.cost}` : null;
+      setCheapestKey(cKey);
+
       const keepKey = selected
         ? `${selected.carrier}__${selected.method}__${selected.cost}`
         : null;
       const hasKeep =
-        keepKey && normalized.some((r) => `${r.carrier}__${r.method}__${r.cost}` === keepKey);
-      if (!hasKeep) {
+        !!keepKey && normalized.some((r) => `${r.carrier}__${r.method}__${r.cost}` === keepKey);
+
+      if (hasKeep) {
+        setSelectedKey(keepKey!);
+      } else if (cheapest && cKey) {
+        setSelectedKey(cKey);
+        onSelect?.(cheapest);
+      } else {
         setSelectedKey(null);
         onSelect?.(null);
       }
@@ -138,8 +130,6 @@ export default function CartShippingEstimator({
     const k = `${rate.carrier}__${rate.method}__${rate.cost}`;
     setSelectedKey(k);
     onSelect?.(rate);
-
-    // Persist lightly so a hard refresh keeps the user’s choice (scoped by country/state/zip)
     try {
       const key = `ADAP_SHIP_${shipCountry}_${shipState}_${shipZip}`;
       localStorage.setItem(key, JSON.stringify(rate));
@@ -147,22 +137,12 @@ export default function CartShippingEstimator({
   }
 
   return (
-    <div>
-      {/* Inputs */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr auto",
-          gap: 8,
-          alignItems: "center",
-          marginBottom: 8,
-        }}
-      >
+    <div className="shipping-estimator">
+      <div className="shipping-estimator__form" role="group" aria-label="Estimate shipping">
         <select
           value={shipCountry}
           onChange={(e) => setShipCountry(e.target.value as "US" | "CA")}
           aria-label="Country"
-          className="shipping-estimator__select"
         >
           <option value="US">United States</option>
           <option value="CA">Canada</option>
@@ -173,7 +153,6 @@ export default function CartShippingEstimator({
           onChange={(e) => setShipState(e.target.value.toUpperCase())}
           placeholder={shipCountry === "CA" ? "ON" : "KY"}
           aria-label="State/Province"
-          className="shipping-estimator__input"
         />
 
         <input
@@ -181,80 +160,58 @@ export default function CartShippingEstimator({
           onChange={(e) => setShipZip(e.target.value)}
           placeholder={shipCountry === "CA" ? "L3R 1G3" : "41179"}
           aria-label="Postal/ZIP"
-          className="shipping-estimator__input"
         />
 
+        {/* Matches Checkout button styling via globals */}
         <button
+          type="button"
           disabled={loading}
           onClick={handleGetRates}
-          className="shipping-estimator__button"
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: "var(--color-blue)",
-            color: "#fff",
-            fontWeight: 700,
-            opacity: loading ? 0.7 : 1,
-          }}
+          className="shipping-estimator__button btn checkout"
+          aria-busy={loading ? "true" : "false"}
         >
           {loading ? "Loading…" : "Get Rates"}
         </button>
       </div>
 
       {error ? (
-        <p style={{ color: "#b91c1c", margin: "6px 0 10px" }}>{error}</p>
+        <p className="shipping-estimator__error" role="alert" aria-live="polite">
+          {error}
+        </p>
       ) : null}
 
-      {/* Rates */}
       {rates.length > 0 && (
-        <ul
-          style={{
-            marginTop: 8,
-            padding: 0,
-            listStyle: "none",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            overflow: "hidden",
-          }}
-        >
-          {rates.map((r, i) => {
+        <ul className="shipping-rates" role="list">
+          {rates.map((r) => {
             const k = `${r.carrier}__${r.method}__${r.cost}`;
             const checked = k === selectedKey;
+            const cheapest = k === cheapestKey;
             return (
               <li
                 key={k}
                 onClick={() => choose(r)}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr auto",
-                  gap: 10,
-                  alignItems: "center",
-                  padding: "10px 12px",
-                  borderTop: i ? "1px solid #f1f5f9" : "none",
-                  cursor: "pointer",
-                  background: checked ? "#f8fafc" : "#fff",
-                }}
+                className={`shipping-rate${checked ? " shipping-rate--selected" : ""}`}
+                role="button"
+                aria-pressed={checked}
               >
                 <input
                   type="radio"
                   name="shipping-rate"
                   checked={checked}
                   onChange={() => choose(r)}
-                  style={{ margin: 0 }}
                 />
                 <div>
-                  <div style={{ fontWeight: 600 }}>
+                  <div className="shipping-rate__name">
                     {r.carrier} — {r.method}
+                    {cheapest ? <span className="shipping-rate__badge">Best price</span> : null}
                   </div>
-                  <div style={{ color: "#64748b", fontSize: 12 }}>
+                  <div className="shipping-rate__meta">
                     {typeof r.days === "number"
                       ? `${r.days} business day${r.days === 1 ? "" : "s"}`
                       : "—"}
                   </div>
                 </div>
-                <div style={{ fontWeight: 700 }}>
-                  {fmtMoney(r.cost, r.currency || currency)}
-                </div>
+                <div className="shipping-rate__price">{fmtMoney(r.cost, r.currency)}</div>
               </li>
             );
           })}

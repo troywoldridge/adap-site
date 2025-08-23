@@ -1483,39 +1483,161 @@ section.shop-by-category .section-title {
 .upload-btn:hover { background: #f9fafb; }
 .hidden-input { display: none; }
 
-/* Shipping estimator (components/CartShippingEstimator.tsx) */
-/* ===========================
-   Shipping Estimator — Compact
-   =========================== */
+/* ==========================================================================
+   CART + SHIPPING ESTIMATOR (cleaned)
+   - Minimal specificity, no duplicate blocks, almost no !important
+   - Consistent spacing, radii, borders, focus states
+   - Same breakpoints: 920px (desktop grid), 640px (mobile stack)
+   ========================================================================== */
 
-/* ===== Estimator compact overrides (high specificity) ===== */
+/* ---------- Design tokens (scoped to cart page root) ---------- */
+.cartpg {
+  --card-bg: #fff;
+  --card-br: 12px;
+  --card-border: 1px solid #e5e7eb;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+
+  --text-muted: #64748b;  /* slate-500 */
+  --text-subtle: #667085;  /* gray-500 */
+  --danger: #b42318;
+  --danger-bg: #fef3f2;
+  --danger-br: #fecdca;
+
+  --focus-ring: 0 0 0 3px rgba(0, 98, 255, .2);
+  --focus-border: rgba(0, 98, 255, .5);
+
+  --gap-lg: 32px;
+  --gap-md: 14px;
+  --gap-sm: 10px;
+
+  box-sizing: border-box;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+/* ---------- Two-column layout on desktop ---------- */
+.cartpg__grid {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 520px;
+  gap: var(--gap-lg);
+  align-items: start;
+}
+
+/* Responsive collapse */
+@media (max-width:1080px){
+  .cartpg__grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- LEFT: items list ---------- */
+.cartpg__list { list-style: none; margin: 0; padding: 0; }
+
+.cartpg__row {
+  border: var(--card-border);
+  border-radius: var(--card-br);
+  background: var(--card-bg);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.cartpg__rowGrid {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: var(--gap-md);
+  align-items: center;
+}
+
+.cartpg__thumb { width: 80px; height: 64px; border-radius: 8px; background: #f5f5f5; }
+
+.cartpg__name { font-weight: 700; line-height: 1.2; }
+.cartpg__each { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+
+.cartpg__qtyWrap { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+
+.cartpg__qtyInput {
+  width: 92px; padding: 8px 10px;
+  border-radius: 8px; border: 1px solid #e5e7eb; background: #fff;
+}
+.cartpg__qtyInput:focus {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-ring);
+  border-color: var(--focus-border);
+}
+
+.cartpg__rowRight { text-align: right; }
+.cartpg__lineTotal { font-weight: 800; }
+
+.cartpg__remove {
+  margin-top: 10px;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cartpg__remove:hover { background: #fff1f2; }
+
+/* ---------- RIGHT: summary card ---------- */
+.cartpg__summary { position: sticky; top: 96px; align-self: start; }
+
+.cartpg__summaryCard {
+  width: 100%; max-width: 520px;
+  border: var(--card-border); background: var(--card-bg);
+  border-radius: var(--card-br); padding: 18px; box-shadow: var(--shadow-sm);
+}
+
+/* remove any inner card chrome from the React component */
+.cartpg__summaryCard .cart-summary {
+  border: 0; background: transparent; padding: 0;
+}
+
+/* Key-value rows + total */
+.cart-summary .sum-kv { display: flex; justify-content: space-between; padding: 8px 0; }
+.cart-summary .sum-total {
+  border-top: 1px solid #e5e7eb; margin-top: 12px; padding-top: 12px;
+  font-weight: 800; font-size: 20px;
+}
+
+/* ==========================================================================
+   SHIPPING ESTIMATOR (generic, used inside order-summary/cart-summary)
+   ========================================================================== */
+
+/* Use CSS vars to theme compact/v2 without duplicate blocks */
 .order-summary .estimator.estimator--compact {
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 12px;
+  --est-bg: #fff;
+  --est-br: 12px;
+  --est-border: 1px solid rgba(0,0,0,.08);
+  --est-input-br: 8px;
+  --est-track-btn: 120px;
+
+  border: var(--est-border);
+  border-radius: var(--est-br);
   padding: 16px;
-  background: #fff;
+  background: var(--est-bg);
+}
+
+.order-summary .estimator.estimator--compact[data-estimator="v2"] {
+  --est-bg: #fbfcff; /* subtle tint with same structure */
 }
 
 .order-summary .estimator.estimator--compact .estimator__title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0 0 12px;
+  font-size: 1rem; font-weight: 700; margin: 0 0 12px;
 }
 
 .order-summary .estimator.estimator--compact .estimator__inputs {
-  display: grid;
-  align-items: end;
-  gap: 10px;
+  display: grid; align-items: end; gap: var(--gap-sm);
 }
 
-/* DESKTOP: exact track widths so the button never overflows */
+/* DESKTOP */
 @media (min-width: 920px) {
   .order-summary .estimator.estimator--compact .estimator__inputs {
     grid-template-columns:
-      minmax(140px, 1fr)  /* Country */
-      88px                /* State/Prov */
-      120px               /* ZIP/Postal */
-      120px;              /* Button – fixed */
+      minmax(140px, 1fr) /* Country */
+      88px               /* State/Prov */
+      120px              /* ZIP/Postal */
+      var(--est-track-btn); /* Button */
   }
 }
 
@@ -1525,8 +1647,7 @@ section.shop-by-category .section-title {
     grid-template-columns: minmax(120px,1fr) 88px 1fr;
   }
   .order-summary .estimator.estimator--compact .estimator__cta {
-    grid-column: 1 / -1;
-    justify-self: start;
+    grid-column: 1 / -1; justify-self: start;
   }
 }
 
@@ -1540,359 +1661,187 @@ section.shop-by-category .section-title {
   }
 }
 
-/* Field visuals (stronger specificity to beat global form styles) */
+/* Controls */
 .order-summary .estimator.estimator--compact .estimator__label {
-  font-size: .78rem;
-  color: #667085;
-  letter-spacing: .01em;
+  font-size: .78rem; color: var(--text-subtle); letter-spacing: .01em;
 }
 
 .order-summary .estimator.estimator--compact .estimator__control {
-  box-sizing: border-box;
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid rgba(0,0,0,.16);
-  border-radius: 8px;
-  background: #fff;
-  font-size: .93rem;
+  box-sizing: border-box; height: 36px; padding: 0 10px;
+  border: 1px solid rgba(0,0,0,.16); border-radius: var(--est-input-br);
+  background: #fff; font-size: .93rem; line-height: 1;
 }
-
 .order-summary .estimator.estimator--compact .estimator__control:focus {
   outline: 2px solid transparent;
-  box-shadow: 0 0 0 3px rgba(0, 98, 255, .2);
-  border-color: rgba(0, 98, 255, .5);
+  box-shadow: var(--focus-ring);
+  border-color: var(--focus-border);
 }
 
-/* Button locked to track width; ignores global .btn-* sizes */
+/* CTA fits its grid track */
 .order-summary .estimator.estimator--compact .estimator__cta {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  width: 100%;
-  min-width: 0;
-  padding: 0 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; width: 100%; min-width: 0; padding: 0 12px;
+  border-radius: 8px; font-weight: 600; line-height: 1; white-space: nowrap;
 }
 
-/* Feedback */
+/* Messages & rates */
 .order-summary .estimator.estimator--compact .estimator__error {
-  color: #b42318;
-  background: #fef3f2;
-  border: 1px solid #fecdca;
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin-top: 10px;
-  font-size: .9rem;
+  color: var(--danger); background: var(--danger-bg);
+  border: 1px solid var(--danger-br); border-radius: 8px;
+  padding: 8px 10px; margin-top: 10px; font-size: .9rem;
 }
 
 .order-summary .estimator.estimator--compact .estimator__rates {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
+  list-style: none; margin: 12px 0 0; padding: 0;
   border-top: 1px dashed rgba(0,0,0,.08);
 }
 
 .order-summary .estimator.estimator--compact .estimator__rate {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px dashed rgba(0,0,0,.06);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 0; border-bottom: 1px dashed rgba(0,0,0,.06);
 }
 .order-summary .estimator.estimator--compact .estimator__rate:last-child { border-bottom: 0; }
 
 .order-summary .estimator.estimator--compact .estimator__rate-name { font-weight: 600; }
-.order-summary .estimator.estimator--compact .estimator__rate-eta  { font-size: .85rem; color: #667085; }
+.order-summary .estimator.estimator--compact .estimator__rate-eta  { font-size: .85rem; color: var(--text-subtle); }
 .order-summary .estimator.estimator--compact .estimator__rate-right { font-weight: 700; }
 
-/* ===== Estimator v2 hard overrides (place AT BOTTOM of globals.css) ===== */
-.order-summary .estimator.estimator--compact[data-estimator="v2"] {
-  border: 1px solid rgba(0,0,0,.08) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
-  background: #fbfcff !important; /* TEMP: proves selector is active */
+/* ==========================================================================
+   CART SUMMARY – Shipping Estimator (component-specific hooks you had)
+   ========================================================================== */
+
+.cart-summary .shipping-estimator { margin-top: 16px; }
+
+/* Form grid: Country | State | ZIP on one row; button full-width below */
+.cart-summary .shipping-estimator__form {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 84px minmax(100px, .8fr);
+  column-gap: 6px;
+  align-items: center;
 }
+.cart-summary .shipping-estimator__form > * { min-width: 0; }
 
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__title {
-  font-size: 1rem !important;
-  font-weight: 700 !important;
-  margin: 0 0 12px !important;
-}
-
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__inputs {
-  display: grid !important;
-  align-items: end !important;
-  gap: 10px !important;
-}
-
-/* DESKTOP: exact track widths so button never overflows */
-@media (min-width: 920px) {
-  .order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__inputs {
-    grid-template-columns:
-      minmax(140px, 1fr)  /* Country */
-      88px                /* State/Prov */
-      120px               /* ZIP/Postal */
-      120px               /* Button */
-      !important;
-  }
-}
-
-/* TABLET */
-@media (min-width: 640px) and (max-width: 919px) {
-  .order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__inputs {
-    grid-template-columns: minmax(120px,1fr) 88px 1fr !important;
-  }
-  .order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__cta {
-    grid-column: 1 / -1 !important;
-    justify-self: start !important;
-  }
-}
-
-/* MOBILE */
-@media (max-width: 639px) {
-  .order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__inputs {
-    grid-template-columns: 1fr 1fr !important;
-  }
-  .order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__cta {
-    grid-column: 1 / -1 !important;
-  }
-}
-
-/* Controls */
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__label {
-  font-size: .78rem !important;
-  color: #667085 !important;
-  letter-spacing: .01em !important;
-}
-
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__control {
-  box-sizing: border-box !important;
-  height: 36px !important;
-  padding: 0 10px !important;
-  border: 1px solid rgba(0,0,0,.16) !important;
-  border-radius: 8px !important;
-  background: #fff !important;
-  font-size: .93rem !important;
-  line-height: 1 !important;
-}
-
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__control:focus {
-  outline: 2px solid transparent !important;
-  box-shadow: 0 0 0 3px rgba(0, 98, 255, .2) !important;
-  border-color: rgba(0, 98, 255, .5) !important;
-}
-
-/* Button locked to the 120px track */
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__cta {
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 36px !important;
-  width: 100% !important;   /* fills the 120px column */
-  min-width: 0 !important;
-  padding: 0 12px !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
-  white-space: nowrap !important;
-}
-
-/* Messages & rates */
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__error {
-  color: #b42318 !important;
-  background: #fef3f2 !important;
-  border: 1px solid #fecdca !important;
-  border-radius: 8px !important;
-  padding: 8px 10px !important;
-  margin-top: 10px !important;
-  font-size: .9rem !important;
-}
-
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__rates {
-  list-style: none !important;
-  margin: 12px 0 0 !important;
-  padding: 0 !important;
-  border-top: 1px dashed rgba(0,0,0,.08) !important;
-}
-
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__rate {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 12px !important;
-  padding: 10px 0 !important;
-  border-bottom: 1px dashed rgba(0,0,0,.06) !important;
-}
-.order-summary .estimator.estimator--compact[data-estimator="v2"] .estimator__rate:last-child {
-  border-bottom: 0 !important;
-}
-
-/* === CART (canonical, single source of truth) ========================== */
-.cartpg{
-  --card-border:1px solid #e5e7eb;
-  --card-bg:#fff;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.05);
-  box-sizing:border-box;
-  max-width:1280px;
-  margin:0 auto;
-  padding:0 16px 40px;
-}
-
-.cartpg__grid{
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) 520px !important;
-  gap:32px !important;
-  align-items:start !important;
-}
-
-/* LEFT: items */
-.cartpg__list{ list-style:none; margin:0; padding:0; }
-.cartpg__row{
-  border:var(--card-border); border-radius:12px; background:var(--card-bg);
-  padding:14px; margin-bottom:14px;
-}
-.cartpg__rowGrid{ display:grid; grid-template-columns:80px 1fr auto; gap:14px; align-items:center; }
-.cartpg__thumb{ width:80px; height:64px; border-radius:8px; background:#f5f5f5; }
-.cartpg__name{ font-weight:700; line-height:1.2; }
-.cartpg__each{ margin-top:4px; font-size:12px; color:#64748b; }
-.cartpg__qtyWrap{ margin-top:10px; display:flex; align-items:center; gap:8px; }
-.cartpg__qtyInput{ width:92px; padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; }
-.cartpg__rowRight{ text-align:right; }
-.cartpg__lineTotal{ font-weight:800; }
-.cartpg__remove{
-  margin-top:10px; background:transparent; color:#ef4444; border:1px solid #fecaca;
-  padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer;
-}
-
-/* RIGHT: summary */
-.cartpg__summary{ position:sticky; top:96px !important; align-self:start; }
-.cartpg__summaryCard{
-  width:100%; max-width:520px;
-  border:var(--card-border); background:var(--card-bg);
-  border-radius:12px; padding:18px; box-shadow:var(--shadow-sm);
-}
-
-/* remove any inner card border/padding */
-.cartpg__summaryCard .cart-summary{ border:0 !important; background:transparent !important; padding:0 !important; }
-
-/* subtotal / shipping / total */
-.cart-summary .sum-kv{ display:flex; justify-content:space-between; padding:8px 0; }
-.cart-summary .sum-total{
-  border-top:1px solid #e5e7eb; margin-top:12px; padding-top:12px; font-weight:800; font-size:20px;
-}
-
-/* SHIPPING ESTIMATOR */
-.cart-summary .shipping-estimator{ margin-top:16px; }
-
-/* Country | State | ZIP (no spacer column), button below */
-.cart-summary .shipping-estimator__form{
-  display:grid !important;
-  grid-template-columns: minmax(170px,1fr) 100px 130px !important; /* country | state | zip */
-  gap:8px !important;
-  align-items:center;
-  padding-right:8px; /* tiny right gutter inside card */
-}
-
-/* allow kids to shrink inside grid tracks */
-.cart-summary .shipping-estimator__form > *{ min-width:0 !important; }
-
-/* inputs/selects sized to their column */
 .cart-summary .shipping-estimator__form select,
-.cart-summary .shipping-estimator__form input{
-  height:40px !important;
-  width:100% !important;
-  box-sizing:border-box !important;
-  border:1px solid #e5e7eb !important;
-  border-radius:8px !important;
-  padding:0 10px !important;
-  background:#fff !important;
+.cart-summary .shipping-estimator__form input {
+  height: 40px; width: 100%; box-sizing: border-box;
+  border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 10px; background: #fff;
+}
+.cart-summary .shipping-estimator__form select:focus,
+.cart-summary .shipping-estimator__form input:focus {
+  outline: 2px solid transparent;
+  box-shadow: var(--focus-ring);
+  border-color: var(--focus-border);
 }
 
-/* full-width button on a new row */
-.cart-summary .shipping-estimator__button,
-.cart-summary button{
-  grid-column:1 / -1 !important;
-  width:92% !important;
-  height:40px !important;
-  margin-top:8px !important;
-  position:static !important;
-  transform:none !important;
-}
-
-/* Rates list */
-.cart-summary .shipping-rates{
-  margin-top:12px; border:1px solid #e5e7eb; border-radius:10px; overflow:auto; max-height:260px;
-}
-.cart-summary .shipping-rate{
-  display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
-  padding:10px 12px; border-bottom:1px solid #f1f5f9;
-}
-.cart-summary .shipping-rate:last-child{ border-bottom:0; }
-.cart-summary .shipping-rate__meta{ font-size:12px; color:#64748b; }
-.cart-summary .shipping-rate__price{ font-weight:700; }
-.cart-summary .shipping-rate--selected{ background:#f8fafc; outline:2px solid #1d4ed8; }
-
-/* Responsive */
-@media (max-width:1080px){
-  .cartpg__grid{ grid-template-columns:1fr !important; }
-  .cartpg__summaryCard{ max-width:100% !important; }
-}
-@media (max-width:640px){
-  .cart-summary .shipping-estimator__form{ grid-template-columns:1fr 1fr !important; }
-  .cart-summary .shipping-estimator__button{ grid-column:1 / -1 !important; }
-}
-
-/* === Cart: buttons (92% width & centered) ============================== */
+/* Button: full width on its own row */
 .cart-summary .shipping-estimator__button,
 .cart-summary > button,
-.cartpg__summaryCard .cart-summary > button,
 .cartpg__summaryCard .cart-summary .checkout-btn,
 .cartpg__summaryCard .cart-summary .btn.primary,
 .cartpg__summaryCard .cart-summary .btn.checkout {
-  width: 92% !important;
-  height: 40px !important;
-  grid-column: 1 / -1 !important;   /* keep on its own line when inside the grid */
-  justify-self: center !important;  /* center the 92%-width button */
-  margin-top: 8px !important;
-  position: static !important;
-  transform: none !important;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 40px;
+  margin-top: 8px;
 }
 
-/* === Cart: estimator inputs (shrink to fit inside card) ================ */
-.cart-summary .shipping-estimator__form {
-  /* country | state | zip — smaller fixed tracks for state/zip */
-  grid-template-columns: minmax(150px, 1fr) 84px minmax(100px, 0.8fr) !important;
-  column-gap: 6px !important;
-  padding-right: 0 !important;      /* remove extra right gutter */
+/* Rates list */
+.cart-summary .shipping-rates {
+  margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 10px;
+  overflow: auto; max-height: 260px;
 }
-
-/* allow children to actually shrink within tracks */
-.cart-summary .shipping-estimator__form > * { min-width: 0 !important; }
-
-/* inputs/selects sized to their column */
-.cart-summary .shipping-estimator__form select,
-.cart-summary .shipping-estimator__form input {
-  width: 100% !important;
-  height: 40px !important;
-  box-sizing: border-box !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  padding: 0 10px !important;
+.cart-summary .shipping-rate {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+  padding: 10px 12px; border-bottom: 1px solid #f1f5f9;
 }
+.cart-summary .shipping-rate:last-child { border-bottom: 0; }
+.cart-summary .shipping-rate__meta { font-size: 12px; color: var(--text-muted); }
+.cart-summary .shipping-rate__price { font-weight: 700; }
+.cart-summary .shipping-rate--selected { background: #f8fafc; outline: 2px solid #1d4ed8; }
 
-/* mobile: stack neatly; button stays full width below */
+/* Mobile stack */
 @media (max-width: 640px) {
-  .cart-summary .shipping-estimator__form {
-    grid-template-columns: 1fr 1fr !important;
-  }
+  .cart-summary .shipping-estimator__form { grid-template-columns: 1fr 1fr; }
   .cart-summary .shipping-estimator__button,
-  .cart-summary > button { grid-column: 1 / -1 !important; }
+  .cart-summary > button { grid-column: 1 / -1; }
 }
 
+/* Thumbnails */
+.cartpg__thumbImg {
+  width: 80px;
+  height: 64px;
+  display: block;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+/* Empty-state card */
+.empty-card {
+  border: var(--card-border, 1px solid #e5e7eb);
+  background: var(--card-bg, #fff);
+  border-radius: var(--card-br, 12px);
+  padding: 20px;
+  text-align: center;
+}
+.empty-card p {
+  color: var(--text-muted, #64748b);
+  margin: 6px 0 16px;
+}
+
+/* Saved-for-later card */
+.saved-card {
+  border: var(--card-border, 1px solid #e5e7eb);
+  background: var(--card-bg, #fff);
+  border-radius: var(--card-br, 12px);
+  padding: 16px;
+  margin-top: 16px;
+}
+.saved-card h3 { margin: 0 0 10px; }
+
+.saved-list { list-style: none; padding: 0; margin: 0; }
+.saved-row + .saved-row { margin-top: 12px; }
+
+.saved-row__grid {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.saved-thumb__img {
+  width: 80px; height: 64px; display: block; object-fit: cover; border-radius: 8px; background: #f5f5f5;
+}
+
+.saved-name { font-weight: 700; line-height: 1.2; }
+.saved-each { margin-top: 4px; font-size: 12px; color: var(--text-muted, #64748b); }
+.saved-opts { margin-top: 2px; font-size: 12px; color: var(--text-muted, #64748b); }
+
+.saved-actions { display: flex; gap: 8px; align-items: center; }
+.link-btn { background: transparent; border: 0; color: #2563eb; padding: 0; cursor: pointer; }
+
+/* Save button on cart line */
+.cartpg__save {
+  margin-top: 10px;
+  background: transparent;
+  color: #334155;
+  border: 1px solid #e5e7eb;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cartpg__save:hover { background: #f8fafc; }
+
+/* Shipping estimator: "Best price" badge */
+.shipping-rate__badge {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  padding: 2px 6px;
+  vertical-align: middle;
+}
