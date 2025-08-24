@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { carts, cartLines, cartArtwork } from "@/db/schema";
+import { carts, cartLines, cartArtwork, orders } from "@/db/schema";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
+import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -37,7 +38,7 @@ function toSinaliteItem(
   const optionIds = Array.isArray(ln.optionIds) ? ln.optionIds : [];
   return {
     productId: ln.productId,
-    options: optionIds, // send numbers directly
+    options: optionIds, // numbers are OK per docs
     files,
     extra: ln.id, // reference back to our cart line
   };
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // Next 14/15 compatible cookie read
+    // Next 15: cookies() must be awaited
     const jar = await cookies();
     const sid =
       (body?.sid as string) ||
@@ -109,27 +110,24 @@ export async function POST(req: NextRequest) {
       BillPhone: toStr((cart as any)?.billPhone, shippingInfo.ShipPhone),
     };
 
-    // ---- Artwork: query by cartLineId (NOT by sid). Avoid custom select mapping.
+    // ---- Artwork: query by cartLineId only
     let artworkByLine: Record<string, { type: string; url: string }[]> = {};
     try {
-      const lineIds = lines.map((l) => l.id as string).filter(Boolean);
+      const lineIds = lines.map((l) => String(l.id)).filter(Boolean);
       if (lineIds.length) {
         const artRows = await db
           .select()
           .from(cartArtwork)
           .where(inArray(cartArtwork.cartLineId, lineIds));
 
-        // map only the fields we need
         const simplified = artRows.map((a: any) => ({
           cartLineId: String(a.cartLineId),
           url: String(a.url),
           side: a.side ? String(a.side) : null,
         }));
-
         artworkByLine = groupArtByLine(simplified);
       }
     } catch {
-      // if artwork table differs in local dev, just omit files
       artworkByLine = {};
     }
 
@@ -138,7 +136,7 @@ export async function POST(req: NextRequest) {
         {
           id: String(ln.id),
           productId: Number(ln.productId),
-          optionIds: Array.isArray(ln.optionIds) ? ln.optionIds as number[] : [],
+          optionIds: Array.isArray(ln.optionIds) ? (ln.optionIds as number[]) : [],
         },
         artworkByLine[String(ln.id)] || []
       )
@@ -168,7 +166,6 @@ export async function POST(req: NextRequest) {
     });
 
     const reply = await placeRes.json().catch(() => null);
-
     if (!placeRes.ok || (reply && reply?.status === "error")) {
       console.error("Sinalite order failed", reply);
       return NextResponse.json(
@@ -177,8 +174,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Close the cart
-    await db.update(carts).set({ status: "submitted" as any }).where(eq(carts.id, cart.id));
+    // Record an order row for “My Orders” (schema field names may differ)
+    try {
+      const { userId } = await auth();
+      await db.insert(orders as any).values({
+        userId: userId ?? null,                    // link to account if signed in
+        sid: (cart as any).sid ?? null,            // helpful for claiming later
+        cartId: String(cart.id),                   // if your table has this
+        externalId: reply?.orderId?.toString?.() ?? null, // Sinalite id
+        status: "submitted",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        shippingJson: JSON.stringify((cart as any)?.selectedShipping ?? null),
+        itemsJson: JSON.stringify(items),
+        notes: `Stripe Session: ${toStr(body?.stripeSessionId)} | Cart: ${cart.id}`,
+      });
+    } catch (e) {
+      console.warn("orders.place: failed to insert orders row (non-fatal)", e);
+    }
+
+    // Close the cart so it doesn’t reappear
+    await db
+      .update(carts)
+      .set({ status: "submitted" as any })
+      .where(eq(carts.id, cart.id));
 
     return NextResponse.json({ ok: true, order: reply });
   } catch (e: any) {

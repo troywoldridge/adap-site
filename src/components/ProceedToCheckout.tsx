@@ -1,35 +1,25 @@
+// src/components/ProceedToCheckout.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-export type CheckoutShipping = {
-  carrier: string;
-  method: string;
-  cost: number;
-  days: number | null;
-  currency: "USD" | "CAD";
-  country: "US" | "CA";
-  state: string;
-  zip: string;
-} | null;
+import { useAuth } from "@clerk/nextjs";
 
 type Props = {
-  /** If the add-to-cart flow must finish first */
   ensureAdded?: () => Promise<void> | void;
-  /** Selected rate from the estimator (optional but recommended) */
-  shipping?: CheckoutShipping;
+  to?: "/cart" | "/cart/review" | "/checkout";
   className?: string;
   children?: React.ReactNode;
 };
 
 export default function ProceedToCheckout({
   ensureAdded,
-  shipping = null,
+  to = "/cart/review",
   className,
   children,
 }: Props) {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
   const [busy, setBusy] = useState(false);
 
   async function onClick() {
@@ -37,39 +27,28 @@ export default function ProceedToCheckout({
       setBusy(true);
       if (ensureAdded) await ensureAdded();
 
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ shipping }),
-      });
-
-      // Not signed in? middleware returns 401 → send to sign-in and return to review.
-      if (res.status === 401) {
-        router.push(`/sign-in?redirect_url=${encodeURIComponent("/cart/review")}`);
+      // Gate: if not signed in, go through Clerk sign-in page
+      if (!isSignedIn) {
+        // Clerk v6+ uses redirect_url query param on the Sign-in route
+        const redirect = encodeURIComponent(to);
+        router.push(`/sign-in?redirect_url=${redirect}`);
         return;
       }
 
-      const json = await res.json().catch(() => ({} as any));
-      if (!res.ok || !json?.ok || !json?.url) {
-        throw new Error(json?.error || `Failed to start checkout`);
-      }
-
-      window.location.href = json.url as string;
-    } catch (e: any) {
-      alert(e?.message || "Could not start checkout");
+      router.push(to);
+    } finally {
       setBusy(false);
     }
-      }
+  }
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={busy}
-      className={className ?? "btn primary w-full"}
+      className={className ?? "btn btn--primary w-full"}
     >
       {busy ? "One moment…" : children ?? "Checkout"}
     </button>
-    
   );
 }

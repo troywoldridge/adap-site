@@ -1,3 +1,4 @@
+// src/app/api/create-checkout-session/route.ts
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies, headers } from "next/headers";
 import Stripe from "stripe";
@@ -28,25 +29,9 @@ type SelectedShipping = {
   zip: string;
 } | null;
 
-async function getUnitPrice(
-  origin: string,
-  productId: number,
-  optionIds: number[],
-  store: "US" | "CA"
-) {
-  const res = await fetch(
-    `${origin}/api/sinalite/price/${productId}?store=${store}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ optionIds }),
-      cache: "no-store",
-    }
-  );
-  if (!res.ok) return 0;
-  const json = await res.json().catch(() => ({} as any));
-  const n = Number(json?.price ?? json?.unitPrice ?? 0);
-  return Number.isFinite(n) ? n : 0;
+function toNum(n: unknown, fallback = 0) {
+  const v = Number(n);
+  return Number.isFinite(v) ? v : fallback;
 }
 
 export async function POST(req: NextRequest) {
@@ -55,112 +40,67 @@ export async function POST(req: NextRequest) {
     const origin = originFromHeaders(h);
     const jar = await cookies();
 
-    const body = await req.json().catch(() => ({} as any));
-    const shippingFromBody: SelectedShipping =
-      body?.shipping ?? body?.selectedShipping ?? null;
-
     const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
-    if (!sid) {
-      return NextResponse.json(
-        { ok: false, error: "missing_sid" },
-        { status: 400 }
-      );
-    }
+    if (!sid) return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
 
+    // cart + lines
     const [cart] = await db
       .select()
       .from(carts)
       .where(and(eq(carts.sid, sid), eq(carts.status, "open")))
       .limit(1);
 
-    if (!cart) {
-      return NextResponse.json(
-        { ok: false, error: "cart_not_found" },
-        { status: 404 }
-      );
-    }
+    if (!cart) return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
 
-    const lines = await db
-      .select()
-      .from(cartLines)
-      .where(eq(cartLines.cartId, cart.id));
+    const lines = await db.select().from(cartLines).where(eq(cartLines.cartId, cart.id));
 
-    // Prefer shipping sent from client; fallback to DB columns
-    const selectedShipping: SelectedShipping =
-      shippingFromBody ??
-      (cart as any)?.selectedShipping ??
-      (cart as any)?.shipping ??
-      null;
-
-    const store: "US" | "CA" =
-      selectedShipping?.country === "CA" ? "CA" : "US";
+    const selectedShipping: SelectedShipping = (cart as any)?.selectedShipping ?? null;
+    const store: "US" | "CA" = selectedShipping?.country === "CA" ? "CA" : "US";
     const currency: "usd" | "cad" = store === "CA" ? "cad" : "usd";
 
-    // Price/normalize all items from Sinalite at checkout time (authoritative)
-    const priced = await Promise.all(
-      lines.map(async (ln) => {
-        const unitPrice = await getUnitPrice(
-          origin,
-          ln.productId,
-          (ln.optionIds as any) ?? [],
-          store
-        );
-        return {
-          productId: ln.productId,
-          quantity: Math.max(1, Math.min(9999, Number(ln.quantity || 1))),
-          optionIds: (ln.optionIds as any) ?? [],
-          unitPrice,
-        };
-      })
-    );
-
+    // We already saved unitPrice on each line when the user priced it.
+    // Multiply unitPrice * quantity, but pass quantity to Stripe (not pre-multiplied amount).
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
-    for (const p of priced) {
-      if (!Number.isFinite(p.unitPrice) || p.unitPrice <= 0) continue;
+    for (const ln of lines) {
+      const qty = Math.max(1, Math.min(9999, Math.floor(toNum((ln as any).quantity, 1))));
+      const unit = toNum((ln as any).unitPrice, 0);
+      if (!unit) continue;
+
       line_items.push({
-        quantity: p.quantity,
+        quantity: qty, // ← THIS fixes your $20 x 2 => $40
         price_data: {
           currency,
-          unit_amount: Math.round(p.unitPrice * 100),
+          unit_amount: Math.round(unit * 100),
           product_data: {
-            name: `Product ${p.productId}`,
+            name: `Product ${ln.productId}`,
             metadata: {
-              productId: String(p.productId),
-              optionIds: JSON.stringify(p.optionIds ?? []),
+              productId: String(ln.productId),
+              optionIds: JSON.stringify(((ln as any).optionIds ?? []) as number[]),
+              cartLineId: String(ln.id),
             },
           },
         },
       });
     }
 
-    if (
-      selectedShipping &&
-      Number.isFinite(selectedShipping.cost) &&
-      Number(selectedShipping.cost) > 0
-    ) {
+    // shipping as its own line if chosen
+    if (selectedShipping && toNum(selectedShipping.cost) > 0) {
       line_items.push({
         quantity: 1,
         price_data: {
           currency,
-          unit_amount: Math.round(Number(selectedShipping.cost) * 100),
+          unit_amount: Math.round(toNum(selectedShipping.cost) * 100),
           product_data: {
             name: `Shipping — ${selectedShipping.carrier} ${selectedShipping.method}`,
-            metadata: {
-              kind: "shipping",
-              carrier: selectedShipping.carrier,
-              method: selectedShipping.method,
-            },
+            metadata: { kind: "shipping" },
           },
         },
       });
     }
 
     if (line_items.length === 0) {
-      return NextResponse.json(
-        { ok: false, error: "no_billable_items" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "no_billable_items" }, { status: 400 });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -171,7 +111,7 @@ export async function POST(req: NextRequest) {
       cancel_url: `${origin}/cart/review`,
       metadata: {
         sid,
-        cartId: cart.id,
+        cartId: String(cart.id),
         store,
         shipping: JSON.stringify(selectedShipping ?? null),
       },
@@ -180,9 +120,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, url: session.url });
   } catch (e: any) {
     console.error("create-checkout-session failed", e);
-    return NextResponse.json(
-      { ok: false, error: String(e?.message || e) },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
   }
 }

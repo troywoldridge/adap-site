@@ -7,7 +7,6 @@ import CartShippingEstimator, {
 } from "./CartShippingEstimator";
 import ProceedToCheckout from "@/components/ProceedToCheckout";
 
-
 type Props = {
   currency: "USD" | "CAD";
   subtotal: number;
@@ -31,106 +30,39 @@ export default function CartSummary({
   selectedShipping,
   onChangeShipping,
 }: Props) {
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  async function handleCheckout() {
-    setError(null);
-    if (!lines?.length) return;
-
-    try {
-      setBusy(true);
-
-      // (Optional) ensure the selected shipping is saved server-side
-      if (selectedShipping) {
-        await fetch("/api/cart/shipping/choose", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            carrier: selectedShipping.carrier,
-            method: selectedShipping.method,
-            cost: selectedShipping.cost,
-            days: selectedShipping.days ?? null,
-            currency: selectedShipping.currency,
-            country: store === "CA" ? "CA" : "US",
-            state: "",
-            zip: "",
-          }),
-        }).catch(() => {});
-      }
-
-      // Start Stripe Checkout — our API responds with { ok, url }
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/checkout/success`,
-        }),
-      });
-
-      if (res.status === 401) {
-        // If your middleware ever requires auth, send them to sign-in and back
-        window.location.assign(`/sign-in?redirect_url=/cart/review`);
-        return;
-      }
-
-      // Accept either {ok:true,url} or a 303 redirect (fallback below)
-      const ct = res.headers.get("content-type") || "";
-      if (ct.includes("application/json")) {
-        const json = await res.json().catch(() => ({} as any));
-        if (!res.ok || !json?.url) {
-          throw new Error(json?.error || `Failed to start checkout`);
-        }
-        window.location.assign(json.url as string);
-        return;
-      }
-
-      // Fallback: if the API replies with a redirect and fetch swallowed it,
-      // just navigate to the endpoint; the server will redirect the browser.
-      window.location.assign("/api/create-checkout-session");
-    } catch (e: any) {
-      setError(String(e?.message || e));
-      setBusy(false);
-    }
-  }
 
   const shippingCost = selectedShipping?.cost ?? 0;
   const total = subtotal + (typeof shippingCost === "number" ? shippingCost : 0);
 
   return (
-    <div className="cart-summary">
-      <aside style={{ margin: "0 0 12px" }}>
-        <h3 style={{ margin: "0 0 12px" }}>Summary</h3>
+    // add order-summary so globals (and our scoped rules) can target it
+    <div className="reviewpg__card order-summary">
+      <aside>
+        <h3 className="reviewpg__sumTitle">Order Summary</h3>
 
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-          <div>Subtotal</div>
+        <div className="reviewpg__sumKV">
+          <div className="dim">Subtotal</div>
           <div>{money(subtotal, currency)}</div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-          <div>Shipping</div>
+        <div className="reviewpg__sumKV">
+          <div className="dim">Shipping</div>
           <div>{money(shippingCost, currency)}</div>
         </div>
 
-        <div
-          style={{
-            marginTop: 8,
-            paddingTop: 10,
-            borderTop: "1px solid #e5e7eb",
-            display: "flex",
-            justifyContent: "space-between",
-            fontWeight: 800,
-            fontSize: 18,
-          }}
-        >
+        <div className="reviewpg__sumTotal">
           <div>Total</div>
           <div>{money(total, currency)}</div>
         </div>
       </aside>
 
-      <div className="shipping-estimator">
+      {/* Get rates ABOVE checkout */}
+      <div className="mt-4">
         <h4 style={{ margin: "0 0 8px" }}>Estimate shipping</h4>
-        <div className="estimator">
+
+        {/* Scoped wrapper the CSS below will hook onto */}
+        <div className="reviewpg__shipCard estWrap">
           <CartShippingEstimator
             lines={lines}
             store={store}
@@ -140,15 +72,60 @@ export default function CartSummary({
         </div>
       </div>
 
-      {error ? (
-        <div style={{ color: "#b42318", marginTop: 10 }}>{error}</div>
-      ) : null}
+      {error ? <div style={{ color: "#b42318", marginTop: 10 }}>{error}</div> : null}
 
-      <ProceedToCheckout
-  shipping={selectedShipping}
-  className="btn btn-primary checkout-btn"
-/>
+      <div className="reviewpg__cta">
+        <ProceedToCheckout className="btn btn-primary checkout-btn">
+          Continue to checkout
+        </ProceedToCheckout>
+      </div>
 
-     </div>
+      {/* ===== SCOPED CSS – only affects elements inside .estWrap ===== */}
+      <style jsx>{`
+        /* Grid the form: Country | State | ZIP on one row, button full width after */
+        .estWrap :global(form) {
+          display: grid !important;
+          grid-template-columns: minmax(150px, 1fr) 88px 140px !important;
+          gap: 10px !important;
+          align-items: end;
+        }
+
+        /* Make the first three controls consistent */
+        .estWrap :global(form > select),
+        .estWrap :global(form > input) {
+          height: 36px !important;
+          padding: 0 10px !important;
+          border: 1px solid #e5e7eb !important;
+          border-radius: 8px !important;
+          background: #fff !important;
+          font-size: 0.93rem !important;
+          box-sizing: border-box !important;
+        }
+        .estWrap :global(form > select:focus),
+        .estWrap :global(form > input:focus) {
+          outline: 2px solid transparent !important;
+          box-shadow: 0 0 0 3px rgba(0, 98, 255, 0.2) !important;
+          border-color: rgba(0, 98, 255, 0.5) !important;
+        }
+
+        /* Full-width submit button on its own row */
+        .estWrap :global(form > button[type="submit"]) {
+          grid-column: 1 / -1 !important;
+          height: 40px !important;
+          border-radius: 10px !important;
+          font-weight: 700 !important;
+        }
+
+        /* Mobile: stack 2 columns then ZIP + button full width */
+        @media (max-width: 640px) {
+          .estWrap :global(form) {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .estWrap :global(form > button[type="submit"]) {
+            grid-column: 1 / -1 !important;
+          }
+        }
+      `}</style>
+    </div>
   );
 }

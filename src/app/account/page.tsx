@@ -1,30 +1,27 @@
-import { headers, cookies } from "next/headers";
+// src/app/account/page.tsx
+import "server-only";
+import type { Metadata } from "next";
 import AccountClient from "./AccountClient";
 
-export const dynamic = "force-dynamic";
-
-async function baseUrl() {
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
+export const metadata: Metadata = {
+  title: "Your Account • Orders",
+};
 
 export default async function AccountPage() {
-  const jar = await cookies();
-  const cookieHeader = jar.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  const res = await fetch(`${await baseUrl()}/api/me/orders?page=1&pageSize=20`, {
-    cache: "no-store",
-    headers: { cookie: cookieHeader },
-  });
+  // (Auth is enforced by middleware; keep this page simple/fast.)
+  return (
+    <main className="account">
+      <header className="account__header">
+        <div>
+          <h1 className="account__title">Your Orders</h1>
+          <p className="account__subtitle">Track, reorder, and download your artwork.</p>
+        </div>
+      </header>
 
-  let orders: any[] = [];
-  try {
-    const json = await res.json();
-    if (json?.ok && Array.isArray(json.orders)) orders = json.orders;
-  } catch {
-    /* ignore */
-  }
-
-  return <AccountClient initialOrders={orders} />;
+      {/* Client renderer handles fetching, filters, pagination */}
+      <section className="account__content">
+        <AccountClient />
+      </section>
+    </main>
+  );
 }

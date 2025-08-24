@@ -1,6 +1,6 @@
 // src/app/api/me/orders/route.ts
 import { NextResponse, type NextRequest } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { carts, orders } from "@/db/schema";
@@ -22,24 +22,24 @@ export async function GET(req: NextRequest) {
   const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") || 20)));
   const offset = (page - 1) * pageSize;
 
-  // ── Try to pull primary email from Clerk ─────────────────────────────
+  // Get user & primary email from Clerk without clerkClient()
   let primaryEmail: string | null = null;
   try {
-    const cc = await clerkClient(); // in your setup, clerkClient is a function
-    const user = await cc.users.getUser(userId);
+    const me = await currentUser();
     primaryEmail =
-      user?.primaryEmailAddress?.emailAddress ??
-      user?.emailAddresses?.[0]?.emailAddress ??
+      me?.primaryEmailAddress?.emailAddress ??
+      me?.emailAddresses?.[0]?.emailAddress ??
       null;
   } catch {
-    /* non-fatal */
+    /* ignore */
   }
 
-  // ── Claim guest orders by email (best-effort; column may differ) ─────
+  // Claim guest orders by email (best-effort; uses "as any" to tolerate schema variance)
   if (primaryEmail) {
     try {
       await db
-        .update(orders)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(orders as any)
         .set({ userId })
         .where(
           and(
@@ -50,34 +50,31 @@ export async function GET(req: NextRequest) {
           )
         );
     } catch {
-      // ignore if your schema doesn't have customerEmail
+      /* ok if your orders table doesn't have customerEmail */
     }
   }
 
-  // ── Claim guest orders by cartId -> sid (from cookie) ────────────────
+  // Also claim by cartId via sid cookie (guest → user)
   const jar = await cookies();
-  const sid =
-    jar.get("adap_sid")?.value ??
-    jar.get("sid")?.value ??
-    null;
+  const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
   if (sid) {
     try {
-      // find carts for this sid
       const cartRows = await db
         .select({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           id: (carts as any).id,
         })
-        .from(carts)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from(carts as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .where(eq((carts as any).sid, sid));
 
       const cartIds = cartRows.map((r) => String(r.id));
       if (cartIds.length) {
-        // attach orders with those cartIds to this user (where not already claimed)
         await db
-          .update(orders)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update(orders as any)
           .set({ userId })
           .where(
             and(
@@ -89,14 +86,15 @@ export async function GET(req: NextRequest) {
           );
       }
     } catch {
-      // ignore if your schema uses a different column name than cartId
+      /* ok if your orders table uses a different foreign key than cartId */
     }
   }
 
-  // ── Return this user's orders ────────────────────────────────────────
+  // Return this user's orders
   const rows = await db
     .select()
-    .from(orders)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .from(orders as any)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .where(eq((orders as any).userId, userId))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

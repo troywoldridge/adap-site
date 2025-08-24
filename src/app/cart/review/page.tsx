@@ -5,64 +5,58 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { carts, cartLines, cartAttachments } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-
 import { cfUrl } from "@/lib/data";
-import CartShippingEstimator from "@/components/CartShippingEstimator";
+import CartShippingEstimator, { type ShippingRate } from "@/components/CartShippingEstimator";
 
-/** ─────────────────────────────────────────────────────────────
- * Utilities
- * ────────────────────────────────────────────────────────────*/
+/* ────────── utils ────────── */
 const SID_COOKIE = "sid";
 
 function toNumArray(u: unknown): number[] {
-  if (!Array.isArray(u)) {
-    return [];
-  }
+  if (!Array.isArray(u)) return [];
   const out: number[] = [];
   for (const v of u) {
     const n = Number(v as any);
-    if (Number.isFinite(n)) {
-      out.push(n);
-    }
+    if (Number.isFinite(n)) out.push(n);
   }
   return out;
 }
-
 function toMoney(n: unknown): number {
   const x = Number(n as any);
   return Number.isFinite(x) ? x : 0;
 }
-
 function fmtCurrency(value: number, currency: "USD" | "CAD" = "USD") {
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
   } catch {
-    // ultra-safe fallback
     return `${currency} ${value.toFixed(2)}`;
   }
 }
 
-/** ─────────────────────────────────────────────────────────────
- * Data load
- * ────────────────────────────────────────────────────────────*/
+/* ────────── data load ────────── */
 async function loadCart() {
-  const sid = cookies().get(SID_COOKIE)?.value || "";
+  const jar = await cookies();
+  const sid = jar.get(SID_COOKIE)?.value || "";
 
-  // 1) Ensure open cart
   const cart = await db.query.carts.findFirst({
     where: and(eq(carts.sid, sid), eq(carts.status, "open")),
   });
+
   if (!cart) {
-    return { id: "", currency: "USD" as const, lines: [] as any[], subtotal: 0 };
+    return {
+      id: "",
+      currency: "USD" as const,
+      store: "US" as const,
+      lines: [] as any[],
+      subtotal: 0,
+      selectedShipping: null as ShippingRate | null,
+    };
   }
 
-  // 2) Load lines
   const lines = await db.query.cartLines.findMany({
     where: eq(cartLines.cartId, cart.id),
     orderBy: (t, { asc }) => [asc(t.createdAt)],
   });
 
-  // 3) Attachments (thumbnails of uploads)
   const lineIds = lines.map((l) => l.id);
   const attachments = lineIds.length
     ? await db.query.cartAttachments.findMany({
@@ -70,11 +64,9 @@ async function loadCart() {
       })
     : [];
 
-  // 4) Enrich + compute line totals
-  //    NOTE: unitPrice is stored as numeric/decimal in DB (string via Drizzle); normalize to number.
   const enriched = lines.map((l) => {
     const optionIds = toNumArray(l.optionIds);
-    const unit = toMoney(l.unitPrice);
+    const unit = toMoney((l as any).unitPrice ?? (l as any).price ?? 0);
     const qty = Math.max(1, Number(l.quantity) || 1);
     const lineTotal = unit * qty;
 
@@ -87,7 +79,6 @@ async function loadCart() {
       quantity: qty,
       unitPrice: unit,
       lineTotal,
-      // Optional JSONB columns you added in schema:
       optionsByGroup: (l as any).optionsByGroup || {},
       artworkMap: (l as any).artwork || {},
       attachments: attachmentsForLine,
@@ -95,21 +86,28 @@ async function loadCart() {
   });
 
   const subtotal = enriched.reduce((sum, it) => sum + it.lineTotal, 0);
-
-  // Currency: if you store it per-line from Sinalite later, you can infer from the first line;
-  // for now default to USD (your hooks derive CAD if user selects CA in estimator).
   const currency: "USD" | "CAD" = "USD";
 
-  return { id: cart.id, currency, lines: enriched, subtotal };
+  const rawShip = (cart as any)?.selectedShipping || null;
+  const selectedShipping: ShippingRate | null = rawShip
+    ? {
+        carrier: String(rawShip.carrier ?? ""),
+        method: String(rawShip.method ?? ""),
+        cost: Number(rawShip.cost ?? 0) || 0,
+        days: typeof rawShip.days === "number" ? rawShip.days : null,
+        currency: rawShip.currency === "CAD" ? "CAD" : "USD",
+      }
+    : null;
+
+  const store: "US" | "CA" = rawShip?.country === "CA" ? "CA" : "US";
+
+  return { id: cart.id, currency, store, lines: enriched, subtotal, selectedShipping };
 }
 
-/** ─────────────────────────────────────────────────────────────
- * Page
- * ────────────────────────────────────────────────────────────*/
+/* ────────── page ────────── */
 export default async function ReviewCartPage() {
-  const { lines, subtotal, currency } = await loadCart();
+  const { lines, subtotal, currency, store, selectedShipping } = await loadCart();
 
-  // Normalize for the estimator
   const estimateLines = lines.map((l) => ({
     productId: l.productId,
     optionIds: l.optionIds,
@@ -117,121 +115,108 @@ export default async function ReviewCartPage() {
   }));
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
-      <header className="flex items-end justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Review Your Order</h1>
-        <div className="text-sm text-gray-500">
+    <main className="reviewpg">
+      <header className="reviewpg__header">
+        <h1 className="reviewpg__title">Review Your Order</h1>
+        <div className="reviewpg__meta">
           {lines.length > 0 ? `${lines.length} item${lines.length > 1 ? "s" : ""}` : "No items"}
         </div>
       </header>
 
-      {/* Empty state */}
       {lines.length === 0 && (
-        <section
-          aria-label="Empty cart"
-          className="rounded-lg border bg-white p-6 text-sm text-gray-600"
-        >
+        <section className="reviewpg__empty" aria-label="Empty cart">
           Your cart is empty. Browse products and add items to continue.
         </section>
       )}
 
-      {/* Lines */}
       {lines.length > 0 && (
-        <section className="space-y-4">
-          {lines.map((l) => (
-            <article key={l.id} className="rounded-lg border bg-white p-4">
-              {/* Line header */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-medium">Product #{l.productId}</div>
-                  {/* Options summary (group → value) */}
-                  {l.optionsByGroup && Object.keys(l.optionsByGroup).length > 0 && (
-                    <dl className="mt-1 text-xs text-gray-600 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
-                      {Object.entries(l.optionsByGroup).map(([k, v]) => (
-                        <div key={k} className="truncate">
-                          <dt className="inline text-gray-500">{k}: </dt>
-                          <dd className="inline font-medium">{String(v)}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-500">Qty: {l.quantity}</div>
-                  <div className="text-sm">
-                    <span className="text-gray-500">Unit:</span>{" "}
-                    <span className="font-medium">{fmtCurrency(l.unitPrice, currency)}</span>
-                  </div>
-                  <div className="text-sm">
-                    <span className="text-gray-500">Line total:</span>{" "}
-                    <span className="font-semibold">{fmtCurrency(l.lineTotal, currency)}</span>
+        <section className="reviewpg__grid">
+          {/* Left: lines */}
+          <div className="reviewpg__lines">
+            {lines.map((l) => (
+              <article key={l.id} className="reviewpg__card reviewpg__line">
+                <div className="reviewpg__lineHeader">
+                  <div className="reviewpg__prod">Product #{l.productId}</div>
+                  <div className="reviewpg__figs">
+                    <div className="reviewpg__kv">
+                      <span className="dim">Qty:</span> {l.quantity}
+                    </div>
+                    <div className="reviewpg__kv">
+                      <span className="dim">Unit:</span> {fmtCurrency(l.unitPrice, currency)}
+                    </div>
+                    <div className="reviewpg__kv">
+                      <span className="dim">Line total:</span>{" "}
+                      <strong>{fmtCurrency(l.lineTotal, currency)}</strong>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Artwork / uploads */}
-              <div className="mt-4">
+                {/* Options */}
+                {l.optionsByGroup && Object.keys(l.optionsByGroup).length > 0 && (
+                  <dl className="reviewpg__opts">
+                    {Object.entries(l.optionsByGroup).map(([k, v]) => (
+                      <div key={k}>
+                        <dt className="reviewpg__optKey">{k}</dt>{" "}
+                        <dd className="reviewpg__optVal">{String(v)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+
+                {/* Artwork / uploads */}
                 {l.attachments && l.attachments.length > 0 ? (
-                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                  <ul className="reviewpg__gallery">
                     {l.attachments.map((a: any) => {
-                      // a.storageId is your Cloudflare Images ID
                       const url = cfUrl(a.storageId);
-                      // We can use <Image> for CF URLs (whitelisted in next.config)
                       return (
-                        <li key={a.id} className="overflow-hidden rounded border">
-                          <div className="relative h-24 w-full">
+                        <li key={a.id} className="reviewpg__galItem">
+                          <div className="reviewpg__galImg">
                             <Image
                               src={url}
                               alt={a.fileName || "Artwork"}
                               fill
                               sizes="176px"
-                              className="object-cover"
+                              className="img-cover"
                             />
                           </div>
-                          <div className="truncate px-2 py-1 text-xs text-gray-700">
-                            {a.fileName || "Artwork"}
-                          </div>
+                          <div className="reviewpg__galCaption">{a.fileName || "Artwork"}</div>
                         </li>
                       );
                     })}
                   </ul>
                 ) : (
-                  <p className="text-xs text-gray-500">No artwork attached yet.</p>
+                  <p className="mt-4" style={{ color: "var(--text-dim)", fontSize: 12 }}>
+                    No artwork attached yet.
+                  </p>
                 )}
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
+              </article>
+            ))}
+          </div>
 
-      {/* Summary + Shipping */}
-      {lines.length > 0 && (
-        <section className="grid gap-6 md:grid-cols-3">
-          {/* Order Summary */}
-          <aside className="rounded-lg border bg-white p-4 md:col-start-3 md:row-span-2 h-fit">
-            <h2 className="text-lg font-semibold">Order Summary</h2>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-gray-600">Subtotal</span>
-              <span className="font-semibold">{fmtCurrency(subtotal, currency)}</span>
+          {/* Right: summary + shipping */}
+          <aside className="reviewpg__card reviewpg__summary order-summary" aria-label="Order summary">
+            <h2 className="reviewpg__sumTitle">Order Summary</h2>
+            <div className="reviewpg__sumKV">
+              <span className="dim">Subtotal</span>
+              <span>{fmtCurrency(subtotal, currency)}</span>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="dim" style={{ fontSize: 12 }}>
               Taxes and shipping are calculated at checkout.
             </p>
+            <div className="reviewpg__shipCard mt-4 estimator estimator--compact">
+  <CartShippingEstimator
+    lines={estimateLines}
+    store={store}
+    selected={selectedShipping}
+  />
+</div>
 
-            <a
-              href="/checkout"
-              className="mt-4 inline-block w-full rounded bg-black px-4 py-2 text-center text-white hover:opacity-90"
-            >
-              Continue to checkout
-            </a>
+<a href="/checkout" className="btn btn-primary checkout-btn reviewpg__cta">
+  Continue to checkout
+</a>
+
+          
           </aside>
-
-          {/* Shipping Estimator */}
-          <div className="md:col-span-2">
-            <div className="rounded-lg border bg-white p-4">
-              <CartShippingEstimator lines={estimateLines} />
-            </div>
-          </div>
         </section>
       )}
     </main>

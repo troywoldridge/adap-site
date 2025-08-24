@@ -1484,364 +1484,547 @@ section.shop-by-category .section-title {
 .hidden-input { display: none; }
 
 /* ==========================================================================
-   CART + SHIPPING ESTIMATOR (cleaned)
-   - Minimal specificity, no duplicate blocks, almost no !important
-   - Consistent spacing, radii, borders, focus states
-   - Same breakpoints: 920px (desktop grid), 640px (mobile stack)
+   REVIEW PAGE + SUMMARY + COMPACT SHIPPING ESTIMATOR
    ========================================================================== */
 
-/* ---------- Design tokens (scoped to cart page root) ---------- */
-.cartpg {
-  --card-bg: #fff;
-  --card-br: 12px;
-  --card-border: 1px solid #e5e7eb;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+/* ---------- Page shell ---------- */
+.reviewpg{
+  --card-bg:#fff; --card-br:12px; --card-border:1px solid #e5e7eb;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.06);
+  --ink:#111827; --muted:#64748b; --dim:#667085;
+  --focus-ring:0 0 0 3px rgba(0,98,255,.2); --focus-border:rgba(0,98,255,.5);
 
-  --text-muted: #64748b;  /* slate-500 */
-  --text-subtle: #667085;  /* gray-500 */
-  --danger: #b42318;
-  --danger-bg: #fef3f2;
-  --danger-br: #fecdca;
+  box-sizing:border-box; max-width:1120px; margin:0 auto; padding:24px 16px 40px;
+}
+.reviewpg__header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:16px}
+.reviewpg__title{margin:0;font:700 26px/1.15 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;letter-spacing:-.01em}
+.reviewpg__meta{font-size:14px;color:var(--muted)}
 
-  --focus-ring: 0 0 0 3px rgba(0, 98, 255, .2);
-  --focus-border: rgba(0, 98, 255, .5);
+/* ---------- Grid ---------- */
+.reviewpg__grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:24px;align-items:start}
+@media (max-width:1080px){.reviewpg__grid{grid-template-columns:1fr}}
+.reviewpg__card{border:var(--card-border);background:var(--card-bg);border-radius:var(--card-br);padding:16px;box-shadow:var(--shadow-sm)}
+.reviewpg__lines{display:grid;gap:12px}
 
-  --gap-lg: 32px;
-  --gap-md: 14px;
-  --gap-sm: 10px;
+/* Line item card */
+.reviewpg__line{display:grid;grid-template-columns:1fr auto;gap:12px;border:var(--card-border);background:#fff;border-radius:12px;padding:12px}
+.reviewpg__prod{min-width:0;font-weight:700;color:var(--ink)}
+.reviewpg__opts{margin-top:6px;display:grid;gap:2px 16px;grid-template-columns:repeat(2,minmax(0,1fr));font-size:12px;color:#334155}
+@media (min-width:640px){.reviewpg__opts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.reviewpg__optKey{color:#6b7280}
+.reviewpg__optVal{font-weight:600}
+.reviewpg__rowMeta{text-align:right}
+.reviewpg__qty,.reviewpg__unit{font-size:.9rem;color:var(--muted)}
+.reviewpg__lineTotal{font-weight:800}
 
-  box-sizing: border-box;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 16px 40px;
+/* Gallery (artwork) */
+.reviewpg__gallery{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:768px){.reviewpg__gallery{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.reviewpg__galItem{overflow:hidden;border:1px solid #e5e7eb;border-radius:8px}
+.reviewpg__galImg{position:relative;width:100%;height:96px}
+.reviewpg__galCaption{padding:6px 8px;font-size:12px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.img-cover{object-fit:cover}
+
+/* ---------- Summary sidebar ---------- */
+.reviewpg__summary{position:sticky;top:96px;align-self:start}
+.reviewpg__sumTitle{margin:0 0 10px;font-weight:800}
+.reviewpg__sumKV{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.reviewpg__sumKV .dim{color:var(--muted)}
+.reviewpg__sumTotal{display:flex;justify-content:space-between;margin-top:8px;padding-top:10px;border-top:1px solid #e5e7eb;font-weight:800;font-size:18px}
+.reviewpg__cta{margin-top:12px}
+
+/* ---------- Generic buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;font-weight:700;cursor:pointer;text-decoration:none;user-select:none}
+.btn[disabled]{opacity:.7;cursor:not-allowed}
+.btn-primary{background:#1e40af;color:#fff}
+.btn-primary:hover{filter:brightness(.98)}
+.checkout-btn{width:100%}
+
+/* ---------- Empty card ---------- */
+.reviewpg__empty{border:var(--card-border);background:var(--card-bg);border-radius:12px;padding:16px;color:#475569;font-size:14px}
+
+/* ==========================================================================
+   COMPACT SHIPPING ESTIMATOR (works anywhere: review summary, cart summary)
+   Expected structure from <CartShippingEstimator/>:
+   .estimator.estimator--compact
+     .estimator__title
+     .estimator__inputs  (controls + CTA)
+     .estimator__cta
+     .estimator__error
+     .estimator__rates > .estimator__rate
+   ========================================================================== */
+
+.estimator.estimator--compact{
+  --est-bg:#fff; --est-br:12px; --est-border:1px solid rgba(0,0,0,.08);
+  --input-br:8px; --track-btn:120px;
+
+  border:var(--est-border);border-radius:var(--est-br);padding:16px;background:var(--est-bg)
+}
+.estimator.estimator--compact[data-estimator="v2"]{--est-bg:#fbfcff}
+.estimator.estimator--compact .estimator__title{font-weight:700;margin:0 0 12px}
+
+.estimator.estimator--compact .estimator__inputs{display:grid;align-items:end;gap:10px}
+@media (min-width:920px){
+  .estimator.estimator--compact .estimator__inputs{
+    grid-template-columns:minmax(140px,1fr) 88px 120px var(--track-btn);
+  }
+}
+@media (min-width:640px) and (max-width:919px){
+  .estimator.estimator--compact .estimator__inputs{
+    grid-template-columns:minmax(120px,1fr) 88px 1fr;
+  }
+  .estimator.estimator--compact .estimator__cta{grid-column:1/-1;justify-self:start}
+}
+@media (max-width:639px){
+  .estimator.estimator--compact .estimator__inputs{grid-template-columns:1fr 1fr}
+  .estimator.estimator--compact .estimator__cta{grid-column:1/-1}
 }
 
-/* ---------- Two-column layout on desktop ---------- */
-.cartpg__grid {
-  display: grid;
-  grid-template-columns: minmax(0,1fr) 520px;
-  gap: var(--gap-lg);
-  align-items: start;
+.estimator.estimator--compact .estimator__label{font-size:.78rem;color:#667085;letter-spacing:.01em}
+.estimator.estimator--compact .estimator__control{
+  box-sizing:border-box;height:36px;padding:0 10px;border:1px solid rgba(0,0,0,.16);
+  border-radius:var(--input-br);background:#fff;font-size:.93rem;line-height:1
+}
+.estimator.estimator--compact .estimator__control:focus{
+  outline:2px solid transparent;box-shadow:var(--focus-ring);border-color:var(--focus-border)
+}
+.estimator.estimator--compact .estimator__cta{
+  display:inline-flex;align-items:center;justify-content:center;height:36px;width:100%;min-width:0;
+  padding:0 12px;border-radius:8px;font-weight:600;white-space:nowrap
 }
 
-/* Responsive collapse */
-@media (max-width:1080px){
-  .cartpg__grid { grid-template-columns: 1fr; }
+.estimator.estimator--compact .estimator__error{
+  color:#b42318;background:#fef3f2;border:1px solid #fecdca;border-radius:8px;
+  padding:8px 10px;margin-top:10px;font-size:.9rem
 }
-
-/* ---------- LEFT: items list ---------- */
-.cartpg__list { list-style: none; margin: 0; padding: 0; }
-
-.cartpg__row {
-  border: var(--card-border);
-  border-radius: var(--card-br);
-  background: var(--card-bg);
-  padding: 14px;
-  margin-bottom: 14px;
+.estimator.estimator--compact .estimator__rates{
+  list-style:none;margin:12px 0 0;padding:0;border-top:1px dashed rgba(0,0,0,.08)
 }
-
-.cartpg__rowGrid {
-  display: grid;
-  grid-template-columns: 80px 1fr auto;
-  gap: var(--gap-md);
-  align-items: center;
+.estimator.estimator--compact .estimator__rate{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 0;border-bottom:1px dashed rgba(0,0,0,.06)
 }
+.estimator.estimator--compact .estimator__rate:last-child{border-bottom:0}
+.estimator.estimator--compact .estimator__rate-name{font-weight:600}
+.estimator.estimator--compact .estimator__rate-eta{font-size:.85rem;color:#667085}
+.estimator.estimator--compact .estimator__rate-right{font-weight:700}
 
-.cartpg__thumb { width: 80px; height: 64px; border-radius: 8px; background: #f5f5f5; }
-
-.cartpg__name { font-weight: 700; line-height: 1.2; }
-.cartpg__each { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
-
-.cartpg__qtyWrap { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
-
-.cartpg__qtyInput {
-  width: 92px; padding: 8px 10px;
-  border-radius: 8px; border: 1px solid #e5e7eb; background: #fff;
-}
-.cartpg__qtyInput:focus {
-  outline: 2px solid transparent;
-  box-shadow: var(--focus-ring);
-  border-color: var(--focus-border);
-}
-
-.cartpg__rowRight { text-align: right; }
-.cartpg__lineTotal { font-weight: 800; }
-
-.cartpg__remove {
-  margin-top: 10px;
-  background: transparent;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.cartpg__remove:hover { background: #fff1f2; }
-
-/* ---------- RIGHT: summary card ---------- */
-.cartpg__summary { position: sticky; top: 96px; align-self: start; }
-
-.cartpg__summaryCard {
-  width: 100%; max-width: 520px;
-  border: var(--card-border); background: var(--card-bg);
-  border-radius: var(--card-br); padding: 18px; box-shadow: var(--shadow-sm);
-}
-
-/* remove any inner card chrome from the React component */
-.cartpg__summaryCard .cart-summary {
-  border: 0; background: transparent; padding: 0;
-}
-
-/* Key-value rows + total */
-.cart-summary .sum-kv { display: flex; justify-content: space-between; padding: 8px 0; }
-.cart-summary .sum-total {
-  border-top: 1px solid #e5e7eb; margin-top: 12px; padding-top: 12px;
-  font-weight: 800; font-size: 20px;
+/* Optional badge used in rates */
+.shipping-rate__badge{
+  margin-left:8px;font-size:11px;font-weight:700;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:999px;padding:2px 6px;vertical-align:middle
 }
 
 /* ==========================================================================
-   SHIPPING ESTIMATOR (generic, used inside order-summary/cart-summary)
+   ACCOUNT / ORDERS (kept minimal – matches your pages)
    ========================================================================== */
 
-/* Use CSS vars to theme compact/v2 without duplicate blocks */
-.order-summary .estimator.estimator--compact {
-  --est-bg: #fff;
-  --est-br: 12px;
-  --est-border: 1px solid rgba(0,0,0,.08);
-  --est-input-br: 8px;
-  --est-track-btn: 120px;
+.account{--card-bg:#fff;--card-border:1px solid #e5e7eb;--radius:12px;--shadow-sm:0 1px 2px rgba(17,24,39,.06);
+  max-width:1100px;margin:0 auto;padding:24px 16px 40px}
+.orders{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.orderCard{background:var(--card-bg);border:var(--card-border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:clip}
+.orderCard__head{display:flex;align-items:start;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #f1f5f9;background:#fafafa}
+.orderCard__body{display:grid;gap:12px;padding:12px 14px}
+.orderCard__items{padding:12px 14px;border-top:1px dashed #e5e7eb;background:#fff}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:.75rem;font-weight:700;background:#eef2ff;color:#3730a3;border:1px solid #e0e7ff}
 
-  border: var(--est-border);
-  border-radius: var(--est-br);
-  padding: 16px;
-  background: var(--est-bg);
+/* === Compact estimator: control normalizer (works with any markup) === */
+
+/* Put fields on one row and button on its own full row */
+.estimator.estimator--compact form,
+.estimator.estimator--compact .shipping-estimator__form,
+.estimator.estimator--compact .estimator__inputs {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 84px minmax(120px, .8fr);
+  gap: 8px;
+  align-items: center;
 }
 
-.order-summary .estimator.estimator--compact[data-estimator="v2"] {
-  --est-bg: #fbfcff; /* subtle tint with same structure */
-}
-
-.order-summary .estimator.estimator--compact .estimator__title {
-  font-size: 1rem; font-weight: 700; margin: 0 0 12px;
-}
-
-.order-summary .estimator.estimator--compact .estimator__inputs {
-  display: grid; align-items: end; gap: var(--gap-sm);
-}
-
-/* DESKTOP */
-@media (min-width: 920px) {
-  .order-summary .estimator.estimator--compact .estimator__inputs {
-    grid-template-columns:
-      minmax(140px, 1fr) /* Country */
-      88px               /* State/Prov */
-      120px              /* ZIP/Postal */
-      var(--est-track-btn); /* Button */
-  }
-}
-
-/* TABLET */
-@media (min-width: 640px) and (max-width: 919px) {
-  .order-summary .estimator.estimator--compact .estimator__inputs {
-    grid-template-columns: minmax(120px,1fr) 88px 1fr;
-  }
-  .order-summary .estimator.estimator--compact .estimator__cta {
-    grid-column: 1 / -1; justify-self: start;
-  }
-}
-
-/* MOBILE */
-@media (max-width: 639px) {
-  .order-summary .estimator.estimator--compact .estimator__inputs {
+@media (max-width: 640px) {
+  .estimator.estimator--compact form,
+  .estimator.estimator--compact .shipping-estimator__form,
+  .estimator.estimator--compact .estimator__inputs {
     grid-template-columns: 1fr 1fr;
   }
-  .order-summary .estimator.estimator--compact .estimator__cta {
-    grid-column: 1 / -1;
+}
+
+/* Make all inputs/selects the same look/height */
+.estimator.estimator--compact select,
+.estimator.estimator--compact input[type="text"],
+.estimator.estimator--compact input[type="number"],
+.estimator.estimator--compact input[type="search"],
+.estimator.estimator--compact .estimator__control {
+  height: 36px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.93rem;
+  line-height: 1;
+}
+
+.estimator.estimator--compact select:focus,
+.estimator.estimator--compact input:focus,
+.estimator.estimator--compact .estimator__control:focus {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px rgba(0, 98, 255, .2);
+  border-color: rgba(0, 98, 255, .5);
+}
+
+/* Make the CTA span the full width row, matching your brand button */
+.estimator.estimator--compact .estimator__cta,
+.estimator.estimator--compact .shipping-estimator__button,
+.estimator.estimator--compact button[type="submit"] {
+  grid-column: 1 / -1;
+  height: 40px;
+  border-radius: 10px;
+  font-weight: 700;
+  background: #1e40af;
+  color: #fff;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.estimator.estimator--compact .estimator__cta:hover,
+.estimator.estimator--compact .shipping-estimator__button:hover,
+.estimator.estimator--compact button[type="submit"]:hover {
+  filter: brightness(.98);
+}
+
+/* === Shipping Estimator: three fields side-by-side, full-width CTA === */
+
+/* 1) Make the inputs row a grid (works whether you render <form> or .estimator__inputs) */
+.order-summary .estimator.estimator--compact form,
+.order-summary .estimator.estimator--compact .estimator__inputs {
+  display: grid;
+  grid-template-columns: 1.2fr 0.6fr 0.9fr; /* Country | State | ZIP */
+  gap: 8px;
+  align-items: center;
+}
+.order-summary .estimator.estimator--compact form > *,
+.order-summary .estimator.estimator--compact .estimator__inputs > * {
+  min-width: 0; /* prevent overflow/shrink weirdness */
+}
+
+/* 2) Normalize control sizing so they match */
+.order-summary .estimator.estimator--compact select,
+.order-summary .estimator.estimator--compact input[type="text"],
+.order-summary .estimator.estimator--compact input[type="search"],
+.order-summary .estimator.estimator--compact input[type="number"],
+.order-summary .estimator.estimator--compact .estimator__control {
+  height: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.order-summary .estimator.estimator--compact select:focus,
+.order-summary .estimator.estimator--compact input:focus,
+.order-summary .estimator.estimator--compact .estimator__control:focus {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px rgba(0,98,255,.2);
+  border-color: rgba(0,98,255,.5);
+}
+
+/* 3) Ensure the CTA sits on its own row and spans full width */
+.order-summary .estimator.estimator--compact .estimator__cta,
+.order-summary .estimator.estimator--compact .shipping-estimator__button,
+/* FORCE 3-COLUMN LAYOUT + FALLBACK WITH !important */
+.order-summary .estimator.estimator--compact form {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 88px 120px !important; /* Country | State | ZIP */
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+/* Place the first three controls explicitly into columns 1/2/3 */
+.order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(1) {
+  grid-column: 1 !important;
+}
+.order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(2) {
+  grid-column: 2 !important;
+}
+.order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(3) {
+  grid-column: 3 !important;
+}
+/* Make the CTA span the whole row */
+.order-summary .estimator.estimator--compact form > button[type="submit"] {
+  grid-column: 1 / -1 !important;
+}
+
+/* Normalize control sizing so they visually match */
+.order-summary .estimator.estimator--compact form > :is(select,input),
+.order-summary .estimator.estimator--compact .estimator__control {
+  height: 40px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+}
+
+/* Mobile: stack into two columns, full-width CTA */
+@media (max-width: 640px) {
+  .order-summary .estimator.estimator--compact form {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .order-summary .estimator.estimator--compact form > button[type="submit"] {
+    grid-column: 1 / -1 !important;
   }
 }
 
-/* Controls */
-.order-summary .estimator.estimator--compact .estimator__label {
-  font-size: .78rem; color: var(--text-subtle); letter-spacing: .01em;
+/* === Estimator: force 3-column layout for Country | State | ZIP === */
+
+/* 0) Make the summary card a simple container (keeps your spacing tidy) */
+.order-summary { border: var(--card-border,1px solid #e5e7eb); background:#fff; border-radius:12px; padding:16px; }
+.order-summary .sum-kv{display:flex;justify-content:space-between;padding:8px 0}
+.order-summary .sum-total{border-top:1px solid #e5e7eb;margin-top:12px;padding-top:12px;font-weight:800;font-size:18px}
+
+/* 1) If the form itself is the grid */
+.order-summary .estimator form {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 88px 120px !important; /* Country | State | ZIP */
+  gap: 8px !important;
+  align-items: center !important;
 }
 
-.order-summary .estimator.estimator--compact .estimator__control {
-  box-sizing: border-box; height: 36px; padding: 0 10px;
-  border: 1px solid rgba(0,0,0,.16); border-radius: var(--est-input-br);
-  background: #fff; font-size: .93rem; line-height: 1;
-}
-.order-summary .estimator.estimator--compact .estimator__control:focus {
-  outline: 2px solid transparent;
-  box-shadow: var(--focus-ring);
-  border-color: var(--focus-border);
-}
+/* 2) If there is a wrapper like .estimator__inputs inside the form, flatten it */
+.order-summary .estimator form > .estimator__inputs { display: contents !important; }
 
-/* CTA fits its grid track */
-.order-summary .estimator.estimator--compact .estimator__cta {
-  display: inline-flex; align-items: center; justify-content: center;
-  height: 36px; width: 100%; min-width: 0; padding: 0 12px;
-  border-radius: 8px; font-weight: 600; line-height: 1; white-space: nowrap;
+/* 3) If the grid is on .estimator__inputs instead, grid that too */
+.order-summary .estimator .estimator__inputs {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 88px 120px !important;
+  gap: 8px !important;
+  align-items: center !important;
 }
 
-/* Messages & rates */
-.order-summary .estimator.estimator--compact .estimator__error {
-  color: var(--danger); background: var(--danger-bg);
-  border: 1px solid var(--danger-br); border-radius: 8px;
-  padding: 8px 10px; margin-top: 10px; font-size: .9rem;
+/* 4) Place first three controls into the three columns in EITHER shape */
+.order-summary .estimator form > :where(select,input,div):nth-of-type(1),
+.order-summary .estimator .estimator__inputs > :where(select,input,div):nth-of-type(1) { grid-column: 1 !important; }
+.order-summary .estimator form > :where(select,input,div):nth-of-type(2),
+.order-summary .estimator .estimator__inputs > :where(select,input,div):nth-of-type(2) { grid-column: 2 !important; }
+.order-summary .estimator form > :where(select,input,div):nth-of-type(3),
+.order-summary .estimator .estimator__inputs > :where(select,input,div):nth-of-type(3) { grid-column: 3 !important; }
+
+/* 5) Submit goes full width */
+.order-summary .estimator form > button[type="submit"] { grid-column: 1 / -1 !important; }
+
+/* 6) Make controls the same visual size */
+.order-summary .estimator :where(select,input) {
+  height: 40px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 0 10px !important;
 }
 
-.order-summary .estimator.estimator--compact .estimator__rates {
-  list-style: none; margin: 12px 0 0; padding: 0;
-  border-top: 1px dashed rgba(0,0,0,.08);
+/* 7) Mobile: stack to two columns, button full width below */
+@media (max-width: 640px){
+  .order-summary .estimator form,
+  .order-summary .estimator .estimator__inputs {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .order-summary .estimator form > button[type="submit"] {
+    grid-column: 1 / -1 !important;
+  }
 }
 
-.order-summary .estimator.estimator--compact .estimator__rate {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 10px 0; border-bottom: 1px dashed rgba(0,0,0,.06);
-}
-.order-summary .estimator.estimator--compact .estimator__rate:last-child { border-bottom: 0; }
-
-.order-summary .estimator.estimator--compact .estimator__rate-name { font-weight: 600; }
-.order-summary .estimator.estimator--compact .estimator__rate-eta  { font-size: .85rem; color: var(--text-subtle); }
-.order-summary .estimator.estimator--compact .estimator__rate-right { font-weight: 700; }
-
-/* ==========================================================================
-   CART SUMMARY – Shipping Estimator (component-specific hooks you had)
-   ========================================================================== */
-
-.cart-summary .shipping-estimator { margin-top: 16px; }
-
-/* Form grid: Country | State | ZIP on one row; button full-width below */
-.cart-summary .shipping-estimator__form {
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) 84px minmax(100px, .8fr);
-  column-gap: 6px;
-  align-items: center;
-}
-.cart-summary .shipping-estimator__form > * { min-width: 0; }
-
-.cart-summary .shipping-estimator__form select,
-.cart-summary .shipping-estimator__form input {
-  height: 40px; width: 100%; box-sizing: border-box;
-  border: 1px solid #e5e7eb; border-radius: 8px; padding: 0 10px; background: #fff;
-}
-.cart-summary .shipping-estimator__form select:focus,
-.cart-summary .shipping-estimator__form input:focus {
-  outline: 2px solid transparent;
-  box-shadow: var(--focus-ring);
-  border-color: var(--focus-border);
+/* ---- Estimator layout inside any order summary card ---- */
+.order-summary .estimator.estimator--compact form {
+  display: grid !important;
+  grid-template-columns: minmax(140px,1fr) 88px 120px !important; /* Country | State | ZIP */
+  grid-auto-rows: auto;
+  gap: 10px;
 }
 
-/* Button: full width on its own row */
-.cart-summary .shipping-estimator__button,
-.cart-summary > button,
-.cartpg__summaryCard .cart-summary .checkout-btn,
-.cartpg__summaryCard .cart-summary .btn.primary,
-.cartpg__summaryCard .cart-summary .btn.checkout {
-  grid-column: 1 / -1;
-  width: 100%;
+/* If your component renders a wrapper for the inputs, this keeps it consistent */
+.order-summary .estimator.estimator--compact .estimator__inputs {
+  display: contents; /* let the form’s grid control the children */
+}
+
+/* Make the first three direct form controls sit in columns 1/2/3 */
+.order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(1) {
+  grid-column: 1 !important;
+  height: 36px;
+}
+.order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(2) {
+  grid-column: 2 !important;
+  height: 36px;
+}
+.order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(3) {
+  grid-column: 3 !important;
+  height: 36px;
+}
+
+/* Make the submit button full width on the next row */
+.order-summary .estimator.estimator--compact form > button[type="submit"] {
+  grid-column: 1 / -1 !important;
   height: 40px;
-  margin-top: 8px;
 }
 
-/* Rates list */
-.cart-summary .shipping-rates {
-  margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 10px;
-  overflow: auto; max-height: 260px;
-}
-.cart-summary .shipping-rate {
-  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
-  padding: 10px 12px; border-bottom: 1px solid #f1f5f9;
-}
-.cart-summary .shipping-rate:last-child { border-bottom: 0; }
-.cart-summary .shipping-rate__meta { font-size: 12px; color: var(--text-muted); }
-.cart-summary .shipping-rate__price { font-weight: 700; }
-.cart-summary .shipping-rate--selected { background: #f8fafc; outline: 2px solid #1d4ed8; }
-
-/* Mobile stack */
-@media (max-width: 640px) {
-  .cart-summary .shipping-estimator__form { grid-template-columns: 1fr 1fr; }
-  .cart-summary .shipping-estimator__button,
-  .cart-summary > button { grid-column: 1 / -1; }
-}
-
-/* Thumbnails */
-.cartpg__thumbImg {
-  width: 80px;
-  height: 64px;
-  display: block;
-  object-fit: cover;
-  border-radius: 8px;
-  background: #f5f5f5;
-}
-
-/* Empty-state card */
-.empty-card {
-  border: var(--card-border, 1px solid #e5e7eb);
-  background: var(--card-bg, #fff);
-  border-radius: var(--card-br, 12px);
-  padding: 20px;
-  text-align: center;
-}
-.empty-card p {
-  color: var(--text-muted, #64748b);
-  margin: 6px 0 16px;
-}
-
-/* Saved-for-later card */
-.saved-card {
-  border: var(--card-border, 1px solid #e5e7eb);
-  background: var(--card-bg, #fff);
-  border-radius: var(--card-br, 12px);
-  padding: 16px;
-  margin-top: 16px;
-}
-.saved-card h3 { margin: 0 0 10px; }
-
-.saved-list { list-style: none; padding: 0; margin: 0; }
-.saved-row + .saved-row { margin-top: 12px; }
-
-.saved-row__grid {
-  display: grid;
-  grid-template-columns: 80px 1fr auto;
-  gap: 12px;
-  align-items: center;
-}
-
-.saved-thumb__img {
-  width: 80px; height: 64px; display: block; object-fit: cover; border-radius: 8px; background: #f5f5f5;
-}
-
-.saved-name { font-weight: 700; line-height: 1.2; }
-.saved-each { margin-top: 4px; font-size: 12px; color: var(--text-muted, #64748b); }
-.saved-opts { margin-top: 2px; font-size: 12px; color: var(--text-muted, #64748b); }
-
-.saved-actions { display: flex; gap: 8px; align-items: center; }
-.link-btn { background: transparent; border: 0; color: #2563eb; padding: 0; cursor: pointer; }
-
-/* Save button on cart line */
-.cartpg__save {
-  margin-top: 10px;
-  background: transparent;
-  color: #334155;
+/* Controls look consistent */
+.order-summary .estimator.estimator--compact form > :is(select,input) {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 10px;
   border: 1px solid #e5e7eb;
-  padding: 6px 10px;
   border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+  background: #fff;
+  font-size: .93rem;
 }
-.cartpg__save:hover { background: #f8fafc; }
+.order-summary .estimator.estimator--compact form > :is(select,input):focus {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 3px rgba(0,98,255,.2);
+  border-color: rgba(0,98,255,.5);
+}
 
-/* Shipping estimator: "Best price" badge */
-.shipping-rate__badge {
-  margin-left: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #166534;
-  background: #dcfce7;
-  border: 1px solid #86efac;
-  border-radius: 999px;
-  padding: 2px 6px;
-  vertical-align: middle;
+/* Mobile: stack 2 columns (Country | State) then ZIP+button full width */
+@media (max-width: 640px) {
+  .order-summary .estimator.estimator--compact form {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .order-summary .estimator.estimator--compact form > :is(select,input):nth-of-type(3),
+  .order-summary .estimator.estimator--compact form > button[type="submit"] {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* === FORCE SHIPPING ESTIMATOR LAYOUT (cart + review) ===================== */
+/* Works whether the controls are raw inputs or wrapped; applies in both
+   right-side "Order Summary" and the review page ship card. */
+
+.order-summary .estimator form,
+.reviewpg__shipCard .estimator form {
+  display: grid !important;
+  grid-template-columns: minmax(150px, 1fr) 84px 140px !important; /* Country | State | ZIP */
+  gap: 10px !important;
+  align-items: end !important;
+}
+
+/* Put the first three direct children (whatever tags they are) into columns */
+.order-summary .estimator form > *:nth-child(1),
+.reviewpg__shipCard .estimator form > *:nth-child(1) { grid-column: 1 !important; }
+.order-summary .estimator form > *:nth-child(2),
+.reviewpg__shipCard .estimator form > *:nth-child(2) { grid-column: 2 !important; }
+.order-summary .estimator form > *:nth-child(3),
+.reviewpg__shipCard .estimator form > *:nth-child(3) { grid-column: 3 !important; }
+
+/* Full-width button on its own row (covers several possible structures) */
+.order-summary .estimator form > button[type="submit"],
+.reviewpg__shipCard .estimator form > button[type="submit"],
+.order-summary .estimator form > .estimator__cta,
+.reviewpg__shipCard .estimator form > .estimator__cta,
+.order-summary .estimator form > *:last-child,
+.reviewpg__shipCard .estimator form > *:last-child {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  height: 40px !important;
+}
+
+/* Consistent control look */
+.order-summary .estimator form > select,
+.order-summary .estimator form > input,
+.reviewpg__shipCard .estimator form > select,
+.reviewpg__shipCard .estimator form > input {
+  height: 36px !important;
+  padding: 0 10px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  font-size: 0.93rem !important;
+  box-sizing: border-box !important;
+}
+.order-summary .estimator form > select:focus,
+.order-summary .estimator form > input:focus,
+.reviewpg__shipCard .estimator form > select:focus,
+.reviewpg__shipCard .estimator form > input:focus {
+  outline: 2px solid transparent !important;
+  box-shadow: 0 0 0 3px rgba(0,98,255,.2) !important;
+  border-color: rgba(0,98,255,.5) !important;
+}
+
+/* Mobile: two columns; ZIP + button full width */
+@media (max-width: 640px) {
+  .order-summary .estimator form,
+  .reviewpg__shipCard .estimator form {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .order-summary .estimator form > *:nth-child(3),
+  .reviewpg__shipCard .estimator form > *:nth-child(3) {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* === SHIPPING ESTIMATOR — force 3 fields on one row, button full width === */
+/* Works in both the cart sidebar (.order-summary) and the review page card. */
+
+/* Put the grid on the form (or estimator__inputs if present) */
+.order-summary .estimator.estimator--compact form,
+.order-summary .estimator.estimator--compact .estimator__inputs {
+  display: grid !important;
+  grid-template-columns: minmax(150px,1fr) 84px 140px !important; /* Country | State | ZIP */
+  gap: 10px !important;
+  align-items: end !important;
+}
+
+/* Review-page wrapper uses its own container; support it too */
+.reviewpg__shipCard .estimator.estimator--compact form,
+.reviewpg__shipCard .estimator.estimator--compact .estimator__inputs {
+  display: grid !important;
+  grid-template-columns: minmax(150px,1fr) 84px 140px !important;
+  gap: 10px !important;
+  align-items: end !important;
+}
+
+/* If your component wraps each control (label/div), flatten those wrappers so
+   the actual inputs/selects participate in the form grid. */
+.order-summary .estimator.estimator--compact form > :not(button):not(.estimator__cta):not(.estimator__error):not(.estimator__rates),
+.reviewpg__shipCard .estimator.estimator--compact form > :not(button):not(.estimator__cta):not(.estimator__error):not(.estimator__rates) {
+  display: contents !important;
+}
+
+/* Normalize control look/height */
+.order-summary .estimator.estimator--compact :where(select,input,.estimator__control),
+.reviewpg__shipCard .estimator.estimator--compact :where(select,input,.estimator__control) {
+  height: 36px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  font-size: .93rem !important;
+  line-height: 1 !important;
+}
+.order-summary .estimator.estimator--compact :where(select,input,.estimator__control):focus,
+.reviewpg__shipCard .estimator.estimator--compact :where(select,input,.estimator__control):focus {
+  outline: 2px solid transparent !important;
+  box-shadow: 0 0 0 3px rgba(0,98,255,.2) !important;
+  border-color: rgba(0,98,255,.5) !important;
+}
+
+/* Make the button span the full row (covers several structures) */
+.order-summary .estimator.estimator--compact button[type="submit"],
+.order-summary .estimator.estimator--compact .estimator__cta,
+.reviewpg__shipCard .estimator.estimator--compact button[type="submit"],
+.reviewpg__shipCard .estimator.estimator--compact .estimator__cta {
+  grid-column: 1 / -1 !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+/* Mobile: two columns; ZIP + button full width */
+@media (max-width: 640px) {
+  .order-summary .estimator.estimator--compact form,
+  .order-summary .estimator.estimator--compact .estimator__inputs,
+  .reviewpg__shipCard .estimator.estimator--compact form,
+  .reviewpg__shipCard .estimator.estimator--compact .estimator__inputs {
+    grid-template-columns: 1fr 1fr !important;
+  }
 }

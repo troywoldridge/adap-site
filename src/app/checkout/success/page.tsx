@@ -1,35 +1,44 @@
+// src/app/checkout/success/page.tsx
+import "server-only";
 import Link from "next/link";
-import ClearCartCookie from "./ClearCartCookie";
 
-export const revalidate = 0;                // number or false (valid)
-export const dynamic = "force-dynamic";     // keep this if you want no caching
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default async function SuccessPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ session_id?: string }>;
-}) {
-  const { session_id } = await searchParams;
-
+export default async function SuccessPage() {
+  // ✨ server only renders confirmation; a small client component clears cart
   return (
-    <main className="container" style={{ maxWidth: 880, margin: "24px auto" }}>
-      <ClearCartCookie />
+    <main className="success">
+      <h1 className="success__title">Payment received — thank you!</h1>
+      <p className="success__subtitle">We’re queuing your order now.</p>
 
-      <h1 style={{ marginBottom: 8 }}>Thanks for your order!</h1>
-      {session_id ? (
-        <p style={{ color: "#64748b", marginTop: 0 }}>
-          Stripe session: <code>{session_id}</code>
-        </p>
-      ) : null}
-
-      <p style={{ marginTop: 16 }}>
-        You can view details on <Link href="/orders">Your Orders</Link>.
-      </p>
-
-      <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
-        <Link href="/orders" className="btn btn-primary">View Orders</Link>
-        <Link href="/" className="btn">Continue Shopping</Link>
+      <div className="success__card">
+        <ul className="success__list">
+          <li>We’re locking your artwork and submitting to production.</li>
+          <li>You’ll get an email as soon as your order is confirmed.</li>
+        </ul>
+        <div className="success__actions">
+          <Link className="btn btn--primary" href="/account">View my orders</Link>
+          <Link className="btn btn--ghost" href="/">Keep shopping</Link>
+        </div>
       </div>
+
+      {/* This triggers cookie clearing + server-side cart housekeeping */}
+      <ClearCartClient />
     </main>
+  );
+}
+
+function ClearCartClient() {
+  return (
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+        (function(){
+          fetch('/api/cart/clear', { method: 'POST' }).catch(()=>{});
+        })();
+      `,
+      }}
+    />
   );
 }
