@@ -1,10 +1,10 @@
+// src/app/cart/CartPageClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import CartSummary from "@/components/CartSummary";
 import type { ShippingRate } from "@/components/CartShippingEstimator";
 
-/* ---------- Types ---------- */
 type AnyItem = {
   id: string;
   productId: number;
@@ -12,18 +12,18 @@ type AnyItem = {
   optionIds: number[];
   quantity: number;
   cloudflareImageId?: string | null;
-  serverUnitPrice?: number; // from server
-  unitPrice?: number;       // client override
+  serverUnitPrice?: number;  // from server
+  unitPrice?: number;        // client override
 };
 
 type SavedItem = {
-  id: string; // local id for saved list
+  id: string;
   productId: number;
   name?: string | null;
   optionIds: number[];
   quantity: number;
   cloudflareImageId?: string | null;
-  unitPrice?: number; // snapshot at time of save
+  unitPrice?: number;
 };
 
 type Props = {
@@ -33,20 +33,19 @@ type Props = {
   initialShipping: ShippingRate | null;
 };
 
-/* ---------- Helpers ---------- */
 const money = (n: number, currency: "USD" | "CAD") =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n || 0);
+  new Intl.NumberFormat("en-US", { style: "currency", currency }).format((Number(n) || 0));
 
-// Cloudflare Image Delivery (fast + edge cached)
 function cfImgUrl(id?: string | null) {
-  if (!id) return null;
+  if (!id) {
+    return null;
+  }
   const acct = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q";
   return `https://imagedelivery.net/${acct}/${id}/public`;
 }
 
 const SAVED_KEY = "ADAP_SAVED_V1";
 
-/* ---------- Component ---------- */
 export default function CartPageClient({ initialItems, currency, store, initialShipping }: Props) {
   const [items, setItems] = useState<AnyItem[]>(initialItems || []);
   const [selectedShipping, setSelectedShipping] = useState<ShippingRate | null>(initialShipping);
@@ -65,6 +64,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
     try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch {}
   }
 
+  // Subtotal from authoritative serverUnitPrice (falls back to unitPrice)
   const subtotal = useMemo(
     () =>
       (items || []).reduce((sum, it) => {
@@ -76,9 +76,10 @@ export default function CartPageClient({ initialItems, currency, store, initialS
             : 0;
         return sum + unit * (it.quantity || 1);
       }, 0),
-    [items]
+    [items],
   );
 
+  // Minimal lines to feed shipping estimator
   const miniLines = useMemo(
     () =>
       (items || []).map((it) => ({
@@ -86,31 +87,45 @@ export default function CartPageClient({ initialItems, currency, store, initialS
         optionIds: it.optionIds || [],
         quantity: it.quantity || 1,
       })),
-    [items]
+    [items],
   );
 
+  // Refresh cart from server; handle both shapes: {items,...} or {cart:{items,...}}
   async function refreshFromServer() {
     try {
       const res = await fetch("/api/cart", { cache: "no-store" });
       if (!res.ok) return;
       const json = await res.json();
+
+      const itemsShape: AnyItem[] =
+        (json?.items as AnyItem[]) ??
+        (json?.cart?.items as AnyItem[]) ??
+        [];
+
       const srvItems =
-        (json?.cart?.items as AnyItem[])?.map((it) => ({
+        itemsShape.map((it) => ({
           ...it,
           serverUnitPrice:
             typeof it.unitPrice === "number" ? it.unitPrice : it.serverUnitPrice,
         })) || [];
       setItems(srvItems);
 
-      const srvShip = json?.cart?.shipping;
+      const srvShip: any =
+        json?.selectedShipping ??
+        json?.cart?.selectedShipping ??
+        json?.cart?.shipping ??
+        null;
+
       if (srvShip && typeof srvShip?.cost === "number") {
         setSelectedShipping({
-          carrier: srvShip.carrier,
-          method: srvShip.method,
-          cost: srvShip.cost,
-          days: srvShip.days ?? null,
-          currency: srvShip.currency,
+          carrier: String(srvShip.carrier ?? ""),
+          method: String(srvShip.method ?? ""),
+          cost: Number(srvShip.cost ?? 0) || 0,
+          days: typeof srvShip.days === "number" ? srvShip.days : null,
+          currency: srvShip.currency === "CAD" ? "CAD" : "USD",
         });
+      } else {
+        setSelectedShipping(null);
       }
     } catch {}
   }
@@ -118,7 +133,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
   async function removeLine(lineId: string) {
     setBusyId(lineId);
     try {
-      await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, { method: "DELETE" });
+      await fetch(`/api/cart/lines/${encodeURIComponent(lineId)}`, { method: "DELETE", cache: "no-store" });
       await refreshFromServer();
     } finally {
       setBusyId(null);
@@ -133,6 +148,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ quantity: qty }),
+        cache: "no-store",
       });
       await refreshFromServer();
     } finally {
@@ -140,7 +156,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
     }
   }
 
-  // Save a cart line locally, remove from cart
+  // Save locally, remove from cart
   async function saveForLater(line: AnyItem) {
     setBusyId(line.id);
     try {
@@ -162,14 +178,13 @@ export default function CartPageClient({ initialItems, currency, store, initialS
       };
       persistSaved([next, ...saved]);
 
-      await fetch(`/api/cart/lines/${encodeURIComponent(line.id)}`, { method: "DELETE" });
+      await fetch(`/api/cart/lines/${encodeURIComponent(line.id)}`, { method: "DELETE", cache: "no-store" });
       await refreshFromServer();
     } finally {
       setBusyId(null);
     }
   }
 
-  // Move a saved item back into cart
   async function moveToCart(si: SavedItem) {
     try {
       await fetch("/api/cart/lines", {
@@ -180,12 +195,28 @@ export default function CartPageClient({ initialItems, currency, store, initialS
           optionIds: si.optionIds,
           quantity: si.quantity,
         }),
+        cache: "no-store",
       });
       persistSaved(saved.filter((x) => x.id !== si.id));
       await refreshFromServer();
     } catch {}
   }
   function removeSaved(si: SavedItem) { persistSaved(saved.filter((x) => x.id !== si.id)); }
+
+  // When the user chooses a rate in the estimator, persist it server-side
+  async function onChangeShipping(rate: ShippingRate | null) {
+    setSelectedShipping(rate);
+    try {
+      await fetch("/api/cart/shipping/choose", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(rate ?? {}),
+        cache: "no-store",
+      });
+      // optional: refresh to confirm server echo
+      await refreshFromServer();
+    } catch {}
+  }
 
   return (
     <main className="cart2">
@@ -338,80 +369,68 @@ export default function CartPageClient({ initialItems, currency, store, initialS
               lines={miniLines}
               store={store}
               selectedShipping={selectedShipping}
-              onChangeShipping={(r) => setSelectedShipping(r)}
+              onChangeShipping={onChangeShipping}
             />
           </div>
         </aside>
       </div>
 
-     {/* ===== scoped, component-only CSS (no Tailwind needed) ===== */}
-{/* ===== scoped, component-only CSS (no Tailwind needed) ===== */}
-<style jsx global>{`
-  /* ===== layout ===== */
-  .cart2{max-width:1400px;margin:0 auto;padding:24px 16px}
-  .cart2__grid{display:grid;gap:24px}
-  @media (min-width:1024px){ .cart2__grid{grid-template-columns:58% 42%} }   /* split page */
-  @media (min-width:1280px){ .cart2__grid{grid-template-columns:60% 40%} }
-  @media (min-width:1536px){ .cart2__grid{grid-template-columns:62% 38%} }
+      {/* ===== scoped CSS ===== */}
+      <style jsx global>{`
+        .cart2{max-width:1400px;margin:0 auto;padding:24px 16px}
+        .cart2__grid{display:grid;gap:24px}
+        @media (min-width:1024px){ .cart2__grid{grid-template-columns:58% 42%} }
+        @media (min-width:1280px){ .cart2__grid{grid-template-columns:60% 40%} }
+        @media (min-width:1536px){ .cart2__grid{grid-template-columns:62% 38%} }
 
-  .cart2__left{min-width:0}
-  .cart2__right{position:sticky;top:96px;align-self:start}
-  .cart2__right > .card,
-  .cart2__right .order-summary,
-  .cart2__right .estimator{width:100%}   /* fill the rail */
+        .cart2__left{min-width:0}
+        .cart2__right{position:sticky;top:96px;align-self:start}
+        .cart2__right > .card,
+        .cart2__right .order-summary,
+        .cart2__right .estimator{width:100%}
 
-  /* 🚀 kill old fixed widths so the card/estimator fills the rail */
-.cart2__right,
-.cart2__right .cartpg__summary,
-.cart2__right .cartpg__summaryCard,
-.cart2__right .cart-summary,
-.cart2__right .order-summary,
-.cart2__right .reviewpg__shipCard,
-.cart2__right .estWrap,
-.cart2__right .estimator,
-.cart2__right .estimator.estimator--compact,
-.cart2__right .estimator.estimator--compact .estimator__rates {
-  width: 100% !important;
-  max-width: none !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
+        .cart2__right,
+        .cart2__right .cartpg__summary,
+        .cart2__right .cartpg__summaryCard,
+        .cart2__right .cart-summary,
+        .cart2__right .order-summary,
+        .cart2__right .reviewpg__shipCard,
+        .cart2__right .estWrap,
+        .cart2__right .estimator,
+        .cart2__right .estimator.estimator--compact,
+        .cart2__right .estimator.estimator--compact .estimator__rates {
+          width: 100% !important;
+          max-width: none !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }
 
+        .cart2{--ink:#0f172a;--muted:#64748b}
+        .cart2, .cart2 *{font-size:14px;color:var(--ink)}
+        .muted{color:var(--muted)}
+        .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+        .btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;font-weight:700;cursor:pointer}
+        .btn.primary{background:#1e40af;color:#fff}
+        .btn.primary:hover{filter:brightness(.98)}
+        .link-btn{background:none;border:0;padding:0;margin-top:8px;color:#1d4ed8;font-weight:600;cursor:pointer}
+        .link-dim{background:none;border:0;padding:0;margin-top:8px;color:#475569;cursor:pointer}
+        .minw0{min-width:0}
 
-  /* ===== type scale ===== */
-  .cart2{--ink:#0f172a;--muted:#64748b}
-  .cart2, .cart2 *{font-size:14px;color:var(--ink)}
-  .muted{color:var(--muted)}
-  .h-title{font-size:16px;font-weight:700}
-  .h-small{font-size:13px;font-weight:600}
+        .cart2__list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+        .cart2__rowGrid{display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:start}
+        .cart2__thumb{width:96px;height:96px;background:#f1f5f9;border-radius:8px;overflow:hidden}
+        .cart2__thumbImg{width:100%;height:100%;object-fit:cover}
+        .cart2__name{font:700 15px/1.15 system-ui,Segoe UI,Roboto,Helvetica,Arial;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cart2__each{font-size:12px;color:var(--muted);margin-top:2px}
+        .cart2__qtyWrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+        .cart2__qtyWrap label{font-size:12px;color:#334155}
+        .cart2__qtyInput{height:36px;width:80px;border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;box-sizing:border-box;font-size:14px}
+        .cart2__rowRight{text-align:right}
+        .cart2__lineTotal{font-weight:800}
 
-  /* ===== cards & buttons ===== */
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-  .btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;font-weight:700;cursor:pointer}
-  .btn.primary{background:#1e40af;color:#fff}
-  .btn.primary:hover{filter:brightness(.98)}
-  .link-btn{background:none;border:0;padding:0;margin-top:8px;color:#1d4ed8;font-weight:600;cursor:pointer}
-  .link-dim{background:none;border:0;padding:0;margin-top:8px;color:#475569;cursor:pointer}
-  .minw0{min-width:0}
-
-  /* ===== left list ===== */
-  .cart2__list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-  .cart2__rowGrid{display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:start}
-  .cart2__thumb{width:96px;height:96px;background:#f1f5f9;border-radius:8px;overflow:hidden}
-  .cart2__thumbImg{width:100%;height:100%;object-fit:cover}
-  .cart2__name{font:700 15px/1.15 system-ui,Segoe UI,Roboto,Helvetica,Arial;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cart2__each{font-size:12px;color:var(--muted);margin-top:2px}
-  .cart2__qtyWrap{display:flex;align-items:center;gap:8px;margin-top:8px}
-  .cart2__qtyWrap label{font-size:12px;color:#334155}
-  .cart2__qtyInput{height:36px;width:80px;border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;box-sizing:border-box;font-size:14px}
-  .cart2__rowRight{text-align:right}
-  .cart2__lineTotal{font-weight:800}
-
-  /* saved list */
-  .cart2__savedRow{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
-  .cart2__savedActions{display:flex;flex-direction:column;align-items:end;gap:8px}
-`}</style>
-
+        .cart2__savedRow{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+        .cart2__savedActions{display:flex;flex-direction:column;align-items:end;gap:8px}
+      `}</style>
     </main>
   );
 }
