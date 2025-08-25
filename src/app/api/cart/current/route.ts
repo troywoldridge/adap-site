@@ -2,7 +2,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema";
+import { carts } from "@/db/schema/cart";          // ✅ import from concrete files
+import { cartLines } from "@/db/schema/cartLines"; // ✅ not from "./cart"
 import { and, desc, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ const COOKIE_OPTS = {
   sameSite: "lax" as const,
   path: "/" as const,
   secure: process.env.NODE_ENV === "production",
-  maxAge: 60 * 60 * 24 * 30,
+  maxAge: 60 * 60 * 24 * 30, // 30 days
 };
 
 function noStore(res: NextResponse) {
@@ -22,7 +23,7 @@ function noStore(res: NextResponse) {
   return res;
 }
 
-// Support Next 14 (sync) + Next 15 (async)
+// Next 14/15 compatible cookie jar getter
 async function getJar() {
   const maybe = cookies() as any;
   return typeof maybe?.then === "function" ? await maybe : maybe;
@@ -30,28 +31,27 @@ async function getJar() {
 
 export async function GET(_req: NextRequest) {
   try {
-    // Start with a response so we can attach Set-Cookie reliably
+    // Start a response up-front so Set-Cookie survives
     let res = NextResponse.json({
       ok: true,
-      cart: null as any,
-      lines: [] as any[],
+      items: [] as any[],
       subtotal: 0,
-      lineCount: 0,
+      currency: "USD" as "USD" | "CAD",
+      selectedShipping: null as any,
     });
 
     const jar = await getJar();
     const cookieA = (jar.get?.("adap_sid")?.value ?? undefined) as string | undefined;
     const cookieB = (jar.get?.("sid")?.value ?? undefined) as string | undefined;
 
-    // Gather non-empty candidates
     const candidates: string[] = [cookieA, cookieB].filter(
       (v): v is string => typeof v === "string" && v.length > 0,
     );
 
-    // Choose the SID that actually has an open cart
     let chosen: string | undefined;
     let foundCart: any = null;
 
+    // Prefer the SID that actually has an OPEN cart
     for (const sid of candidates) {
       const c = await db.query.carts.findFirst({
         where: and(eq(carts.sid, sid), eq(carts.status, "open")),
@@ -63,42 +63,60 @@ export async function GET(_req: NextRequest) {
       }
     }
 
-    // If neither cookie has a cart yet, pick a stable fallback (prefer adap_sid, else sid),
-    // but DO NOT create a new SID on GET. We'll still sync both cookie names to the chosen value.
-    if (!chosen) {
-      chosen = cookieA ?? cookieB;
-    }
-
-    // If we have *any* chosen SID, sync both cookies so the browser stops diverging
+    // Even if we didn't find an open cart, keep both cookies in sync (prefer adap_sid then sid)
+    if (!chosen) chosen = cookieA ?? cookieB;
     if (chosen) {
       res.cookies.set("adap_sid", chosen, COOKIE_OPTS);
       res.cookies.set("sid", chosen, COOKIE_OPTS);
     }
 
-    // If we didn't find a cart, return empty (read endpoints shouldn't create carts)
+    // No open cart yet → return empty payload (read endpoints shouldn't create carts)
     if (!foundCart) {
       return noStore(res);
     }
 
-    // Load lines for the cart we actually found
+    // Load cart lines ordered newest-first
     const lines = await db
       .select()
       .from(cartLines)
       .where(eq(cartLines.cartId, foundCart.id))
       .orderBy(desc(cartLines.createdAt));
 
-    // You’re not storing price yet — keep subtotal safe (0) until Sinalite pricing is wired
-    const subtotal = 0;
+    // Normalize to the shared client shape (Cart + Review)
+    const items = lines.map((l: any) => {
+      const qty = Number(l.quantity ?? 1);
+      const unit =
+        typeof l.unitPriceCents === "number" ? l.unitPriceCents / 100 : 0;
+      const lineTotal =
+        typeof l.lineTotalCents === "number" ? l.lineTotalCents / 100 : unit * qty;
+
+      return {
+        id: l.id,
+        productId: l.productId,
+        quantity: qty,
+        optionIds: Array.isArray(l.optionIds) ? l.optionIds : [],
+        unitPrice: unit,
+        lineTotal,
+        name: null,            // hydrate later from catalog if desired
+        image: null,           // Cloudflare Image ID if you store it
+        optionsByGroup: {},    // hydrate if you keep a map
+        attachments: [],       // hydrate from cartAttachments if needed
+      };
+    });
+
+    const subtotal = items.reduce((sum: number, it: any) => sum + (Number(it.lineTotal) || 0), 0);
+    const currency: "USD" | "CAD" = foundCart.currency === "CAD" ? "CAD" : "USD";
+    const selectedShipping = foundCart.selectedShipping ?? null;
 
     res = NextResponse.json(
-      { ok: true, cart: foundCart, lines, subtotal, lineCount: lines.length },
-      { headers: res.headers }, // preserve Set-Cookie
+      { ok: true, items, subtotal, currency, selectedShipping },
+      { headers: res.headers },
     );
     return noStore(res);
   } catch (e: any) {
     console.error("GET /api/cart/current failed:", e);
     return NextResponse.json(
-      { ok: false, error: String(e?.message ?? e), stack: e?.stack },
+      { ok: false, error: String(e?.message ?? e) },
       { status: 500, headers: { "Cache-Control": "no-store" } },
     );
   }

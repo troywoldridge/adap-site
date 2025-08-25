@@ -1,3 +1,4 @@
+// src/components/product/ProductConfigurator.tsx
 "use client";
 
 import * as React from "react";
@@ -10,36 +11,41 @@ type Props = {
   productId: string;
   options: OptionGroup[];
   pricingMatrix?: any[];
+  // ★ new: let parent (Buy Box) get optionIds + a display quantity
+  onChange?: (data: { optionIds: number[]; quantity: number }) => void;
 };
 
 const STORE = process.env.NEXT_PUBLIC_STORE_CODE || "en_us";
 const CURRENCY = STORE.toLowerCase().includes("ca") ? "CAD" : "USD";
 
 function isQtyGroup(name: string) {
-  const n = name.toLowerCase();
+  const n = (name || "").toLowerCase();
   return n === "qty" || n === "quantity";
 }
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat(
     CURRENCY === "CAD" ? "en-CA" : "en-US",
-    { style: "currency", currency: CURRENCY, maximumFractionDigits: 2 }
+    { style: "currency", currency: CURRENCY, maximumFractionDigits: 2 },
   ).format(n);
 }
 
-export default function ProductConfigurator({ productId, options, pricingMatrix }: Props) {
+// ★ helper: parse a numeric from a qty option’s name ("25", "1,000", "1000 pcs", etc.)
+function parseQtyFromLabel(label: string | undefined): number | null {
+  if (!label) return null;
+  const m = label.replace(/[^\d]/g, "");
+  const n = Number(m);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export default function ProductConfigurator({ productId, options, pricingMatrix, onChange }: Props) {
   const [selected, setSelected] = React.useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
-    for (const g of options) {
-      if (g.values.length) init[g.group] = g.values[0].id;
-    }
+    for (const g of options) if (g.values.length) init[g.group] = g.values[0].id;
     return init;
   });
 
-  const hasQtyGroup = React.useMemo(
-    () => options.some((g) => isQtyGroup(g.group)),
-    [options]
-  );
+  const hasQtyGroup = React.useMemo(() => options.some((g) => isQtyGroup(g.group)), [options]);
 
   const [manualQty, setManualQty] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState(false);
@@ -49,31 +55,17 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
   const [error, setError] = React.useState<string | null>(null);
   const [showDebug, setShowDebug] = React.useState(false);
 
-  // Build a local pricing index once per pricingMatrix change
   const pricingIndex = React.useMemo(() => {
     if (!pricingMatrix || pricingMatrix.length === 0) return null;
-    try {
-      return buildPricingIndex(pricingMatrix);
-    } catch {
-      return null;
-    }
+    try { return buildPricingIndex(pricingMatrix); } catch { return null; }
   }, [pricingMatrix]);
 
-  // Broadcast current selections for ShippingEstimator
   const broadcastSelections = React.useCallback((sel: Record<string, number>) => {
-    try {
-      window.dispatchEvent(new CustomEvent("sinalite:selectedOptions", { detail: { ...sel } }));
-    } catch {
-      // no-op for SSR
-    }
+    try { window.dispatchEvent(new CustomEvent("sinalite:selectedOptions", { detail: { ...sel } })); } catch {}
   }, []);
 
-  React.useEffect(() => {
-    broadcastSelections(selected);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  React.useEffect(() => { broadcastSelections(selected); /* eslint-disable-next-line */ }, []);
 
-  // Build optionIds array from the current selection (in group order)
   const computeOptionIds = React.useCallback((): number[] => {
     const optionIds: number[] = [];
     for (const g of options) {
@@ -83,45 +75,45 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
     return optionIds;
   }, [options, selected]);
 
-  // Server fallback pricing call
+  // ★ helper: expose a human quantity to parent (from qty group or manual)
+  const currentDisplayQty = React.useMemo(() => {
+    if (hasQtyGroup) {
+      const group = options.find((g) => isQtyGroup(g.group));
+      const valId = group ? selected[group.group] : undefined;
+      const label = group?.values.find((v) => v.id === valId)?.name;
+      return parseQtyFromLabel(label) ?? 1;
+    }
+    const n = Number(manualQty);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }, [hasQtyGroup, options, selected, manualQty]);
+
+  // ★ Server pricing: send { optionIds } only. Derive store/option map server-side (per SinaLite docs).
   const fetchServerPrice = React.useCallback(async (optionIds: number[]) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/sinalite/price/${productId}`, {
+      const res = await fetch(`/api/sinalite/price/${productId}?store=${STORE.includes("ca") ? "CA" : "US"}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          productOptions: optionIds,
-          qty: !hasQtyGroup && manualQty ? Number(manualQty) : undefined,
-          storeCode: STORE,
-        }),
+        body: JSON.stringify({ optionIds }), // ← essential: array of value IDs (qty included if present)
         cache: "no-store",
       });
 
       const text = await res.text();
       let json: any;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        throw new Error("Unexpected response from pricing service.");
-      }
-      if (!res.ok || json?.error) {
+      try { json = JSON.parse(text); } catch { throw new Error("Unexpected response from pricing service."); }
+
+      if (!res.ok || json?.error || json?.ok === false) {
         throw new Error(json?.message || json?.error || `Pricing failed (${res.status})`);
       }
 
-      const p =
-        json?.price ??
-        json?.price2?.price ??
-        json?.response?.price ??
-        null;
-
+      const p = json?.unitPrice ?? json?.price ?? json?.response?.price ?? null;
       setPrice(p != null ? Number(p) : null);
 
-      const human = json?.productOptions || json?.response?.productOptions || {};
+      const human = json?.meta?.productOptions || json?.productOptions || json?.response?.productOptions || {};
       setSelectedSummary(human);
 
-      const pkg = json?.packageInfo || json?.response?.packageInfo || null;
+      const pkg = json?.meta?.packageInfo || json?.packageInfo || json?.response?.packageInfo || null;
       setPkgInfo(pkg);
     } catch (e: any) {
       setPrice(null);
@@ -131,21 +123,23 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
     } finally {
       setIsLoading(false);
     }
-  }, [STORE, hasQtyGroup, manualQty, productId]);
+  }, [productId]);
 
-  // Main recalc: try local first, then server fallback
+  // Main recalc (local matrix first, then server)
   const recalc = React.useCallback(async () => {
     const optionIds = computeOptionIds();
 
-    // Broadcast so shipping stays in sync
+    // keep shipping estimator in sync
     broadcastSelections(selected);
+
+    // ★ also notify parent (Buy Box) so "Add & Upload" has the same IDs
+    onChange?.({ optionIds, quantity: currentDisplayQty });
 
     // Try local matrix first
     if (pricingIndex) {
       const hit = resolveLocalPrice(optionIds, pricingIndex);
       if (hit) {
         setPrice(hit.price);
-        // Synthesize human summary from selections
         const human: Record<string, string> = {};
         for (const g of options) {
           const id = selected[g.group];
@@ -155,15 +149,15 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
         setSelectedSummary(human);
         setPkgInfo(hit.packageInfo ?? null);
         setError(null);
-        return; // instant result
+        return;
       }
     }
 
-    // Fallback: server call
+    // Fallback: server pricing (authoritative per SinaLite)
     await fetchServerPrice(optionIds);
-  }, [broadcastSelections, computeOptionIds, options, pricingIndex, selected, fetchServerPrice]);
+  }, [broadcastSelections, computeOptionIds, currentDisplayQty, fetchServerPrice, onChange, options, pricingIndex, selected]);
 
-  // Debounce recalculation when selections/qty change
+  // Debounce recalculation on selection or manual qty
   React.useEffect(() => {
     const t = setTimeout(() => { void recalc(); }, 150);
     return () => clearTimeout(t);
@@ -210,11 +204,7 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
         </div>
       )}
 
-      <button
-        onClick={() => void recalc()}
-        disabled={isLoading}
-        className="btn btn-primary"
-      >
+      <button onClick={() => void recalc()} disabled={isLoading} className="btn btn-primary">
         {isLoading ? "Calculating…" : "Recalculate"}
       </button>
 
@@ -232,7 +222,6 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
           </div>
         )}
 
-        {/* Customer-facing package details removed per request. Keep only in debug. */}
         <details
           style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: 10 }}
           open={showDebug}
@@ -240,12 +229,21 @@ export default function ProductConfigurator({ productId, options, pricingMatrix 
         >
           <summary style={{ cursor: "pointer" }}>Debug details</summary>
           <pre style={{ margin: 0, fontSize: 12, whiteSpace: "pre-wrap" }}>
-            {JSON.stringify({ currency: CURRENCY, hasQtyGroup, manualQty, selected, packageInfo: pkgInfo }, null, 2)}
+            {JSON.stringify(
+              { currency: CURRENCY, hasQtyGroup, manualQty, selected, packageInfo: pkgInfo },
+              null,
+              2
+            )}
           </pre>
         </details>
 
         {error && (
-          <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#fff1f2", color: "#991b1b", border: "1px solid #fecaca", fontSize: 14 }}>
+          <div
+            style={{
+              marginTop: 8, padding: 10, borderRadius: 8,
+              background: "#fff1f2", color: "#991b1b", border: "1px solid #fecaca", fontSize: 14,
+            }}
+          >
             {error}
           </div>
         )}

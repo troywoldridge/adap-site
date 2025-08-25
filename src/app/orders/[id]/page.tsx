@@ -1,4 +1,3 @@
-// src/app/orders/[id]/page.tsx
 import "server-only";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
@@ -17,15 +16,8 @@ async function getOrder(id: string) {
   const url = `${await baseUrl()}/api/orders/${encodeURIComponent(id)}`;
   const res = await fetch(url, { cache: "no-store" });
   let json: ApiOk | ApiErr | null = null;
-  try {
-    json = (await res.json()) as ApiOk | ApiErr;
-  } catch {
-    /* ignore */
-  }
-
-  if (!res.ok || !json || !("ok" in json) || !json.ok) {
-    return null;
-  }
+  try { json = (await res.json()) as ApiOk | ApiErr; } catch {}
+  if (!res.ok || !json || !("ok" in json) || !json.ok) return null;
 
   return {
     order: json.order,
@@ -33,13 +25,8 @@ async function getOrder(id: string) {
   };
 }
 
-export default async function OrderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-
   const data = await getOrder(id);
   if (!data) return notFound();
 
@@ -59,15 +46,11 @@ export default async function OrderPage({
         <dl className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <dt className="text-gray-500">Total</dt>
-            <dd className="font-medium">
-              {order?.total ?? order?.amount_total ?? "—"}
-            </dd>
+            <dd className="font-medium">{order?.total ?? order?.amount_total ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-gray-500">Created</dt>
-            <dd className="font-medium">
-              {order?.created_time ?? order?.createdAt ?? "—"}
-            </dd>
+            <dd className="font-medium">{order?.created_time ?? order?.createdAt ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-gray-500">Shipping Method</dt>
@@ -106,11 +89,6 @@ export default async function OrderPage({
           </ul>
         )}
       </section>
-
-      {/* Debug (optional): remove if you don’t want JSON */}
-      {/* <pre className="text-xs bg-gray-50 p-3 rounded border overflow-auto">
-        {JSON.stringify({ order, items }, null, 2)}
-      </pre> */}
     </main>
   );
 }

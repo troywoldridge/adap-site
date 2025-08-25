@@ -4,10 +4,11 @@ import crypto from "node:crypto";
 import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
-
+import { carts } from "@/db/schema/cart";
+import { cartLines } from "@/db/schema/cartLines";
 import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema/cart";
-import { cartArtwork } from "@/db/schema/cart-artwork";
+
+import { cartArtwork } from "@/db/schema/cartArtwork";
 
 function getSid(): string | null {
   return cookies().get("sid")?.value ?? null;

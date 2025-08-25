@@ -1,11 +1,10 @@
-// src/app/api/cart/estimate-shipping/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 import { NextRequest } from "next/server";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
-import { getSinaliteProductArrays, normalizeOptionGroups } from "@/lib/sinalite.client";
+import { valueIdToGroupKey } from "@/lib/sinaliteOptionMap";
 
-type LineIn = { productId: number; optionIds: number[]; quantity?: number };
+type LineIn = { productId: number; optionIds: number[] };
 type BodyIn = {
   shipCountry?: string;
   shipState?: string;
@@ -16,76 +15,43 @@ type BodyIn = {
 
 const upper = (s: unknown) => String(s ?? "").trim().toUpperCase();
 const asZip = (u: unknown) => String(u ?? "").trim();
-const toNum = (n: unknown) => {
-  const v = Number(n);
-  return Number.isFinite(v) ? v : null;
-};
-const normStore = (s: unknown): "US" | "CA" => {
+
+function normStore(s: unknown): "US" | "CA" {
   const v = String(s || "US").toUpperCase();
   return v === "CA" || v === "CAD" ? "CA" : "US";
-};
+}
 
-/**
- * Build a map from option value id -> option-group key (string the API expects)
- * Example:  { 30: "Stock", 4: "size", 105: "qty", 93: "Coating", 540: "Round Corners", 140: "Turnaround" }
- */
-async function buildValueIdToGroupKey(productId: number): Promise<Record<number, string>> {
-  try {
-    const { optionsArray } = await getSinaliteProductArrays(String(productId));
-    const groups = normalizeOptionGroups(optionsArray || []);
-    const map: Record<number, string> = {};
-
-    for (const g of groups as any[]) {
-      // Try best-effort to match Sinalite’s examples for keys: prefer provided label/name
-      const rawKey =
-        (g?.name ?? g?.groupName ?? g?.label ?? g?.title ?? "").toString().trim();
-
-      if (!rawKey) continue;
-
-      const key = rawKey; // keep original case (examples show both camel and lowercase)
-      const opts: any[] =
-        Array.isArray(g?.options) ? g.options :
-        Array.isArray(g?.values) ? g.values :
-        Array.isArray(g?.items) ? g.items :
-        Array.isArray(g?.choices) ? g.choices : [];
-
-      for (const o of opts) {
-        const idRaw = (o?.id ?? o?.valueId ?? o?.optionId ?? o?.value ?? o?.code);
-        const id = Number(idRaw);
-        if (Number.isFinite(id) && id > 0) {
-          map[id] = key;
-        }
-      }
+// detect a qty valueId by looking for a group that canonicalizes to 'qty'
+async function findQtyId(productId: number, optionIds: number[]): Promise<number | null> {
+  const v2g = await valueIdToGroupKey(productId);
+  for (const id of optionIds) {
+    const g = v2g[id];
+    if (!g) continue;
+    if (g.toLowerCase() === "qty" || g.toLowerCase() === "quantity") {
+      return id;
     }
-    return map;
-  } catch {
-    return {};
   }
+  return null;
 }
 
-/** Convert a cart line’s optionIds[] to the { options: { [group]: "valueId" } } shape */
-async function lineToSinaOptions(line: LineIn): Promise<{ options: Record<string, string> } | null> {
-  const pid = toNum(line?.productId);
-  if (pid == null) return null;
-
-  const ids = Array.isArray(line?.optionIds)
-    ? line.optionIds.map((x) => Number(x)).filter((n) => Number.isFinite(n))
-    : [];
-
-  if (ids.length === 0) return null;
-
-  const v2g = await buildValueIdToGroupKey(pid);
-  const options: Record<string, string> = {};
-
-  for (const id of ids) {
+// Convert optionIds[] -> { options: { group: "valueIdAsString" } }
+async function idsToOptions(
+  productId: number,
+  optionIds: number[],
+): Promise<Record<string, string>> {
+  const v2g = await valueIdToGroupKey(productId);
+  const out: Record<string, string> = {};
+  for (const id of optionIds) {
     const key = v2g[id];
-    if (!key) continue;                // skip unknowns
-    options[key] = String(id);         // value must be the ID as a string (per docs)
+    if (!key) continue;
+    out[key] = String(id); // SinaLite expects stringified value IDs
   }
-
-  if (Object.keys(options).length === 0) return null;
-  return { options };
+  return out;
 }
+
+export const runtime = "nodejs";
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -99,65 +65,62 @@ export async function POST(req: NextRequest) {
     if (!ShipCountry || !ShipState || !ShipZip) {
       return Response.json(
         { ok: false, error: "country, state/province and postal/zip are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const lines = Array.isArray(body.items) ? body.items : [];
-    const normalized = lines
-      .map((l) => ({ productId: toNum(l?.productId), optionIds: l?.optionIds || [] }))
-      .filter((l) => l.productId !== null) as { productId: number; optionIds: number[] }[];
+    const rawLines = Array.isArray(body.items) ? body.items : [];
+    const lines = rawLines
+      .map((l) => ({
+        productId: Number(l?.productId),
+        optionIds: Array.isArray(l?.optionIds) ? l.optionIds.map(Number).filter(Number.isFinite) : [],
+      }))
+      .filter((l) => Number.isFinite(l.productId) && l.optionIds.length > 0) as LineIn[];
 
-    if (!normalized.length) {
+    if (!lines.length) {
       return Response.json(
         { ok: false, error: "No shippable items (missing productId/optionIds[])." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Convert each line to { productId, options: { ... } } and merge by productId
-    // (SinaLite’s example shows items array with productId + options object)
-    const byPid: Record<number, Record<string, string>> = {};
+    // Build items payload with robust qty handling
+    const items: Array<{ productId: number; options: Record<string, string> }> = [];
+    for (const l of lines) {
+      let options = await idsToOptions(l.productId, l.optionIds);
 
-    for (const l of normalized) {
-      const converted = await lineToSinaOptions(l);
-      if (!converted) continue;
-      const current = (byPid[l.productId] ||= {});
-      // merge (if multiple selections for same group, last one wins)
-      for (const [k, v] of Object.entries(converted.options)) current[k] = v;
+      // Safety net: ensure a qty is present
+      const hasQty = Object.keys(options).some((k) => k.toLowerCase() === "qty" || k.toLowerCase() === "quantity");
+      if (!hasQty) {
+        const maybeQtyId = await findQtyId(l.productId, l.optionIds);
+        if (maybeQtyId != null) {
+          options = { ...options, qty: String(maybeQtyId) };
+        }
+      }
+
+      if (Object.keys(options).length === 0) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Missing required options for pricing/estimate (make sure all groups — including Qty — are selected).",
+            detail: { productId: l.productId, optionIds: l.optionIds, store },
+          },
+          { status: 400 },
+        );
+      }
+
+      items.push({ productId: l.productId, options });
     }
 
-    const items = Object.entries(byPid).map(([pid, options]) => ({
-      productId: Number(pid),
-      options,
-    }));
-
-    if (!items.length) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Could not map optionIds to Sinalite option groups. Ensure each line has valid optionIds including a quantity selection.",
-        },
-        { status: 400 }
-      );
-    }
-
+    // 🔗 SinaLite API call (per docs)
     const bearer = await getSinaliteAccessToken();
-    const base =
-      process.env.SINALITE_BASE_URL ||
-      // default to LIVE; set SINALITE_BASE_URL=https://api.sinaliteuppy.com for sandbox
-      "https://liveapi.sinalite.com";
-
+    const base = process.env.SINALITE_BASE_URL || "https://liveapi.sinalite.com";
     const url = `${base}/order/shippingEstimate`;
 
     const payload = {
       items,
-      shippingInfo: {
-        ShipState,
-        ShipZip,
-        ShipCountry,
-      },
+      shippingInfo: { ShipState, ShipZip, ShipCountry },
     };
 
     const res = await fetch(url, {
@@ -165,7 +128,6 @@ export async function POST(req: NextRequest) {
       headers: {
         authorization: bearer, // "Bearer <token>"
         "content-type": "application/json",
-        "x-sinalite-store": store, // harmless if not used
       },
       body: JSON.stringify(payload),
       cache: "no-store",
@@ -173,57 +135,48 @@ export async function POST(req: NextRequest) {
 
     const text = await res.text();
     let json: any = null;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      /* not JSON => treat as error surface */
-    }
+    try { json = JSON.parse(text); } catch {}
 
     if (!res.ok) {
       return Response.json(
-        {
-          ok: false,
-          error: `SinaLite estimate failed (${res.status})`,
-          detail: json ?? text?.slice(0, 4000) ?? null,
-        },
-        { status: res.status }
+        { ok: false, error: `SinaLite estimate failed (${res.status})`, detail: json ?? text?.slice(0, 4000) ?? null },
+        { status: res.status },
       );
     }
 
-    // Docs show: { statusCode: 200, body: [ ["UPS","UPS Standard", 9.1, 1], ... ] }
+    // Docs: { statusCode: 200, body: [ ["UPS","UPS Standard", 9.1, 1], ... ] }
     const arr: any[] = Array.isArray(json?.body) ? json.body : Array.isArray(json) ? json : [];
-    const currency = store === "CA" ? "CAD" : "USD";
+    const currency: "USD" | "CAD" = store === "CA" ? "CAD" : "USD";
 
-    const rates =
-      arr
-        .map((r) => {
-          if (!Array.isArray(r) || r.length < 4) return null;
-          const [carrier, method, price, days] = r;
-          const cost = Number(price);
-          const etaDays = Number(days);
-          if (!Number.isFinite(cost)) return null;
-          return {
-            carrier: String(carrier ?? ""),
-            method: String(method ?? ""),
-            cost,
-            days: Number.isFinite(etaDays) ? etaDays : null,
-            currency,
-          };
-        })
-        .filter(Boolean)
-        .sort((a, b) => a!.cost - b!.cost) as Array<{
+    const rates = arr
+      .map((r) => {
+        if (!Array.isArray(r) || r.length < 3) return null;
+        const [carrier, method, price, days] = r;
+        const cost = Number(price);
+        const etaDays = Number(days);
+        if (!Number.isFinite(cost)) return null;
+        return {
+          carrier: String(carrier ?? ""),
+          method: String(method ?? ""),
+          cost,
+          days: Number.isFinite(etaDays) ? etaDays : null,
+          currency,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.cost - b!.cost) as Array<{
         carrier: string;
         method: string;
         cost: number;
         days: number | null;
-        currency: string;
+        currency: "USD" | "CAD";
       }>;
 
-    return Response.json({ ok: true, rates }, { status: 200 });
+    return Response.json({ ok: true, rates });
   } catch (err: any) {
     return Response.json(
       { ok: false, error: "Shipping estimate route crashed", detail: String(err?.message || err) },
-      { status: 502 }
+      { status: 502 },
     );
   }
 }

@@ -23,7 +23,7 @@ type SavedItem = {
   optionIds: number[];
   quantity: number;
   cloudflareImageId?: string | null;
-  unitPrice?: number; // snapshot at time of save (we use Sinalite on cart)
+  unitPrice?: number; // snapshot at time of save
 };
 
 type Props = {
@@ -37,7 +37,7 @@ type Props = {
 const money = (n: number, currency: "USD" | "CAD") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n || 0);
 
-// Cloudflare Image Delivery (keeps things fast + cached at the edge)
+// Cloudflare Image Delivery (fast + edge cached)
 function cfImgUrl(id?: string | null) {
   if (!id) return null;
   const acct = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q";
@@ -53,7 +53,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItem[]>([]);
 
-  // Load saved list (localStorage; no schema changes needed)
+  // Load saved list (localStorage)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SAVED_KEY);
@@ -140,11 +140,10 @@ export default function CartPageClient({ initialItems, currency, store, initialS
     }
   }
 
-  // Save a cart line into local saved list, remove from cart
+  // Save a cart line locally, remove from cart
   async function saveForLater(line: AnyItem) {
     setBusyId(line.id);
     try {
-      // snapshot unit price so we can display it in Saved (cart will re-price when moved back)
       const snapshotUnit =
         typeof line.serverUnitPrice === "number"
           ? line.serverUnitPrice
@@ -163,7 +162,6 @@ export default function CartPageClient({ initialItems, currency, store, initialS
       };
       persistSaved([next, ...saved]);
 
-      // remove from cart
       await fetch(`/api/cart/lines/${encodeURIComponent(line.id)}`, { method: "DELETE" });
       await refreshFromServer();
     } finally {
@@ -171,7 +169,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
     }
   }
 
-  // Move a saved item back into cart (server will merge same product/options)
+  // Move a saved item back into cart
   async function moveToCart(si: SavedItem) {
     try {
       await fetch("/api/cart/lines", {
@@ -183,31 +181,27 @@ export default function CartPageClient({ initialItems, currency, store, initialS
           quantity: si.quantity,
         }),
       });
-      // remove from saved
       persistSaved(saved.filter((x) => x.id !== si.id));
       await refreshFromServer();
     } catch {}
   }
-
-  function removeSaved(si: SavedItem) {
-    persistSaved(saved.filter((x) => x.id !== si.id));
-  }
+  function removeSaved(si: SavedItem) { persistSaved(saved.filter((x) => x.id !== si.id)); }
 
   return (
-    <main className="cartpg" aria-labelledby="cart-heading">
-      <h1 id="cart-heading" className="sr-only">Your Cart</h1>
+    <main className="cart2">
+      <h1 className="sr-only" id="cart-heading">Your Cart</h1>
 
-      <div className="cartpg__grid">
+      <div className="cart2__grid">
         {/* LEFT: items */}
-        <section aria-label="Cart items">
+        <section aria-label="Cart items" className="cart2__left">
           {items.length === 0 ? (
-            <div className="empty-card">
-              <h2 style={{ margin: 0 }}>Your cart is empty</h2>
-              <p>Let’s fix that. Find something awesome to print!</p>
-              <a href="/" className="btn primary">Continue shopping</a>
+            <div className="card text-center">
+              <h2 className="m-0">Your cart is empty</h2>
+              <p className="muted mt-1">Let’s fix that. Find something awesome to print!</p>
+              <a href="/" className="btn primary mt-3">Continue shopping</a>
             </div>
           ) : (
-            <ul className="cartpg__list">
+            <ul className="cart2__list">
               {items.map((it) => {
                 const unit =
                   typeof it.serverUnitPrice === "number"
@@ -219,28 +213,31 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                 const img = cfImgUrl(it.cloudflareImageId);
 
                 return (
-                  <li key={it.id} className="cartpg__row">
-                    <div className="cartpg__rowGrid">
-                      <div className="cartpg__thumb" aria-hidden="true">
+                  <li key={it.id} className="cart2__row card">
+                    <div className="cart2__rowGrid">
+                      {/* thumb */}
+                      <div className="cart2__thumb" aria-hidden="true">
                         {img ? (
                           <img
-                            className="cartpg__thumbImg"
+                            className="cart2__thumbImg"
                             src={img}
                             alt={it.name ?? `Product ${it.productId}`}
                             loading="lazy"
                             decoding="async"
                           />
                         ) : (
-                          <div className="cartpg__thumbImg" aria-hidden="true" />
+                          <div className="cart2__thumbImg" />
                         )}
                       </div>
 
-                      <div>
-                        <div className="cartpg__name">{it.name || `Product ${it.productId}`}</div>
-                        <div className="cartpg__each">
+                      {/* main */}
+                      <div className="minw0">
+                        <div className="cart2__name">{it.name || `Product ${it.productId}`}</div>
+                        <div className="cart2__each">
                           {unit ? `${money(unit, currency)} each` : "$0.00 each"}
                         </div>
-                        <div className="cartpg__qtyWrap">
+
+                        <div className="cart2__qtyWrap">
                           <label htmlFor={`qty-${it.id}`}>Qty</label>
                           <input
                             id={`qty-${it.id}`}
@@ -249,7 +246,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                             value={it.quantity}
                             disabled={busyId === it.id}
                             onChange={(e) => updateQty(it.id, Number(e.currentTarget.value))}
-                            className="cartpg__qtyInput"
+                            className="cart2__qtyInput"
                             aria-label={`Quantity for ${it.name || `Product ${it.productId}`}`}
                           />
                         </div>
@@ -257,19 +254,20 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                         <button
                           onClick={() => saveForLater(it)}
                           disabled={busyId === it.id}
-                          className="cartpg__save"
+                          className="link-btn"
                           aria-label={`Save ${it.name || `Product ${it.productId}` } for later`}
                         >
                           Save for later
                         </button>
                       </div>
 
-                      <div className="cartpg__rowRight">
-                        <div className="cartpg__lineTotal">{money(lineTotal, currency)}</div>
+                      {/* right */}
+                      <div className="cart2__rowRight">
+                        <div className="cart2__lineTotal">{money(lineTotal, currency)}</div>
                         <button
                           onClick={() => removeLine(it.id)}
                           disabled={busyId === it.id}
-                          className="cartpg__remove"
+                          className="link-dim"
                           aria-label={`Remove ${it.name || `Product ${it.productId}`}`}
                         >
                           {busyId === it.id ? "Removing…" : "Remove"}
@@ -284,41 +282,41 @@ export default function CartPageClient({ initialItems, currency, store, initialS
 
           {/* Saved for later */}
           {saved.length > 0 && (
-            <div className="saved-card" aria-label="Saved for later">
-              <h3>Saved for later</h3>
-              <ul className="saved-list">
+            <div className="card mt-6" aria-label="Saved for later">
+              <h3 className="m-0">Saved for later</h3>
+              <ul className="cart2__list mt-3">
                 {saved.map((si) => {
                   const img = cfImgUrl(si.cloudflareImageId);
                   return (
-                    <li key={si.id} className="saved-row">
-                      <div className="saved-row__grid">
-                        <div className="saved-thumb" aria-hidden="true">
+                    <li key={si.id} className="cart2__savedRow">
+                      <div className="cart2__rowGrid">
+                        <div className="cart2__thumb" aria-hidden="true">
                           {img ? (
                             <img
-                              className="saved-thumb__img"
+                              className="cart2__thumbImg"
                               src={img}
                               alt={si.name ?? `Product ${si.productId}`}
                               loading="lazy"
                               decoding="async"
                             />
                           ) : (
-                            <div className="saved-thumb__img" aria-hidden="true" />
+                            <div className="cart2__thumbImg" />
                           )}
                         </div>
-                        <div className="saved-main">
-                          <div className="saved-name">{si.name || `Product ${si.productId}`}</div>
-                          <div className="saved-each">
+                        <div className="minw0">
+                          <div className="cart2__name">{si.name || `Product ${si.productId}`}</div>
+                          <div className="cart2__each">
                             {typeof si.unitPrice === "number"
                               ? `${money(si.unitPrice, currency)} each`
                               : "Price shown at checkout"}
                           </div>
-                          <div className="saved-opts">Qty: {si.quantity}</div>
+                          <div className="muted mt-1">Qty: {si.quantity}</div>
                         </div>
-                        <div className="saved-actions">
+                        <div className="cart2__savedActions">
                           <button className="btn primary" onClick={() => moveToCart(si)}>
                             Move to cart
                           </button>
-                          <button className="link-btn" onClick={() => removeSaved(si)}>
+                          <button className="link-dim" onClick={() => removeSaved(si)}>
                             Remove
                           </button>
                         </div>
@@ -332,8 +330,8 @@ export default function CartPageClient({ initialItems, currency, store, initialS
         </section>
 
         {/* RIGHT: summary with estimator */}
-        <aside className="cartpg__summary" aria-label="Order summary">
-          <div className="cartpg__summaryCard cart-summary">
+        <aside className="cart2__right" aria-label="Order summary">
+          <div className="card">
             <CartSummary
               currency={currency}
               subtotal={subtotal}
@@ -345,6 +343,75 @@ export default function CartPageClient({ initialItems, currency, store, initialS
           </div>
         </aside>
       </div>
+
+     {/* ===== scoped, component-only CSS (no Tailwind needed) ===== */}
+{/* ===== scoped, component-only CSS (no Tailwind needed) ===== */}
+<style jsx global>{`
+  /* ===== layout ===== */
+  .cart2{max-width:1400px;margin:0 auto;padding:24px 16px}
+  .cart2__grid{display:grid;gap:24px}
+  @media (min-width:1024px){ .cart2__grid{grid-template-columns:58% 42%} }   /* split page */
+  @media (min-width:1280px){ .cart2__grid{grid-template-columns:60% 40%} }
+  @media (min-width:1536px){ .cart2__grid{grid-template-columns:62% 38%} }
+
+  .cart2__left{min-width:0}
+  .cart2__right{position:sticky;top:96px;align-self:start}
+  .cart2__right > .card,
+  .cart2__right .order-summary,
+  .cart2__right .estimator{width:100%}   /* fill the rail */
+
+  /* 🚀 kill old fixed widths so the card/estimator fills the rail */
+.cart2__right,
+.cart2__right .cartpg__summary,
+.cart2__right .cartpg__summaryCard,
+.cart2__right .cart-summary,
+.cart2__right .order-summary,
+.cart2__right .reviewpg__shipCard,
+.cart2__right .estWrap,
+.cart2__right .estimator,
+.cart2__right .estimator.estimator--compact,
+.cart2__right .estimator.estimator--compact .estimator__rates {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+
+  /* ===== type scale ===== */
+  .cart2{--ink:#0f172a;--muted:#64748b}
+  .cart2, .cart2 *{font-size:14px;color:var(--ink)}
+  .muted{color:var(--muted)}
+  .h-title{font-size:16px;font-weight:700}
+  .h-small{font-size:13px;font-weight:600}
+
+  /* ===== cards & buttons ===== */
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;font-weight:700;cursor:pointer}
+  .btn.primary{background:#1e40af;color:#fff}
+  .btn.primary:hover{filter:brightness(.98)}
+  .link-btn{background:none;border:0;padding:0;margin-top:8px;color:#1d4ed8;font-weight:600;cursor:pointer}
+  .link-dim{background:none;border:0;padding:0;margin-top:8px;color:#475569;cursor:pointer}
+  .minw0{min-width:0}
+
+  /* ===== left list ===== */
+  .cart2__list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+  .cart2__rowGrid{display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:start}
+  .cart2__thumb{width:96px;height:96px;background:#f1f5f9;border-radius:8px;overflow:hidden}
+  .cart2__thumbImg{width:100%;height:100%;object-fit:cover}
+  .cart2__name{font:700 15px/1.15 system-ui,Segoe UI,Roboto,Helvetica,Arial;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cart2__each{font-size:12px;color:var(--muted);margin-top:2px}
+  .cart2__qtyWrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .cart2__qtyWrap label{font-size:12px;color:#334155}
+  .cart2__qtyInput{height:36px;width:80px;border:1px solid #e5e7eb;border-radius:8px;padding:0 8px;box-sizing:border-box;font-size:14px}
+  .cart2__rowRight{text-align:right}
+  .cart2__lineTotal{font-weight:800}
+
+  /* saved list */
+  .cart2__savedRow{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px}
+  .cart2__savedActions{display:flex;flex-direction:column;align-items:end;gap:8px}
+`}</style>
+
     </main>
   );
 }

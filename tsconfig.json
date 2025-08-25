@@ -1,13 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    // ✅ Let Next/TS include the right type packages automatically
-    // (removing custom typeRoots + hard-coded "types")
+    "lib": ["dom", "dom.iterable", "esnext"],
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -16,38 +10,25 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "incremental": true,
-    // ✅ Required for Next 14 subpath exports like "next/navigation"
+
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    // Aliases
+    "jsx": "preserve",
+
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@components/*": [
-        "src/components/*"
-      ],
-      "@lib/*": [
-        "src/lib/*"
-      ],
-      "@drizzle/*": [
-        "src/drizzle/*"
-      ],
-      "@types/*": [
-        "src/types/*"
-      ],
-      "@schema/*": [
-        "src/drizzle/migrations/*"
-      ]
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@lib/*": ["src/lib/*"],
+      "@drizzle/*": ["src/drizzle/*"],
+      "@types/*": ["src/types/*"],
+      "@schema/*": ["src/drizzle/migrations/*"]
     },
-    // Next plugin
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "jsx": "preserve"
+
+    "plugins": [{ "name": "next" }],
+
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "next-env.d.ts",
@@ -57,7 +38,5 @@
     "scripts/**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules", ".next", "dist", "src/_archive"]
 }

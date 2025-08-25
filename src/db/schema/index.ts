@@ -1,34 +1,20 @@
 // src/db/schema/index.ts
 
-// --- Customer & Loyalty (keep these in customer.ts)
-export {
-  customers,
-  // customerAddresses,           // uncomment if defined here
-  loyaltyWallets,
-  loyaltyTransactions,
-  // loyaltyReason,               // uncomment if you defined enum here
-} from "./customer";
+// --- Customer, Orders, Loyalty (orders + orderItems live in customer.ts today)
+export * from "./customer";
 
-// --- Orders (keep these ONLY in orders.ts)
-export {
-  orders,
-  // orderItems,                  // uncomment if orders.ts exports it
-  // orderStatus,                 // uncomment if enum is here
-} from "./orders";
+// --- Cart core (cartLines comes from its OWN file)
+export { carts } from "./cart";
+export { cartLines } from "./cartLines";
 
-// --- Cart core (from cart.ts)
-export {
-  carts,
-  cartLines,
-  // cartsRelations,              // uncomment if defined
-  // cartLinesRelations,          // uncomment if defined
-} from "./cart";
+// --- Cart attachments/artwork
+export { cartAttachments } from "./cartAttachments";
+export { cartArtwork } from "./cartArtwork";
 
-// --- Cart attachments/artwork (pick one source of truth)
-export { cartAttachments } from "./cartAttachments"; // <- use the dedicated file
-export { cartArtwork } from "./cart-artwork";        // <- separate file
-
-// --- Other modules that don't collide
+// --- Other modules
 export * from "./reviews";
 export * from "./sessions";
 export * from "./uploads";
+
+// Relations (only if you actually created this file)
+export * from "./relations"; // <-- remove this if you don't have src/db/schema/relations.ts

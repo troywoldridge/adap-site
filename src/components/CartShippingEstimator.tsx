@@ -38,6 +38,7 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
 
   const currency: "USD" | "CAD" = shipCountry === "CA" ? "CAD" : "USD";
 
+  // Reflect server-selected rate (from /api/cart/current) into UI
   useEffect(() => {
     if (!selected) {
       setSelectedKey(null);
@@ -57,10 +58,34 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
         optionIds: l.optionIds,
         quantity: l.quantity,
       })),
-      store: shipCountry,
+      store: shipCountry, // our API normalizes this to currency
     }),
     [shipCountry, shipState, shipZip, lines]
   );
+
+  async function persistChosen(rate: ShippingRate) {
+    // Save to server (writes carts.selected_shipping)
+    const res = await fetch("/api/cart/shipping/choose", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        carrier: rate.carrier,
+        method: rate.method,
+        cost: rate.cost,
+        days: rate.days ?? null,
+        currency: rate.currency,
+        // optionally echo where it applies:
+        country: shipCountry,
+        state: shipState,
+        zip: shipZip,
+      }),
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json?.ok === false) {
+      throw new Error(json?.error || `Failed to save shipping (${res.status})`);
+    }
+  }
 
   async function handleGetRates() {
     setError(null);
@@ -88,7 +113,6 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
         return;
       }
 
-      // ⬇⬇⬇ EXPLICITLY typed as ShippingRate[] (currency narrowed)
       const normalized: ShippingRate[] = (json.rates || []).map((r: any): ShippingRate => ({
         carrier: String(r?.carrier ?? ""),
         method: String(r?.method ?? ""),
@@ -100,10 +124,12 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
       normalized.sort((a, b) => a.cost - b.cost);
       setRates(normalized);
 
+      // cheapest
       const cheapest = normalized[0] || null;
       const cKey = cheapest ? `${cheapest.carrier}__${cheapest.method}__${cheapest.cost}` : null;
       setCheapestKey(cKey);
 
+      // prefer keeping an existing server-selected rate if it’s still present
       const keepKey = selected
         ? `${selected.carrier}__${selected.method}__${selected.cost}`
         : null;
@@ -113,8 +139,8 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
       if (hasKeep) {
         setSelectedKey(keepKey!);
       } else if (cheapest && cKey) {
-        setSelectedKey(cKey);
-        onSelect?.(cheapest);
+        // auto-select cheapest, and persist to server
+        await choose(cheapest, { persist: true, silent: true });
       } else {
         setSelectedKey(null);
         onSelect?.(null);
@@ -126,15 +152,41 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
     }
   }
 
-  function choose(rate: ShippingRate) {
+  async function choose(rate: ShippingRate, opts?: { persist?: boolean; silent?: boolean }) {
     const k = `${rate.carrier}__${rate.method}__${rate.cost}`;
     setSelectedKey(k);
     onSelect?.(rate);
+
     try {
       const key = `ADAP_SHIP_${shipCountry}_${shipState}_${shipZip}`;
       localStorage.setItem(key, JSON.stringify(rate));
     } catch {}
+
+    if (opts?.persist !== false) {
+      try {
+        await persistChosen(rate);
+      } catch (e: any) {
+        if (!opts?.silent) setError(String(e?.message || e));
+      }
+    }
   }
+
+  // Try to restore a locally saved selection when rates arrive (same dest)
+  useEffect(() => {
+    if (rates.length === 0 || selectedKey) return;
+    try {
+      const key = `ADAP_SHIP_${shipCountry}_${shipState}_${shipZip}`;
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as ShippingRate;
+      const k = `${saved.carrier}__${saved.method}__${saved.cost}`;
+      const match = rates.find((r) => `${r.carrier}__${r.method}__${r.cost}` === k);
+      if (match) void choose(match, { persist: true, silent: true });
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rates]);
 
   return (
     <div className="shipping-estimator">
@@ -162,10 +214,9 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
           aria-label="Postal/ZIP"
         />
 
-        {/* Matches Checkout button styling via globals */}
         <button
           type="button"
-          disabled={loading}
+          disabled={loading || !shipCountry || !shipState || !shipZip}
           onClick={handleGetRates}
           className="shipping-estimator__button btn checkout"
           aria-busy={loading ? "true" : "false"}
@@ -189,7 +240,7 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
             return (
               <li
                 key={k}
-                onClick={() => choose(r)}
+                onClick={() => void choose(r)}
                 className={`shipping-rate${checked ? " shipping-rate--selected" : ""}`}
                 role="button"
                 aria-pressed={checked}
@@ -198,7 +249,7 @@ export default function CartShippingEstimator({ lines, store, selected, onSelect
                   type="radio"
                   name="shipping-rate"
                   checked={checked}
-                  onChange={() => choose(r)}
+                  onChange={() => void choose(r)}
                 />
                 <div>
                   <div className="shipping-rate__name">

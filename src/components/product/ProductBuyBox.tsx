@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react"; // ★ useRef
 import { useRouter } from "next/navigation";
 import ProceedToCheckout from "@/components/ProceedToCheckout";
 
@@ -19,6 +19,26 @@ type PriceResp =
   | { ok: true; unitPrice: number; currency: "USD" | "CAD" }
   | { ok: false; error: string };
 
+function normalizeLabel(s: unknown) {
+  return String(s ?? "").toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9]/g, "");
+}
+
+function findQtyGroupIndex(optionGroups: Group[]): number | null {
+  const candidates = new Set(["qty", "quantity", "orderqty", "orderquantity"]);
+  for (let i = 0; i < optionGroups.length; i++) {
+    const label = normalizeLabel(optionGroups[i].name);
+    if (candidates.has(label)) return i;
+  }
+  return null;
+}
+
+function findQtyValueIdByCount(g: Group, count: number): number | null {
+  const wanted = String(count);
+  const exact = g.options.find((o) => normalizeLabel(o.name) === normalizeLabel(wanted));
+  if (exact) return exact.id;
+  return g.options[0]?.id ?? null;
+}
+
 export default function ProductBuyBox({
   productId,
   productName,
@@ -26,7 +46,6 @@ export default function ProductBuyBox({
   store = "US",
   cloudflareImageId = null,
 }: Props) {
-  // selection per option group
   const [selected, setSelected] = useState<Record<number, number>>(() => {
     const seed: Record<number, number> = {};
     optionGroups.forEach((g, idx) => {
@@ -36,16 +55,25 @@ export default function ProductBuyBox({
     return seed;
   });
 
-  // cart line count (sets)
   const [sets, setSets] = useState<number>(1);
-
-  // live price state
   const [unitPrice, setUnitPrice] = useState<number>(0);
   const [currency, setCurrency] = useState<"USD" | "CAD">("USD");
   const [loadingPrice, setLoadingPrice] = useState<boolean>(false);
   const [priceError, setPriceError] = useState<string | null>(null);
 
-  // stable option id list
+  // ★ guard to avoid duplicate adds (Add & Upload → Go to Cart)
+  const lastLineId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const qIdx = findQtyGroupIndex(optionGroups);
+    if (qIdx == null) return;
+    const qtyGroup = optionGroups[qIdx];
+    const desiredId = findQtyValueIdByCount(qtyGroup, sets);
+    if (desiredId != null && selected[qIdx] !== desiredId) {
+      setSelected((prev) => ({ ...prev, [qIdx]: desiredId }));
+    }
+  }, [sets, optionGroups, selected]);
+
   const optionIds = useMemo(() => {
     const ids: number[] = [];
     optionGroups.forEach((_, idx) => {
@@ -55,7 +83,6 @@ export default function ProductBuyBox({
     return ids;
   }, [selected, optionGroups]);
 
-  // fetch live configured price
   useEffect(() => {
     let abort = false;
     (async () => {
@@ -70,7 +97,7 @@ export default function ProductBuyBox({
         const res = await fetch(`/api/sinalite/price/${productId}?store=${store}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ optionIds, quantity: sets }),
+          body: JSON.stringify({ optionIds }), // qty is in optionIds
           cache: "no-store",
         });
         const json = (await res.json().catch(() => ({}))) as PriceResp;
@@ -93,20 +120,21 @@ export default function ProductBuyBox({
     return () => {
       abort = true;
     };
-  }, [productId, store, sets, JSON.stringify(optionIds)]);
+  }, [productId, store, JSON.stringify(optionIds)]);
 
   const router = useRouter();
 
-  /** Adds the current selection to the server cart (no navigation). */
-  async function addCurrentSelection() {
+  async function addAndGetLineId(): Promise<string | null> {
+    // ★ pass quantity: sets if you want the line quantity reflected in DB totals
     const payload = {
       productId,
       name: productName,
       optionIds,
-      quantity: sets,
+      quantity: sets, // ★ was 1
+      store,
       cloudflareImageId: cloudflareImageId ?? null,
     };
-    const res = await fetch("/api/cart/lines", {
+    const res = await fetch("/api/cart/add", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
@@ -116,19 +144,24 @@ export default function ProductBuyBox({
     if (!res.ok || json?.ok === false) {
       throw new Error(json?.error || `addToCart failed: ${res.status}`);
     }
+    return json?.lineId ?? null;
   }
 
-  /** “Add to Cart” then take user to /cart (keeps your previous behavior). */
-  async function onAddToCart() {
+  async function onAddAndUpload() {
     try {
-      await addCurrentSelection();
-      router.push("/cart");
+      const lineId = await addAndGetLineId();
+      if (lineId) {
+        lastLineId.current = lineId; // ★ remember it
+        router.push(`/product/${productId}/upload-artwork?lineId=${encodeURIComponent(lineId)}`);
+      } else {
+        router.push("/cart");
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to add to cart");
     }
   }
 
-  const subtotal = unitPrice * Math.max(1, sets);
+  const subtotal = unitPrice * sets;
 
   return (
     <div className="buybox">
@@ -138,9 +171,7 @@ export default function ProductBuyBox({
           <select
             className="select"
             value={selected[idx] ?? ""}
-            onChange={(e) =>
-              setSelected((prev) => ({ ...prev, [idx]: Number(e.target.value) }))
-            }
+            onChange={(e) => setSelected((prev) => ({ ...prev, [idx]: Number(e.target.value) }))}
             style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #e5e7eb" }}
           >
             {g.options.map((o) => (
@@ -153,9 +184,7 @@ export default function ProductBuyBox({
       ))}
 
       <div style={{ marginTop: 16 }}>
-        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>
-          Quantity
-        </label>
+        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>Quantity</label>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
             type="button"
@@ -182,28 +211,30 @@ export default function ProductBuyBox({
       <div style={{ marginTop: 16, fontWeight: 600 }}>
         <div>Price{loadingPrice ? "…" : ""}: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(unitPrice)}</div>
         <div>Subtotal: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(subtotal)}</div>
-        {priceError ? (
-          <div style={{ color: "#b91c1c", marginTop: 6 }}>{priceError}</div>
-        ) : null}
+        {priceError ? <div style={{ color: "#b91c1c", marginTop: 6 }}>{priceError}</div> : null}
       </div>
 
-      {/* Buttons – let globals.css style them via .btn.primary */}
       <button
         type="button"
-        onClick={onAddToCart}
+        onClick={onAddAndUpload}
         className="btn primary w-full"
         style={{ marginTop: 16 }}
         disabled={optionIds.length === 0}
       >
-        Add to Cart
+        Add & Upload Artwork
       </button>
 
       <ProceedToCheckout
         to="/cart"
-        ensureAdded={addCurrentSelection}
-        className="btn primary w-full"
+        className="btn w-full"
+        ensureAdded={async () => {
+          // ★ don’t add again if we already added
+          if (!lastLineId.current) {
+            lastLineId.current = (await addAndGetLineId()) || lastLineId.current;
+          }
+        }}
       >
-        Checkout
+        Go to Cart
       </ProceedToCheckout>
     </div>
   );

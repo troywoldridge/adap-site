@@ -9,15 +9,13 @@ import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cfUrl } from "@/lib/data";
-import "instantsearch.css/themes/satellite.css";
-import "@algolia/autocomplete-theme-classic/dist/theme.css";
 
 // 👉 add: client Navigation
 import Navigation, { type NavItem } from "@/client/components/navigation";
 
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
-  "https://americandesignandprinting.com";
+  "https://adapnow.com";
 
 const DEFAULT_OG = cfUrl(process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID || null);
 
@@ -89,18 +87,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider publishableKey={publishableKey}>
       <html lang="en">
         <head>
-  {/* Preconnects: Cloudflare Images CDN + SinaLite API (sandbox by default per docs) */}
-  <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="anonymous" />
-  <link
-    rel="preconnect"
-    href={process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com"}
-    crossOrigin="anonymous"
-  />
-  <script
-    type="application/ld+json"
-    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-  />
-</head>
+          {/* Preconnects: Cloudflare Images CDN + SinaLite API */}
+          <link rel="preconnect" href="https://imagedelivery.net" />
+          <link
+            rel="preconnect"
+            href={process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com"}
+          />
+
+          {/* External CSS (loaded via <link>, not JS import) */}
+          <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/instantsearch.css@8.5.1/themes/satellite.css"
+          />
+          <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-theme-classic@1.19.2/dist/theme.min.css"
+          />
+
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        </head>
 
         <body>
           <NotificationBar />
@@ -108,7 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <MainNav />
 
-          {/* 👉 add: the new client Navigation (uses usePathname safely) */}
+          {/* 👉 the new client Navigation (uses usePathname safely) */}
           <div className="mx-auto max-w-screen-2xl px-4 py-2">
             <Navigation items={NAV_ITEMS} />
           </div>

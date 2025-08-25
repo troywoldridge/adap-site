@@ -1,4 +1,3 @@
-// src/app/cart/page.tsx
 export const dynamic = "force-dynamic";
 
 import CartPageClient from "./CartPageClient";
@@ -6,87 +5,66 @@ import type { CartItem } from "@/components/CartLineItem";
 import type { ShippingRate } from "@/components/CartShippingEstimator";
 import { headers, cookies } from "next/headers";
 
-type ApiCart = {
-  id: string;
-  currency: "USD" | "CAD";
-  subtotal: number;
+type Currency = "USD" | "CAD";
+
+type ApiEnvelope = {
+  ok: true;
   items: Array<{
     id: string;
     productId: number;
     quantity: number;
     optionIds: number[];
     unitPrice?: number;
+    lineTotal?: number;
     name?: string | null;
-    image?: string | null;
+    image?: string | null; // Cloudflare Image Delivery id
   }>;
-  shipping?: {
-    carrier: string;
-    method: string;
-    cost: number;
-    days: number | null;
-    currency: "USD" | "CAD";
-    country: "US" | "CA";
-    state: string;
-    zip: string;
-  } | null;
+  subtotal: number;
+  currency: Currency;
+  selectedShipping: ShippingRate | null;
 };
-
-type ApiResponse = { ok: true; cart: ApiCart } | { ok: false; error: string };
 
 async function baseUrl(): Promise<string> {
   const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  const proto = h.get("x-forwarded-proto") ?? (isLocal ? "http" : "https");
   return `${proto}://${host}`;
 }
 
 async function fetchCart(): Promise<{
   items: CartItem[];
-  currency: "USD" | "CAD";
+  currency: Currency;
   initialShipping: ShippingRate | null;
 }> {
-  const url = `${await baseUrl()}/api/cart`;
+  const url = `${await baseUrl()}/api/cart/current`;
 
+  // forward cookies so the API sees the same session
   const jar = await cookies();
-  const cookieHeader = jar
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
+  const cookieHeader = jar.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
 
   const res = await fetch(url, {
     cache: "no-store",
-    headers: { cookie: cookieHeader },
+    headers: { cookie: cookieHeader, accept: "application/json" },
   });
+
   if (!res.ok) return { items: [], currency: "USD", initialShipping: null };
 
-  const json = (await res.json()) as ApiResponse;
-  if (!("ok" in json) || !json.ok)
-    return { items: [], currency: "USD", initialShipping: null };
+  const json = (await res.json()) as ApiEnvelope | any;
+  if (!json?.ok) return { items: [], currency: "USD", initialShipping: null };
 
-  const cart = json.cart;
-
-  const items: CartItem[] = (cart.items ?? []).map((it) => ({
+  const items: CartItem[] = (json.items ?? []).map((it: any) => ({
     id: it.id,
     productId: it.productId,
     name: it.name ?? `Product ${it.productId}`,
     optionIds: Array.isArray(it.optionIds) ? it.optionIds : [],
     quantity: Number.isFinite(it.quantity) ? it.quantity : 1,
-    cloudflareImageId: it.image ?? null,
-    serverUnitPrice:
-      typeof it.unitPrice === "number" ? it.unitPrice : undefined,
+    cloudflareImageId: it.image ?? null, // 🔥 Cloudflare Images delivery
+    serverUnitPrice: typeof it.unitPrice === "number" ? it.unitPrice : undefined,
   }));
 
-  const currency: "USD" | "CAD" = cart.currency === "CAD" ? "CAD" : "USD";
-
-  const initialShipping: ShippingRate | null = cart.shipping
-    ? {
-        carrier: cart.shipping.carrier,
-        method: cart.shipping.method,
-        cost: cart.shipping.cost,
-        days: cart.shipping.days ?? null,
-        currency: cart.shipping.currency,
-      }
-    : null;
+  const currency: Currency = json.currency === "CAD" ? "CAD" : "USD";
+  const initialShipping: ShippingRate | null = json.selectedShipping ?? null;
 
   return { items, currency, initialShipping };
 }
@@ -96,13 +74,11 @@ export default async function CartPage() {
   const store = currency === "CAD" ? "CA" : "US";
 
   return (
-    <main className="container cart-container">
-      <CartPageClient
-        initialItems={items}
-        currency={currency}
-        store={store}
-        initialShipping={initialShipping}
-      />
-    </main>
+    <CartPageClient
+      initialItems={items}
+      currency={currency}
+      store={store}
+      initialShipping={initialShipping}
+    />
   );
 }
