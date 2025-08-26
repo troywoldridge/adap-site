@@ -1,8 +1,7 @@
-// src/app/cart/review/page.tsx
 import "server-only";
+import * as React from "react";
 import { cookies, headers } from "next/headers";
 import ReviewPageStyles from "@/components/ReviewPageStyles";
-import { cfUrl } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +19,11 @@ type ShippingRate = {
 type ReviewLine = {
   id: string;
   productId: number | string;
+  name?: string | null;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  cloudflareImageId?: string | null;
   optionsByGroup?: Record<string, unknown>;
   attachments?: { id: string | number; storageId: string; fileName?: string }[];
 };
@@ -36,32 +37,69 @@ function fmtCurrency(value: number, currency: Currency = "USD") {
   }
 }
 
-/* ────────── load cart via the same API as Cart page ────────── */
+const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q";
+function mediaUrl(id?: string | null) {
+  if (!id) return null;
+  // If it already looks like a URL (R2 public URL), return as-is
+  if (/^https?:\/\//i.test(id)) return id;
+  // Otherwise treat as Cloudflare Images ID
+  return `https://imagedelivery.net/${CF_HASH}/${id}/public`;
+}
+
+/** Next 14/15 safe headers getter */
+async function getHdr() {
+  const maybe = headers() as any;
+  return typeof maybe?.then === "function" ? await maybe : maybe;
+}
+/** Next 14/15 safe cookies getter */
+async function getJar() {
+  const maybe = cookies() as any;
+  return typeof maybe?.then === "function" ? await maybe : maybe;
+}
+
+/* ────────── load cart via API ────────── */
 async function loadCart(): Promise<{
   lines: ReviewLine[];
   subtotal: number;
   currency: Currency;
   selectedShipping: ShippingRate;
+  walletBalance: number;
 }> {
-  // forward all cookies so the API sees the same session
-  const jar = await cookies();
-  const cookieHeader = jar.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+  // forward all cookies so API sees same session
+  const jar = await getJar();
+  const cookieHeader = jar.getAll().map((c: any) => `${c.name}=${c.value}`).join("; ");
 
-  // build absolute base URL for server-to-server fetch
-  const hdrs = await headers(); // <-- IMPORTANT: await headers()
+  // absolute base URL
+  const hdrs = await getHdr();
   const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "localhost:3000";
   const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
   const proto = hdrs.get("x-forwarded-proto") ?? (isLocal ? "http" : "https");
   const base = `${proto}://${host}`;
 
-  const res = await fetch(`${base}/api/cart`, {
-     headers: { cookie: cookieHeader, accept: "application/json" },
-     cache: "no-store",
-     next: { revalidate: 0 },
-   });
+  // cart (use your established endpoint)
+  const res = await fetch(`${base}/api/cart/current`, {
+    headers: { cookie: cookieHeader, accept: "application/json" },
+    cache: "no-store",
+    next: { revalidate: 0 },
+  });
+
+  // wallet (may be 401 if not signed in → treat as 0)
+  let walletBalance = 0;
+  try {
+    const w = await fetch(`${base}/api/loyalty/wallet`, {
+      headers: { cookie: cookieHeader, accept: "application/json" },
+      cache: "no-store",
+    });
+    if (w.ok) {
+      const wj = await w.json().catch(() => ({}));
+      walletBalance = Number(wj?.balance || 0);
+    }
+  } catch {
+    walletBalance = 0;
+  }
 
   if (!res.ok) {
-    return { lines: [], subtotal: 0, currency: "USD", selectedShipping: null };
+    return { lines: [], subtotal: 0, currency: "USD", selectedShipping: null, walletBalance };
   }
 
   const data = await res.json();
@@ -76,9 +114,11 @@ async function loadCart(): Promise<{
     return {
       id: String(l.id ?? l.lineId ?? idx),
       productId: l.productId ?? l.product_id ?? "",
+      name: l.name ?? null,
       quantity: qty,
       unitPrice: unit,
       lineTotal,
+      cloudflareImageId: l.cloudflareImageId ?? null,
       optionsByGroup: l.optionsByGroup ?? {},
       attachments: Array.isArray(l.attachments) ? l.attachments : [],
     };
@@ -101,23 +141,126 @@ async function loadCart(): Promise<{
       }
     : null;
 
-  return { lines, subtotal, currency, selectedShipping };
+  return { lines, subtotal, currency, selectedShipping, walletBalance };
+}
+
+/* ────────── client widgets ────────── */
+function RightSummaryClient(props: {
+  currency: Currency;
+  subtotal: number;
+  selectedShipping: ShippingRate;
+  walletBalance: number;
+}) {
+  "use client";
+  const { currency, subtotal, selectedShipping, walletBalance } = props;
+  const [redeemPoints, setRedeemPoints] = React.useState(0);
+
+  const shipCost = selectedShipping?.cost ?? 0;
+  const preTax = Math.max(0, subtotal + shipCost - redeemPoints / 100);
+  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="m-0 mb-2 text-base font-extrabold">Order Summary</h2>
+
+      <div className="flex items-center justify-between py-1 text-sm">
+        <span className="text-slate-500">Subtotal</span>
+        <span className="font-medium">{fmt(subtotal)}</span>
+      </div>
+
+      <div className="flex items-center justify-between py-1 text-sm">
+        <span className="text-slate-500">Shipping</span>
+        <span className="font-medium">
+          {selectedShipping ? fmt(shipCost) : "Calculated at checkout"}
+        </span>
+      </div>
+
+      {/* Loyalty selector */}
+      <LoyaltyRedeemer
+        balance={walletBalance}
+        currency={currency}
+        onChange={(pts) => setRedeemPoints(pts)}
+      />
+
+      <div className="flex items-center justify-between py-1 text-sm">
+        <span className="text-slate-500">Loyalty redemption</span>
+        <span className="font-medium">-{fmt(redeemPoints / 100)}</span>
+      </div>
+
+      <div className="mt-2 border-t border-gray-200 pt-2">
+        <div className="flex items-center justify-between text-[15px] font-extrabold">
+          <span>Total (pre-tax)</span>
+          <span>{fmt(preTax)}</span>
+        </div>
+      </div>
+
+      <p className="mt-2 text-[12px] text-slate-500">
+        Tax calculated at checkout.
+      </p>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <a
+          href="/"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Back to shopping
+        </a>
+        <a
+          href="/checkout"
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-transparent bg-blue-700 px-4 font-bold text-white hover:bg-blue-800"
+        >
+          Continue to checkout
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function LoyaltyRedeemer({
+  balance,
+  currency,
+  onChange,
+}: {
+  balance: number;
+  currency: Currency;
+  onChange?: (points: number) => void;
+}) {
+  "use client";
+  const [points, setPoints] = React.useState(0);
+  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+
+  return (
+    <div className="mt-2 rounded-lg border border-gray-200 p-3">
+      <div className="text-[13px] font-semibold">Loyalty</div>
+      <div className="text-xs text-slate-500">Balance: {balance.toLocaleString()} pts</div>
+      <input
+        type="range"
+        min={0}
+        max={balance}
+        step={50}
+        value={points}
+        onChange={(e) => {
+          const v = Math.min(balance, Math.max(0, Number(e.currentTarget.value)));
+          setPoints(v);
+          onChange?.(v);
+        }}
+        style={{ width: "100%", marginTop: 8 }}
+      />
+      <div className="mt-1 text-sm">
+        Redeem: <strong>{points.toLocaleString()} pts</strong> ({fmt(points / 100)})
+      </div>
+    </div>
+  );
 }
 
 /* ────────── page ────────── */
 export default async function ReviewCartPage() {
-  const { lines, subtotal, currency, selectedShipping } = await loadCart();
-
-  const shippingCost = selectedShipping?.cost ?? null;
-  const rewardsValue = subtotal * 0.02; // tweak if your rewards program differs
-  const preTaxTotal = subtotal + (shippingCost ?? 0);
+  const { lines, subtotal, currency, selectedShipping, walletBalance } = await loadCart();
 
   return (
     <main className="mx-auto max-w-screen-2xl px-4 py-6 md:py-10">
-      {/* page-scoped CSS (client component that only injects styles) */}
       <ReviewPageStyles />
 
-      {/* Header */}
       <header className="mb-5 flex items-end justify-between gap-4">
         <h1 className="m-0 text-2xl font-bold tracking-tight">Review Your Order</h1>
         <div className="text-sm text-slate-500">
@@ -125,7 +268,6 @@ export default async function ReviewCartPage() {
         </div>
       </header>
 
-      {/* Empty state */}
       {lines.length === 0 ? (
         <section className="rounded-xl border border-gray-200 bg-white p-4 text-slate-600">
           Your cart is empty. Browse products and add items to continue.
@@ -142,118 +284,118 @@ export default async function ReviewCartPage() {
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           {/* Left: lines */}
           <div className="grid gap-3">
-            {lines.map((l) => (
-              <article key={l.id} className="rounded-xl border border-gray-200 bg-white p-3">
-                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  {/* Details */}
-                  <div>
-                    <div className="font-bold text-slate-900">Product #{l.productId}</div>
+            {/* List with thumbnails + Change link */}
+            <ul className="grid gap-3">
+              {lines.map((l) => {
+                const thumb =
+                  (l.attachments && l.attachments[0]?.storageId && mediaUrl(l.attachments[0].storageId)) ||
+                  mediaUrl(l.cloudflareImageId) ||
+                  null;
 
-                    {/* Options */}
-                    {l.optionsByGroup && Object.keys(l.optionsByGroup).length > 0 && (
-                      <dl className="mt-1 grid gap-x-4 gap-y-0.5 text-[12px] text-slate-700 sm:grid-cols-3">
-                        {Object.entries(l.optionsByGroup).map(([k, v]) => (
-                          <div key={k} className="contents sm:block">
-                            <dt className="inline text-slate-500 sm:block">{k}</dt>{" "}
-                            <dd className="inline font-semibold sm:block">{String(v)}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
+                return (
+                  <li key={l.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                    <div className="grid gap-3 md:grid-cols-[96px_1fr_auto] md:items-start">
+                      {/* thumb */}
+                      <div className="h-24 w-24 overflow-hidden rounded-lg border border-gray-200 bg-slate-100">
+                        {thumb ? (
+                          <img
+                            src={thumb}
+                            alt={l.name || `Product ${l.productId}`}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : null}
+                      </div>
 
-                    {/* Artwork thumbnails (Cloudflare Images via cfUrl) */}
-                    {l.attachments?.length ? (
-                      <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                        {l.attachments.map((a: any) => (
-                          <li key={a.id} className="overflow-hidden rounded-lg border border-gray-200">
-                            <div className="relative h-24 w-full">
-                              <img
-                                src={cfUrl(a.storageId)}
-                                alt={a.fileName || "Artwork"}
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            </div>
-                            <div className="truncate px-2 py-1 text-[12px] text-slate-700">
-                              {a.fileName || "Artwork"}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-4 text-[12px] text-slate-500">No artwork attached yet.</p>
-                    )}
-                  </div>
+                      {/* main */}
+                      <div className="min-w-0">
+                        <div className="truncate text-[15px] font-bold text-slate-900">
+                          {l.name || `Product ${l.productId}`}
+                        </div>
 
-                  {/* Figures */}
-                  <div className="space-y-1 text-right">
-                    <div className="text-sm text-slate-500">
-                      Qty: <span className="text-slate-900">{l.quantity}</span>
+                        {/* Options */}
+                        {l.optionsByGroup && Object.keys(l.optionsByGroup).length > 0 && (
+                          <dl className="mt-1 grid gap-x-4 gap-y-0.5 text-[12px] text-slate-700 sm:grid-cols-3">
+                            {Object.entries(l.optionsByGroup).map(([k, v]) => (
+                              <div key={k} className="contents sm:block">
+                                <dt className="inline text-slate-500 sm:block">{k}</dt>{" "}
+                                <dd className="inline font-semibold sm:block">{String(v)}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        )}
+
+                        {/* Attachments list (if more than one) */}
+                        {l.attachments?.length ? (
+                          <ul className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                            {l.attachments.map((a) => {
+                              const url = mediaUrl(a.storageId);
+                              return (
+                                <li key={String(a.id)} className="overflow-hidden rounded-lg border border-gray-200">
+                                  <div className="relative h-24 w-full">
+                                    {url ? (
+                                      <img
+                                        src={url}
+                                        alt={a.fileName || "Artwork"}
+                                        className="h-full w-full object-cover"
+                                        loading="lazy"
+                                        decoding="async"
+                                      />
+                                    ) : null}
+                                  </div>
+                                  <div className="truncate px-2 py-1 text-[12px] text-slate-700">
+                                    {a.fileName || "Artwork"}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="mt-4 text-[12px] text-slate-500">No artwork attached yet.</p>
+                        )}
+
+                        {/* Change artwork link */}
+                        <div className="mt-2">
+                          <a
+                            href={`/product/${l.productId}/upload-artwork?lineId=${encodeURIComponent(l.id)}`}
+                            className="text-sm text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
+                          >
+                            Change artwork
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* right totals */}
+                      <div className="text-right">
+                        <div className="text-sm text-slate-500">
+                          Qty: <span className="text-slate-900">{l.quantity}</span>
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          Unit: <span className="text-slate-900">{fmtCurrency(l.unitPrice, currency)}</span>
+                        </div>
+                        <div className="text-sm text-slate-500">
+                          Line total:{" "}
+                          <span className="font-extrabold text-slate-900">
+                            {fmtCurrency(l.lineTotal, currency)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-slate-500">
-                      Unit: <span className="text-slate-900">{fmtCurrency(l.unitPrice, currency)}</span>
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      Line total:{" "}
-                      <span className="font-extrabold text-slate-900">
-                        {fmtCurrency(l.lineTotal, currency)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
-          {/* Right: summary (no estimator here) */}
+          {/* Right: summary (with loyalty redemption) */}
           <aside className="sticky top-24 self-start">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <h2 className="m-0 mb-2 text-base font-extrabold">Order Summary</h2>
-
-              <div className="flex items-center justify-between py-1 text-sm">
-                <span className="text-slate-500">Subtotal</span>
-                <span className="font-medium">{fmtCurrency(subtotal, currency)}</span>
-              </div>
-
-              <div className="flex items-center justify-between py-1 text-sm">
-                <span className="text-slate-500">Shipping</span>
-                <span className="font-medium">
-                  {shippingCost != null ? fmtCurrency(shippingCost, currency) : "Calculated at checkout"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between py-1 text-sm">
-                <span className="text-slate-500">Rewards you’ll earn (est.)</span>
-                <span className="font-medium">{fmtCurrency(rewardsValue, currency)}</span>
-              </div>
-
-              <div className="mt-2 border-t border-gray-200 pt-2">
-                <div className="flex items-center justify-between text-[15px] font-extrabold">
-                  <span>Total (pre-tax)</span>
-                  <span>{fmtCurrency(preTaxTotal, currency)}</span>
-                </div>
-              </div>
-
-              <p className="mt-2 text-[12px] text-slate-500">
-                Final shipping & taxes are confirmed at checkout per SinaLite’s rates.
-              </p>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <a
-                  href="/"
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Back to shopping
-                </a>
-                <a
-                  href="/checkout"
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-transparent bg-blue-700 px-4 font-bold text-white hover:bg-blue-800"
-                >
-                  Continue to checkout
-                </a>
-              </div>
-            </div>
+            <RightSummaryClient
+              currency={currency}
+              subtotal={subtotal}
+              selectedShipping={selectedShipping}
+              walletBalance={walletBalance}
+            />
           </aside>
         </section>
       )}

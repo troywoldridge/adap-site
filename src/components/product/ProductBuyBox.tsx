@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"; // ★ useRef
 import { useRouter } from "next/navigation";
 import ProceedToCheckout from "@/components/ProceedToCheckout";
+import { flushShipChoiceToCart } from "@/lib/shippingChoice";
 
 type Option = { id: number; name: string };
 type Group = { name: string; options: Option[] };
@@ -63,6 +64,7 @@ export default function ProductBuyBox({
 
   // ★ guard to avoid duplicate adds (Add & Upload → Go to Cart)
   const lastLineId = useRef<string | null>(null);
+  await flushShipChoiceToCart();
 
   useEffect(() => {
     const qIdx = findQtyGroupIndex(optionGroups);
@@ -148,18 +150,20 @@ export default function ProductBuyBox({
   }
 
   async function onAddAndUpload() {
-    try {
-      const lineId = await addAndGetLineId();
-      if (lineId) {
-        lastLineId.current = lineId; // ★ remember it
-        router.push(`/product/${productId}/upload-artwork?lineId=${encodeURIComponent(lineId)}`);
-      } else {
-        router.push("/cart");
-      }
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to add to cart");
+  try {
+    const lineId = await addAndGetLineId();
+    // flush chosen shipping (if any was picked on this page)
+    await flushShipChoiceToCart();
+
+    if (lineId) {
+      router.push(`/product/${productId}/upload-artwork?lineId=${encodeURIComponent(lineId)}`);
+    } else {
+      router.push("/cart");
     }
+  } catch (e) {
+    alert(e instanceof Error ? e.message : "Failed to add to cart");
   }
+}
 
   const subtotal = unitPrice * sets;
 

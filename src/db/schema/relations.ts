@@ -1,7 +1,8 @@
-// src/db/schema/relations.ts
 import { relations } from "drizzle-orm";
 import { carts } from "./cart";
 import { cartLines } from "./cartLines";
+
+
 
 // cart has many cartLines
 export const cartsRelations = relations(carts, ({ many }) => ({

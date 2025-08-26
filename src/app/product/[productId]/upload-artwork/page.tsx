@@ -16,7 +16,7 @@ function readParam(sp: PageProps["searchParams"], key: string): string | undefin
   return Array.isArray(v) ? v[0] : v;
 }
 
-// Next 14/15-safe cookie getter
+// Next 14/15 cookie getter
 async function getJar() {
   const maybe = cookies() as any;
   return typeof maybe?.then === "function" ? await maybe : maybe;
@@ -25,21 +25,13 @@ async function getJar() {
 export default async function UploadArtworkPage({ params, searchParams }: PageProps) {
   const productId = params.productId;
 
-  // If no SID cookie yet, render a client gate that POSTs /api/session/ensure and refreshes
+  // If no SID cookie yet, render a client gate that creates a session then refreshes
   const jar = await getJar();
   const sid = jar.get?.("adap_sid")?.value ?? jar.get?.("sid")?.value;
-  if (!sid) {
-    return <EnsureSessionGate />;
-  }
+  if (!sid) return <EnsureSessionGate />;
 
-  // Optional query: ?sides= and ?lineId= (we don’t pass lineId to the component since it doesn’t accept it)
   const sidesParam = readParam(searchParams, "sides");
   const numSides = sidesParam ? Number(sidesParam) || 2 : 2;
-
-  // NOTE: ArtworkUploadBoxes expects: { productId, numSides, cartLines }
-  // If you want to attach uploads to a specific cart line, fetch the cart
-  // here and pass a filtered array. For now we pass an empty array.
-  const cartLines: any[] = [];
 
   return (
     <main className="container" style={{ padding: 24 }}>
@@ -48,17 +40,35 @@ export default async function UploadArtworkPage({ params, searchParams }: PagePr
         Upload your print-ready files. We’ll attach them to your order and show them on the review page.
       </p>
 
-      <ArtworkUploadBoxes
-        productId={productId}
-        numSides={numSides}
-        cartLines={cartLines}
-      />
+      <ArtworkUploadBoxes productId={productId} numSides={numSides} cartLines={[]} />
 
-      <div style={{ marginTop: 16 }}>
-        <Link href={`/review-order`} className="btn btn-secondary">
-          Go to Review Order
-        </Link>
-      </div>
+      <ContinueAfterUpload />
     </main>
+  );
+}
+
+/** Client widget: shows "Continue to Cart" only after an upload success event */
+function ContinueAfterUpload() {
+  "use client";
+  const [ok, setOk] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = () => setOk(true);
+    window.addEventListener("adap:artworkUploaded", handler as EventListener);
+    return () => window.removeEventListener("adap:artworkUploaded", handler as EventListener);
+  }, []);
+
+  if (!ok) {
+    return (
+      <p className="muted" style={{ marginTop: 12 }}>
+        Upload at least one file to continue.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <Link href="/cart" className="btn btn-primary">Continue to Cart</Link>
+    </div>
   );
 }

@@ -19,61 +19,58 @@ const isProductUpload = createRouteMatcher([
   "/products/:productId/upload-artwork(.*)", // legacy safety
 ]);
 
-/** PUBLIC: Cart & estimator (UI + API) */
+/** PUBLIC: cart UI + cart APIs + estimator + Sinalite pricing */
 const isPublicCartArea = createRouteMatcher([
   "/cart(.*)",
   "/api/cart/:path*",
-  "/api/shipping/estimate(.*)",
-  "/api/create-checkout-session", // ⬅ allow guests to start Stripe session
-  "/api/sinalite/price/:path*", 
-  "/api/checkout/:path*", 
+  "/api/cart/estimate-shipping(.*)",
 ]);
 
-/** ✅ NEW: PUBLIC Sinalite pricing endpoints (per Sinalite docs POST /price/:id/:storeCode) */
 const isPublicSinalite = createRouteMatcher([
-  "/api/sinalite/price(.*)",     // allow both /price and /price/[id]
-  "/api/sinalite/products(.*)",  // optional: product meta/pricing data
+  "/api/sinalite/price(.*)",
+  "/api/sinalite/products(.*)",
 ]);
 
-/** PROTECTED: App areas */
+/** PROTECTED app areas (require sign-in) */
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
   "/account(.*)",
   "/orders(.*)",
   "/checkout(.*)",
-  "/review-order(.*)",
-  // Protected APIs:
+  "/cart/review(.*)",
+  // protected APIs that mutate or read user data:
   "/api/artwork/:path*",
-  "/api/uploads/presign(.*)",
-  "/api/order/place",
-  "/api/orders(.*)",
-  "/api/create-checkout-session(.*)" 
+  "/api/uploads/:path*",
+  "/api/order/:path*",
+  "/api/orders/:path*",
+  "/api/checkout/:path*",
 ]);
 
-export default clerkMiddleware(async (auth: ClerkMiddlewareAuth, req: NextRequest) => {
+export default clerkMiddleware(async (auth, req: NextRequest) => {
+  // pass-thru for trivial requests
   if (req.method === "HEAD" || req.method === "OPTIONS") {
     return NextResponse.next();
   }
 
+  // Canonicalize legacy review routes
   if (isLegacyReview(req)) {
     return NextResponse.redirect(new URL("/cart/review", req.url), 308);
   }
 
-  const p = req.nextUrl.pathname;
-  const session = await auth();
-  const { userId, redirectToSignIn } = session;
+  const { userId, redirectToSignIn } = await auth();
+  const pathname = req.nextUrl.pathname;
 
-  // ✅ Public zones (guest-friendly): cart + Sinalite pricing
+  // Public zones
   if (isPublicCartArea(req) || isPublicSinalite(req)) {
     return NextResponse.next();
   }
 
-  // Gateways/webhooks bypass
-  const isWebhook = p.startsWith("/api/webhooks/") || p.startsWith("/api/stripe/");
+  // Gateway/webhooks bypass
+  const isWebhook = pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/stripe/");
 
-  // Require auth for other mutating API calls
-  if (p.startsWith("/api/") && req.method !== "GET" && !isWebhook && !userId) {
+  // Require auth for non-GET API calls (unless webhook)
+  if (pathname.startsWith("/api/") && req.method !== "GET" && !isWebhook && !userId) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 

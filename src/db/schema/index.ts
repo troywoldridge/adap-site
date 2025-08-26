@@ -1,20 +1,30 @@
 // src/db/schema/index.ts
 
-// --- Customer, Orders, Loyalty (orders + orderItems live in customer.ts today)
-export * from "./customer";
+// ── Customers & addresses
+export * from "./customer";            // <-- includes orders + orderItems today
+export * from "./customerAddresses";   // remove if you kept addresses inside customer.ts
 
-// --- Cart core (cartLines comes from its OWN file)
-export { carts } from "./cart";
-export { cartLines } from "./cartLines";
+// ── Cart core
+export * from "./cart";
+export * from "./cartLines";
 
-// --- Cart attachments/artwork
-export { cartAttachments } from "./cartAttachments";
-export { cartArtwork } from "./cartArtwork";
+// ── Cart attachments / artwork
+export * from "./cartAttachments";
+export * from "./cartArtwork";
+// DO NOT also export from "./artworkUploads" if uploads.ts already exports artworkUploads
+// export * from "./artworkUploads";
 
-// --- Other modules
-export * from "./reviews";
+// ── Reviews
+export * from "./productReviews";
+export * from "./reviewHelpfulVotes";
+
+// ── Sessions / uploads
 export * from "./sessions";
-export * from "./uploads";
+export * from "./uploads";            // owns `artworkUploads` in your current setup
 
-// Relations (only if you actually created this file)
-export * from "./relations"; // <-- remove this if you don't have src/db/schema/relations.ts
+// ── If/when you move orders into their own files, uncomment these
+// export * from "./orders";
+// export * from "./orderItems";
+
+// ── Relations (only if the file exists)
+export * from "./relations";
