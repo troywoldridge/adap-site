@@ -1,3 +1,4 @@
+// src/components/Header.tsx
 "use client";
 
 import Head from "next/head";
@@ -7,27 +8,32 @@ import { useState, useMemo, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 
+// Brand / content
 const SITE_BRAND = "ADAP";
 const SITE_TAGLINE = "Custom Print Experts";
 const DEFAULT_DESCRIPTION =
   "Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.";
-const LOGO_CLOUDFLARE_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
-const LOGO_URL = `https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/${LOGO_CLOUDFLARE_ID}/public`;
-const DEFAULT_SOCIAL_SHARE_IMAGE =
-  "https://imagedelivery.net/pJ0fKvjCAbyoF8aQ/5b703aad-e904-4d2b-1bf4-13c0fecd2f00/public";
+
+// Cloudflare Images (env-driven with safe defaults)
+const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH ?? "pJ0fKvjCAbyoF8aD0BGu8Q";
+const DEFAULT_LOGO_ID = "a90ba357-76ea-48ed-1c65-44fff4401600"; // your logo image id
+const LOGO_ID = process.env.NEXT_PUBLIC_CF_LOGO_ID ?? DEFAULT_LOGO_ID;
+const LOGO_URL = `https://imagedelivery.net/${CF_HASH}/${LOGO_ID}/public`;
+
+// Social share (fallback image id; swap if you have a nicer banner)
+const DEFAULT_SOCIAL_IMAGE_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
+const DEFAULT_SOCIAL_SHARE_IMAGE = `https://imagedelivery.net/${CF_HASH}/${DEFAULT_SOCIAL_IMAGE_ID}/public`;
 
 function buildDynamicShareImageUrl(
   primaryImageId?: string,
   productName?: string,
   priceDisplay?: string
 ): string {
-  if (!primaryImageId) {
-    return DEFAULT_SOCIAL_SHARE_IMAGE;
-  }
+  if (!primaryImageId) return DEFAULT_SOCIAL_SHARE_IMAGE;
   const params = new URLSearchParams();
   params.set("imageId", primaryImageId);
-  productName && params.set("title", productName);
-  priceDisplay && params.set("price", priceDisplay);
+  if (productName) params.set("title", productName);
+  if (priceDisplay) params.set("price", priceDisplay);
   return `/api/share-image?${params.toString()}`;
 }
 
@@ -66,28 +72,21 @@ export default function Header({
   }, [pathname, searchParams]);
 
   const computedCanonical = useMemo(() => {
-    if (canonicalUrl) {
-      return canonicalUrl.replace(/\/+$/, "");
-    }
-    if (typeof window !== "undefined") {
-      return `${window.location.origin}${pagePath}`;
-    }
+    if (canonicalUrl) return canonicalUrl.replace(/\/+$/, "");
+    if (typeof window !== "undefined") return `${window.location.origin}${pagePath}`;
     return pagePath;
   }, [canonicalUrl, pagePath]);
 
   const computedOgImage = useMemo(() => {
-    return ogImage ?? buildDynamicShareImageUrl(
-      primaryImageId,
-      productName,
-      priceDisplay
-    );
+    return ogImage ?? buildDynamicShareImageUrl(primaryImageId, productName, priceDisplay);
   }, [ogImage, primaryImageId, productName, priceDisplay]);
 
-  const toggleMenu = useCallback(() => setMenuOpen(o => !o), []);
+  const toggleMenu = useCallback(() => setMenuOpen((o) => !o), []);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
     <>
+      {/* Meta (OK in app router as a client component; feel free to move to generateMetadata if you prefer) */}
       <Head>
         <title>{fullTitle}</title>
         <meta name="description" content={description} />
@@ -115,62 +114,159 @@ export default function Header({
         {/* Favicons & theme */}
         <link rel="icon" href="/favicon.ico" />
         <link rel="icon" type="image/webp" href="/adap_favicon.webp" />
-        <meta name="theme-color" content="#c62828" />
+        <meta name="theme-color" content="#0f172a" />
 
-        {/* Preconnect & preload */}
+        {/* Preconnect & (optional) preload */}
         <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="anonymous" />
-        {computedOgImage && <link rel="preload" as="image" href={computedOgImage} />}
       </Head>
 
-      <header className="site-header">
-        <div className="site-header__inner container">
+      {/* Sticky header */}
+      <header className="sticky top-0 z-[60] border-b bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           {/* Logo / Brand */}
-          <Link href="/" onClick={closeMenu} className="site-header__logo" aria-label="Home">
+          <Link
+            href="/"
+            onClick={closeMenu}
+            className="group inline-flex items-center gap-3"
+            aria-label="Home"
+          >
             <Image
               src={LOGO_URL}
               alt={`${SITE_BRAND} logo`}
-              width={140}
-              height={80}
+              width={56}
+              height={56}
               priority
-              className="site-header__logo-image"
+              className="h-12 w-12 rounded-md bg-white object-contain ring-1 ring-gray-200 transition group-hover:ring-blue-600"
             />
-            <div>
-              <strong>{SITE_BRAND}</strong>
-              <div className="text-xs">{SITE_TAGLINE}</div>
+            <div className="leading-tight">
+              <div className="text-lg font-bold tracking-tight text-gray-900 group-hover:text-blue-700">
+                {SITE_BRAND}
+              </div>
+              <div className="text-xs text-gray-500">{SITE_TAGLINE}</div>
             </div>
           </Link>
 
-          {/* Search */}
-          <div className="site-header__search">
-            <SearchBar />
+          {/* Search (hidden on small screens) */}
+          <div className="hidden min-w-0 flex-1 md:block">
+            <div className="mx-auto max-w-xl">
+              <SearchBar />
+            </div>
           </div>
 
-          {/* Icons & Menu Toggle */}
-          <div className="site-header__icons">
-            <Link href="/shipping-info" title="Shipping Info">🚚</Link>
-            <Link href="/search" title="Search">🔍</Link>
-            <Link href="/cart" title="Cart">🛒</Link>
-            <Link href="/account" title="Account">👤</Link>
+          {/* Icons */}
+          <div className="flex items-center gap-2">
+            <Link
+              href="/shipping-info"
+              title="Shipping Info"
+              className="rounded-lg p-2 text-xl hover:bg-gray-100"
+              aria-label="Shipping Info"
+            >
+              🚚
+            </Link>
+            <Link
+              href="/search"
+              title="Search"
+              className="rounded-lg p-2 text-xl hover:bg-gray-100 md:hidden"
+              aria-label="Search"
+            >
+              🔍
+            </Link>
+            <Link
+              href="/cart"
+              title="Cart"
+              className="rounded-lg p-2 text-xl hover:bg-gray-100"
+              aria-label="Cart"
+            >
+              🛒
+            </Link>
+            <Link
+              href="/account"
+              title="Account"
+              className="rounded-lg p-2 text-xl hover:bg-gray-100"
+              aria-label="Account"
+            >
+              👤
+            </Link>
+
+            {/* Mobile menu toggle */}
             <button
-              className="toggle-btn"
+              className="ml-1 rounded-lg p-2 text-xl hover:bg-gray-100 md:hidden"
               onClick={toggleMenu}
               aria-label="Toggle menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
             >
               {menuOpen ? "✕" : "☰"}
             </button>
-
           </div>
         </div>
 
+        {/* Secondary row (optional categories / quick links) */}
+        <nav className="hidden border-t border-gray-200 bg-white md:block">
+          <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-2 text-sm">
+            <Link className="text-gray-700 hover:text-blue-700" href="/category/business-cards">
+              Business Cards
+            </Link>
+            <Link className="text-gray-700 hover:text-blue-700" href="/category/print-products">
+              Print Products
+            </Link>
+            <Link className="text-gray-700 hover:text-blue-700" href="/category/large-format">
+              Large Format
+            </Link>
+            <Link className="text-gray-700 hover:text-blue-700" href="/category/labels-and-packaging">
+              Labels & Packaging
+            </Link>
+            <Link className="text-gray-700 hover:text-blue-700" href="/category/apparel">
+              Apparel
+            </Link>
+            <Link className="text-gray-700 hover:text-blue-700" href="/category/sample-kits">
+              Sample Kits
+            </Link>
+          </div>
+        </nav>
+
         {/* Mobile nav */}
         {menuOpen && (
-          <div className="mobile-menu">
-            <nav>
-              <Link href="/search" onClick={closeMenu}>🔍 Search</Link>
-              <Link href="/cart" onClick={closeMenu}>🛒 Cart</Link>
-              <Link href="/account" onClick={closeMenu}>👤 Account</Link>
-              <Link href="/shipping-info" onClick={closeMenu}>🚚 Shipping Info</Link>
-            </nav>
+          <div id="mobile-menu" className="border-t border-gray-200 bg-white md:hidden">
+            <div className="mx-auto max-w-7xl px-4 py-3">
+              <div className="mb-3">
+                <SearchBar />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <Link href="/search" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  🔍 Search
+                </Link>
+                <Link href="/cart" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  🛒 Cart
+                </Link>
+                <Link href="/account" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  👤 Account
+                </Link>
+                <Link href="/shipping-info" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  🚚 Shipping Info
+                </Link>
+
+                {/* Quick categories */}
+                <Link href="/category/business-cards" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  Business Cards
+                </Link>
+                <Link href="/category/print-products" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  Print Products
+                </Link>
+                <Link href="/category/large-format" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  Large Format
+                </Link>
+                <Link href="/category/labels-and-packaging" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  Labels & Packaging
+                </Link>
+                <Link href="/category/apparel" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  Apparel
+                </Link>
+                <Link href="/category/sample-kits" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  Sample Kits
+                </Link>
+              </div>
+            </div>
           </div>
         )}
       </header>

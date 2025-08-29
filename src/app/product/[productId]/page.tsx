@@ -12,6 +12,7 @@ import {
 import { productImagesForProductId } from "@/lib/product-images";
 import ProductBuyBox from "@/components/product/ProductBuyBox";
 import ProductInfoTabs from "@/components/product/ProductInfoTabs";
+import ProductReviews from "@/components/product/ProductReviews";
 
 
 // optional: nicer name fallback from your asset JSON maps
@@ -70,7 +71,9 @@ function parseCfId(url: string | null | undefined): string | null {
 }
 
 function titleCase(s?: string | null) {
-  if (!s) return "";
+  if (!s) {
+    return "";
+  }
   return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 function assetNameFallback(id: number): string | null {
@@ -100,15 +103,20 @@ export async function generateMetadata({ params }: { params: Promise<{ productId
 export default async function ProductPage({ params }: { params: Promise<{ productId: string }> }) {
   const { productId: id } = await params;
   const idNum = Number(id);
-  if (!Number.isFinite(idNum) || idNum <= 0) return notFound();
+  if (!Number.isFinite(idNum) || idNum <= 0) {
+    return notFound();
+  }
 
   let meta: any = null;
   try { meta = await getSinaliteProductMeta(id); } catch { return notFound(); }
-  if (!meta) return notFound();
+  if (!meta) {
+    return notFound();
+  }
 
   const { optionsArray } = await getSinaliteProductArrays(id);
   const normalized = normalizeOptionGroups(optionsArray || []);
   const optionGroups: BuyBoxOptionGroup[] = toBuyBoxGroups(normalized);
+ 
 
   const gallery = productImagesForProductId(id);
   const hero = gallery[0] || "https://imagedelivery.net/placeholder/placeholder/public";
@@ -147,60 +155,69 @@ export default async function ProductPage({ params }: { params: Promise<{ produc
     </div>
   );
 
-  // If you already have a reviews module component, drop it here:
-  // <ProductReviews productId={idNum} productName={productName} />
   const reviewsSlot = (
-    <div className="text-sm text-gray-600">
-      {/* Replace this stub with your real reviews component if you have it */}
-      <p>No reviews yet. Be the first to leave one!</p>
-    </div>
-  );
+  <ProductReviews productId={id} productName={productName} />
+);
 
-  return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm text-gray-600" aria-label="Breadcrumb">
-        <ol className="flex flex-wrap items-center gap-1">
-          <li><Link className="hover:underline" href="/">Home</Link></li>
-          <li>/</li>
-          <li><Link className="hover:underline" href="/products">Products</Link></li>
-          <li>/</li>
-          <li aria-current="page" className="text-gray-900 font-medium">{productName}</li>
-        </ol>
-      </nav>
+return (
+  <main className="mx-auto max-w-7xl px-4 py-8">
+    {/* Breadcrumbs */}
+    <nav className="mb-5 text-sm text-gray-600" aria-label="Breadcrumb">
+      <ol className="flex flex-wrap items-center gap-1">
+        <li><Link className="hover:underline" href="/">Home</Link></li>
+        <li>/</li>
+        <li><Link className="hover:underline" href="/products">Products</Link></li>
+        <li>/</li>
+        <li aria-current="page" className="text-gray-900 font-medium">{productName}</li>
+      </ol>
+    </nav>
 
-      <header className="mb-4">
-        <h1 className="text-2xl font-semibold">{productName}</h1>
-        {meta?.description ? <p className="mt-1 text-gray-600">{meta.description}</p> : null}
-      </header>
+    {/* 2-col: left content / right buy box */}
+    <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,720px)_minmax(0,460px)]">
+      {/* LEFT: title, desc, hero + thumbs, tabs */}
+      <div>
+        <header className="mb-3">
+          <h1 className="text-2xl md:text-3xl font-semibold">{productName}</h1>
 
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,680px)_1fr]">
-        {/* IMAGES */}
-        <div>
-          <div className="relative aspect-[4/3] w-full max-w-[680px] overflow-hidden rounded-2xl border">
-            <Image
-              src={hero}
-              alt={productName}
-              fill
-              sizes="(min-width:1024px) 680px, 100vw"
-              className="object-cover"
-              priority
-            />
-          </div>
+          {/* (optional) stars/summary can go here if you want later */}
+          {meta?.description ? (
+            <p className="mt-2 max-w-2xl text-gray-600">
+              {meta.description}
+            </p>
+          ) : null}
+        </header>
 
-          {gallery.length > 1 && (
-            <ul className="mt-3 grid grid-cols-4 gap-3 max-w-[680px]">
-              {gallery.map((u, i) => (
-                <li key={i} className="relative aspect-square overflow-hidden rounded-lg border">
-                  <Image src={u} alt={`${productName} ${i + 1}`} fill sizes="25vw" className="object-cover" />
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* HERO */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border bg-white">
+          <Image
+            src={hero}
+            alt={productName}
+            fill
+            sizes="(min-width:1024px) 720px, 100vw"
+            className="object-cover"
+            priority
+          />
         </div>
 
-        {/* BUY BOX */}
-        <div>
+        {/* THUMBS – extra padding from hero + bigger gaps */}
+        {gallery.length > 1 && (
+          <ul className="mt-5 grid grid-cols-4 gap-4">
+            {gallery.map((u, i) => (
+              <li key={i} className="relative aspect-square overflow-hidden rounded-lg border">
+                <Image src={u} alt={`${productName} ${i + 1}`} fill sizes="25vw" className="object-cover" />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Tabs: Details / File Prep / Reviews (spacious underline style) */}
+        <ProductInfoTabs details={details} filePrep={filePrep} reviewsSlot={reviewsSlot} />
+      </div>
+
+      {/* RIGHT: buy box in a “Price this item” card, sticky like the reference */}
+      <aside className="lg:sticky lg:top-24">
+        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold">Price this item:</h3>
           <ProductBuyBox
             productId={idNum}
             productName={productName}
@@ -209,10 +226,9 @@ export default async function ProductPage({ params }: { params: Promise<{ produc
             cloudflareImageId={heroCfId}
           />
         </div>
-      </section>
+      </aside>
+    </section>
+  </main>
+);
 
-      {/* TABS: Details / File Prep / Reviews */}
-      <ProductInfoTabs details={details} filePrep={filePrep} reviewsSlot={reviewsSlot} />
-    </main>
-  );
 }

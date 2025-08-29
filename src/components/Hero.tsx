@@ -1,80 +1,199 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { getHeroSlides, HeroSlide } from "@/lib/heroSlides";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { getHeroSlides, type HeroSlide } from "@/lib/heroSlides";
 import { trackHeroImpression, trackHeroClick } from "@/lib/heroAnalytics";
 
-const AUTO_PLAY = 7000;
+const AUTO_PLAY_MS = 7000;
+
+/**
+ * Adapters so TypeScript is happy regardless of whether your analytics
+ * helpers are typed for 1 or 2 params. At runtime they’re no-ops if missing.
+ */
+const trackImp = (id: string | number, ctaText?: string) => {
+  try {
+    (trackHeroImpression as unknown as (id: string | number, ctaText?: string) => void)(
+      id,
+      ctaText
+    );
+  } catch {}
+};
+const trackClk = (id: string | number, ctaText?: string) => {
+  try {
+    (trackHeroClick as unknown as (id: string | number, ctaText?: string) => void)(
+      id,
+      ctaText
+    );
+  } catch {}
+};
 
 export default function Hero() {
-  const slides = getHeroSlides();
+  const slides: HeroSlide[] = getHeroSlides() ?? [];
   const [index, setIndex] = useState(0);
-  const timer = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<number | null>(null);
+  const hoveringRef = useRef(false);
+
+  const clear = () => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const schedule = useCallback(() => {
+    clear();
+    if (!hoveringRef.current && slides.length > 1) {
+      // keep the hero compact; do not stretch page height
+      timerRef.current = window.setTimeout(
+        () => setIndex((i) => (i + 1) % slides.length),
+        AUTO_PLAY_MS
+      );
+    }
+  }, [slides.length]);
 
   useEffect(() => {
-    timer.current = setTimeout(
-      () => setIndex(i => (i + 1) % slides.length),
-      AUTO_PLAY
-    );
-    return () => clearTimeout(timer.current);
-  }, [index, slides.length]);
+    schedule();
+    return clear;
+  }, [index, schedule]);
 
+  // Track each visible slide once it becomes active
   useEffect(() => {
-    trackHeroImpression(slides[index].id);
+    const s = slides[index];
+    if (s) trackImp(s.id, (s as any).ctaText);
   }, [index, slides]);
 
-  const goTo = useCallback((i: number) => setIndex(i), []);
-  const prev = () => setIndex(i => (i - 1 + slides.length) % slides.length);
-  const next = () => setIndex(i => (i + 1) % slides.length);
+  const goTo = useCallback(
+    (i: number) => {
+      if (!slides.length) return;
+      const len = slides.length;
+      setIndex(((i % len) + len) % len);
+    },
+    [slides.length]
+  );
 
-  if (!slides.length) {
-    return null;
-  }
+  const prev = () => goTo(index - 1);
+  const next = () => goTo(index + 1);
+
+  if (!slides.length) return null;
+
+  const onEnter = () => {
+    hoveringRef.current = true;
+    clear();
+  };
+  const onLeave = () => {
+    hoveringRef.current = false;
+    schedule();
+  };
 
   return (
-    <section className="hero">
-      <div className="container">
-        <div className="hero__wrapper">
-          {slides.map((s,i) => (
+    <section
+      className="mx-auto mt-2 max-w-5xl px-3 isolate"
+      aria-label="Featured promotions"
+      data-hero
+    >
+      <div
+        className="
+          relative z-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-sm
+          h-[140px] min-h-[140px] max-h-[140px]
+          md:h-[220px] md:min-h-[220px] md:max-h-[220px]
+        "
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+      >
+        {slides.map((s, i) => {
+          const active = i === index;
+          return (
             <article
               key={s.id}
-              className={`hero__slide ${i===index? "is-active":""}`}
-              aria-hidden={i!==index}
+              className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-500 ${
+                active ? "opacity-100" : "opacity-0"
+              }`}
+              aria-hidden={!active}
+              aria-roledescription="slide"
             >
               <Image
                 src={s.imageUrl}
                 alt={s.alt}
                 fill
-                className="hero__img"
-                priority={i===0}
-                sizes="(min-width: 768px) 1000px, 100vw"
+                priority={i === 0}
+                sizes="(min-width: 1024px) 900px, 100vw"
+                className="object-cover"
               />
-              <div className="hero__overlay" />
-              <div className="hero__content">
-                <h1 className="hero__title">{s.title}</h1>
-                <p className="hero__desc">{s.description}</p>
-                <Link href={s.ctaHref} className="hero__cta btn-red">
-                  {s.ctaText}
-                </Link>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/75 via-white/25 to-transparent" />
+              <div className="relative z-10 flex h-full items-center px-3">
+                <div className="pointer-events-auto max-w-sm rounded-md bg-white/80 p-2 shadow">
+                  <h1 className="text-[13px] font-extrabold tracking-tight text-slate-900">
+                    {s.title}
+                  </h1>
+                  {s.description && (
+                    <p className="mt-0.5 hidden max-w-prose text-[11px] leading-4 text-slate-700 sm:block">
+                      {s.description}
+                    </p>
+                  )}
+
+                  {s.ctaHref && s.ctaText && (
+                    <div className="mt-2">
+                      <Link
+                        href={s.ctaHref}
+                        onClick={() => trackClk(s.id, s.ctaText)}
+                        className="inline-flex items-center justify-center rounded bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+                      >
+                        {s.ctaText}
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             </article>
-          ))}
+          );
+        })}
 
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={prev}
+              aria-label="Previous slide"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              aria-label="Next slide"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              ›
+            </button>
+          </>
+        )}
 
-
-          <div className="hero__dots">
-            {slides.map((_,i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
-                className={`hero__dot ${i===index? "is-active":""}`}
-                aria-label={`Slide ${i+1}`}
-              />
-            ))}
+        {slides.length > 1 && (
+          <div
+            className="absolute bottom-1.5 left-1/2 z-10 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-white/90 px-2 py-1 shadow"
+            role="tablist"
+            aria-label="Hero slides"
+          >
+            {slides.map((_, i) => {
+              const active = i === index;
+              return (
+                <button
+                  key={i}
+                  role="tab"
+                  aria-selected={active}
+                  aria-label={`Go to slide ${i + 1}`}
+                  onClick={() => goTo(i)}
+                  className={`h-1.5 rounded-full transition ${
+                    active ? "w-4 bg-blue-700" : "w-1.5 bg-gray-400 hover:bg-gray-500"
+                  }`}
+                />
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

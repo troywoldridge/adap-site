@@ -1,17 +1,15 @@
-import {
-  clerkMiddleware,
-  createRouteMatcher,
-} from "@clerk/nextjs/server";
+// src/middleware.ts
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Public pages & APIs (no auth required)
+// Public pages & APIs
 const isPublic = createRouteMatcher([
   "/",
   "/products(.*)",
   "/product(.*)",
   "/cart(.*)",
   "/checkout(.*)",
-  "/api/(.*)",                // your public JSON APIs
+  "/api/(.*)",          // public JSON APIs (Stripe webhook is still bypassed explicitly)
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
@@ -21,27 +19,36 @@ const isPublic = createRouteMatcher([
   "/_next/image(.*)",
 ]);
 
-export default clerkMiddleware((auth, req: NextRequest) => {
-  // Pretty product URLs: /product/123-business-cards -> internally render /product/123
+export default clerkMiddleware(async (auth, req: NextRequest) => {
   const { pathname } = req.nextUrl;
+
+  // Never intercept Stripe webhooks
+  if (pathname.startsWith("/api/webhooks/stripe")) {
+    return NextResponse.next();
+  }
+
+  // Pretty product URLs: /product/123-some-slug → internally render /product/123
   const m = pathname.match(/^\/product\/(\d+)-/);
   if (m) {
-    const id = m[1];
     const url = req.nextUrl.clone();
-    url.pathname = `/product/${id}`;
+    url.pathname = `/product/${m[1]}`;
     return NextResponse.rewrite(url);
   }
 
-  // No special handling otherwise
+  // Public routes go straight through; everything else requires auth
+  if (isPublic(req)) {
+    return NextResponse.next();
+  }
+
+  await auth.protect(); // ✅ correct for your Clerk version
   return NextResponse.next();
-}, {
-  // Treat these as public; the rest can be protected if you add private areas later
-  publicRoutes: (req) => isPublic(req),
-  // Never intercept Stripe webhooks
-  ignoredRoutes: ["/api/webhooks/stripe"],
 });
 
-// Run on everything except Next internals & static files
+// Run on everything except Next internals & static assets
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map)$).*)"],
+  matcher: [
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/",
+    "/(api|trpc)(.*)",
+  ],
 };

@@ -11,20 +11,48 @@ export default function ProductInfoTabs({
   filePrep: React.ReactNode;
   reviewsSlot: React.ReactNode;
 }) {
-  const [tab, setTab] = useState<"details"|"file"|"reviews">("details");
-  const base = "px-4 py-2 text-sm font-semibold rounded-md border";
-  const active = "bg-blue-700 text-white border-blue-700";
-  const inactive = "bg-white text-gray-800 border-gray-300 hover:bg-gray-50";
+  const [tab, setTab] = useState<"details" | "file" | "reviews">("details");
+
+  const TabBtn = ({
+    id,
+    label,
+  }: {
+    id: "details" | "file" | "reviews";
+    label: string;
+  }) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={tab === id}
+      onClick={() => setTab(id)}
+      className={[
+        "relative -mb-px px-3 md:px-6 py-3",
+        "text-base md:text-lg font-semibold transition-colors",
+        tab === id ? "text-gray-900" : "text-gray-500 hover:text-gray-800",
+      ].join(" ")}
+    >
+      {label}
+      <span
+        className={[
+          "pointer-events-none absolute inset-x-0 -bottom-[1px] h-[2px]",
+          tab === id ? "bg-blue-600" : "bg-transparent",
+        ].join(" ")}
+      />
+    </button>
+  );
 
   return (
-    <section className="mt-8">
-      <div className="flex gap-2">
-        <button className={`${base} ${tab === "details" ? active : inactive}`} onClick={() => setTab("details")}>Details</button>
-        <button className={`${base} ${tab === "file" ? active : inactive}`} onClick={() => setTab("file")}>File Prep</button>
-        <button className={`${base} ${tab === "reviews" ? active : inactive}`} onClick={() => setTab("reviews")}>Reviews</button>
+    <section className="mt-12">
+      <div
+        role="tablist"
+        className="flex items-end justify-start gap-8 border-b border-gray-200"
+      >
+        <TabBtn id="details" label="Details" />
+        <TabBtn id="file" label="File Prep" />
+        <TabBtn id="reviews" label="Reviews" />
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="mt-6">
         {tab === "details" && <div className="prose max-w-none">{details}</div>}
         {tab === "file" && <div className="prose max-w-none">{filePrep}</div>}
         {tab === "reviews" && <div>{reviewsSlot}</div>}
