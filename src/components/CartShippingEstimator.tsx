@@ -1,273 +1,234 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-export type CartLineMini = { productId: number; optionIds: number[]; quantity: number };
+import { useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export type ShippingRate = {
   carrier: string;
-  method: string;
-  cost: number;
-  days: number | null;
+  serviceCode: string;
+  serviceName: string;
+  amount: number;
   currency: "USD" | "CAD";
+  eta?: string | null;
+  days?: number | null;
 };
 
-type Props = {
-  lines: CartLineMini[];
-  store: "US" | "CA";
-  selected?: ShippingRate | null;
-  onSelect?: (rate: ShippingRate | null) => void;
-};
-
-const fmtMoney = (v: number, c: "USD" | "CAD") =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: c }).format(v || 0);
-
-function toCurrency(c: unknown): "USD" | "CAD" {
-  return c === "CAD" ? "CAD" : "USD";
+function parseDays(rate: ShippingRate): number | null {
+  if (typeof rate.days === "number") return rate.days;
+  const m = rate.eta?.match(/(\d+)/);
+  return m ? Number(m[1]) : null;
 }
 
-export default function CartShippingEstimator({ lines, store, selected, onSelect }: Props) {
-  const [shipCountry, setShipCountry] = useState<"US" | "CA">(store === "CA" ? "CA" : "US");
-  const [shipState, setShipState] = useState("");
-  const [shipZip, setShipZip] = useState("");
-  const [rates, setRates] = useState<ShippingRate[]>([]);
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [cheapestKey, setCheapestKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const currency: "USD" | "CAD" = shipCountry === "CA" ? "CAD" : "USD";
-
-  // Reflect server-selected rate (from /api/cart/current) into UI
-  useEffect(() => {
-    if (!selected) {
-      setSelectedKey(null);
-      return;
-    }
-    const k = `${selected.carrier}__${selected.method}__${selected.cost}`;
-    setSelectedKey(k);
-  }, [selected]);
-
-  const requestBody = useMemo(
-    () => ({
-      shipCountry,
-      shipState,
-      shipZip,
-      items: lines.map((l) => ({
-        productId: l.productId,
-        optionIds: l.optionIds,
-        quantity: l.quantity,
-      })),
-      store: shipCountry, // our API normalizes this to currency
-    }),
-    [shipCountry, shipState, shipZip, lines]
-  );
-
-  async function persistChosen(rate: ShippingRate) {
-    // Save to server (writes carts.selected_shipping)
-    const res = await fetch("/api/cart/shipping/choose", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        carrier: rate.carrier,
-        method: rate.method,
-        cost: rate.cost,
-        days: rate.days ?? null,
-        currency: rate.currency,
-        // optionally echo where it applies:
-        country: shipCountry,
-        state: shipState,
-        zip: shipZip,
-      }),
-      cache: "no-store",
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || json?.ok === false) {
-      throw new Error(json?.error || `Failed to save shipping (${res.status})`);
-    }
+function money(n: number, currency: "USD" | "CAD") {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
+  } catch {
+    return `$${n.toFixed(2)}`;
   }
+}
 
-  async function handleGetRates() {
+/** Safely parse JSON; if server sent HTML/text, surface readable error text. */
+async function parseJsonSafe(res: Response) {
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return res.json();
+  const text = await res.text();
+  throw new Error(text?.slice(0, 200) || `HTTP ${res.status}`);
+}
+
+export default function CartShippingEstimator() {
+  const router = useRouter();
+
+  const [country, setCountry] = useState<"US" | "CA">("US");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rates, setRates] = useState<ShippingRate[]>([]);
+  const [selected, setSelected] = useState<number>(-1);
+
+  const cheapestIdx = useMemo(() => {
+    if (!rates.length) return -1;
+    let idx = 0, min = rates[0].amount;
+    for (let i = 1; i < rates.length; i++) if (rates[i].amount < min) { min = rates[i].amount; idx = i; }
+    return idx;
+  }, [rates]);
+
+  const getRates = useCallback(async () => {
     setError(null);
-    setRates([]);
-    if (!shipCountry || !shipState || !shipZip) {
-      setError("Please enter country, state/province and postal/zip.");
-      return;
-    }
-
     setLoading(true);
     try {
+      // Sinalite API: POST /order/shippingEstimate
       const res = await fetch("/api/cart/estimate-shipping", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ shipCountry: country, shipState: state, shipZip: zip }),
+        cache: "no-store",
       });
 
-      const json = (await res.json()) as
-        | { ok: true; rates: any[] }
-        | { ok: false; error: string };
+      const data = await parseJsonSafe(res);
+      if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
-      if (!res.ok || !("ok" in json) || !json.ok) {
-        setError((json as any)?.error || `Failed to get rates (${res.status})`);
-        setLoading(false);
-        return;
-      }
-
-      const normalized: ShippingRate[] = (json.rates || []).map((r: any): ShippingRate => ({
-        carrier: String(r?.carrier ?? ""),
-        method: String(r?.method ?? ""),
-        cost: Number(r?.cost ?? 0) || 0,
-        days: typeof r?.days === "number" ? r.days : null,
-        currency: toCurrency(r?.currency),
+      const list: ShippingRate[] = (data.rates || []).map((r: ShippingRate) => ({
+        ...r,
+        days: parseDays(r),
       }));
-
-      normalized.sort((a, b) => a.cost - b.cost);
-      setRates(normalized);
-
-      // cheapest
-      const cheapest = normalized[0] || null;
-      const cKey = cheapest ? `${cheapest.carrier}__${cheapest.method}__${cheapest.cost}` : null;
-      setCheapestKey(cKey);
-
-      // prefer keeping an existing server-selected rate if it’s still present
-      const keepKey = selected
-        ? `${selected.carrier}__${selected.method}__${selected.cost}`
-        : null;
-      const hasKeep =
-        !!keepKey && normalized.some((r) => `${r.carrier}__${r.method}__${r.cost}` === keepKey);
-
-      if (hasKeep) {
-        setSelectedKey(keepKey!);
-      } else if (cheapest && cKey) {
-        // auto-select cheapest, and persist to server
-        await choose(cheapest, { persist: true, silent: true });
-      } else {
-        setSelectedKey(null);
-        onSelect?.(null);
-      }
+      setRates(list);
+      setSelected(list.length ? 0 : -1);
     } catch (e: any) {
-      setError(String(e?.message || e));
+      setError(e?.message || "Failed to fetch rates");
     } finally {
       setLoading(false);
     }
-  }
+  }, [country, state, zip]);
 
-  async function choose(rate: ShippingRate, opts?: { persist?: boolean; silent?: boolean }) {
-    const k = `${rate.carrier}__${rate.method}__${rate.cost}`;
-    setSelectedKey(k);
-    onSelect?.(rate);
-
+  const applySelected = useCallback(async () => {
+    if (selected < 0 || !rates[selected]) return;
+    setSaving(true);
+    setError(null);
     try {
-      const key = `ADAP_SHIP_${shipCountry}_${shipState}_${shipZip}`;
-      localStorage.setItem(key, JSON.stringify(rate));
-    } catch {}
+      const r = rates[selected];
+      const res = await fetch("/api/cart/choose-shipping", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          carrier: r.carrier,
+          method: r.serviceName || r.serviceCode,
+          amount: r.amount,
+          currency: r.currency,
+          days: parseDays(r),
+          country,
+          state,
+          zip,
+        }),
+      });
 
-    if (opts?.persist !== false) {
-      try {
-        await persistChosen(rate);
-      } catch (e: any) {
-        if (!opts?.silent) setError(String(e?.message || e));
-      }
-    }
-  }
+      const data = await parseJsonSafe(res);
+      if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
-  // Try to restore a locally saved selection when rates arrive (same dest)
-  useEffect(() => {
-    if (rates.length === 0 || selectedKey) return;
-    try {
-      const key = `ADAP_SHIP_${shipCountry}_${shipState}_${shipZip}`;
-      const raw = localStorage.getItem(key);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as ShippingRate;
-      const k = `${saved.carrier}__${saved.method}__${saved.cost}`;
-      const match = rates.find((r) => `${r.carrier}__${r.method}__${r.cost}` === k);
-      if (match) void choose(match, { persist: true, silent: true });
-    } catch {
-      // ignore
+      router.refresh(); // Review page totals update with selectedShipping
+    } catch (e: any) {
+      setError(e?.message || "Failed to save shipping");
+    } finally {
+      setSaving(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rates]);
+  }, [selected, rates, country, state, zip, router]);
 
   return (
-    <div className="shipping-estimator">
-      <div className="shipping-estimator__form" role="group" aria-label="Estimate shipping">
-        <select
-          value={shipCountry}
-          onChange={(e) => setShipCountry(e.target.value as "US" | "CA")}
-          aria-label="Country"
-        >
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-        </select>
-
-        <input
-          value={shipState}
-          onChange={(e) => setShipState(e.target.value.toUpperCase())}
-          placeholder={shipCountry === "CA" ? "ON" : "KY"}
-          aria-label="State/Province"
-        />
-
-        <input
-          value={shipZip}
-          onChange={(e) => setShipZip(e.target.value)}
-          placeholder={shipCountry === "CA" ? "L3R 1G3" : "41179"}
-          aria-label="Postal/ZIP"
-        />
-
+    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      {/* Header / inputs */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <select
+            className="h-10 min-w-[110px] rounded-lg border border-gray-300 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
+            value={country}
+            onChange={(e) => setCountry(e.target.value as "US" | "CA")}
+            aria-label="Destination country"
+          >
+            <option value="US">US</option>
+            <option value="CA">CA</option>
+          </select>
+          <input
+            className="h-10 w-24 rounded-lg border border-gray-300 px-3 text-sm uppercase outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600"
+            value={state}
+            onChange={(e) => setState(e.target.value.toUpperCase())}
+            placeholder={country === "US" ? "State" : "Prov"}
+            maxLength={2}
+            aria-label="State/Province"
+          />
+          <input
+            className="h-10 w-32 rounded-lg border border-gray-300 px-3 text-sm outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600"
+            value={zip}
+            onChange={(e) => setZip(e.target.value)}
+            placeholder="ZIP/Postal"
+            aria-label="ZIP/Postal code"
+          />
+        </div>
         <button
-          type="button"
-          disabled={loading || !shipCountry || !shipState || !shipZip}
-          onClick={handleGetRates}
-          className="shipping-estimator__button btn checkout"
-          aria-busy={loading ? "true" : "false"}
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800 disabled:opacity-50"
+          onClick={getRates}
+          disabled={loading}
         >
-          {loading ? "Loading…" : "Get Rates"}
+          {loading ? "Getting rates…" : "Get Rates"}
         </button>
       </div>
 
-      {error ? (
-        <p className="shipping-estimator__error" role="alert" aria-live="polite">
+      {error && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
-        </p>
-      ) : null}
+        </div>
+      )}
 
-      {rates.length > 0 && (
-        <ul className="shipping-rates" role="list">
-          {rates.map((r) => {
-            const k = `${r.carrier}__${r.method}__${r.cost}`;
-            const checked = k === selectedKey;
-            const cheapest = k === cheapestKey;
+      {/* Rates list */}
+      {!!rates.length && (
+        <ul className="mt-4 space-y-3">
+          {rates.map((r, i) => {
+            const isBest = i === cheapestIdx;
             return (
-              <li
-                key={k}
-                onClick={() => void choose(r)}
-                className={`shipping-rate${checked ? " shipping-rate--selected" : ""}`}
-                role="button"
-                aria-pressed={checked}
-              >
-                <input
-                  type="radio"
-                  name="shipping-rate"
-                  checked={checked}
-                  onChange={() => void choose(r)}
-                />
-                <div>
-                  <div className="shipping-rate__name">
-                    {r.carrier} — {r.method}
-                    {cheapest ? <span className="shipping-rate__badge">Best price</span> : null}
+              <li key={`${r.carrier}-${r.serviceName}-${i}`}>
+                <label className="block">
+                  <input
+                    type="radio"
+                    name="ship-rate"
+                    className="peer sr-only"
+                    checked={selected === i}
+                    onChange={() => setSelected(i)}
+                  />
+                  <div
+                    className="
+                      grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-gray-200 bg-gray-50
+                      p-3 transition hover:bg-gray-100
+                      peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:ring-2 peer-checked:ring-blue-600
+                    "
+                  >
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">{r.carrier}</span>
+                        <span className="text-gray-400">—</span>
+                        <span className="truncate">{r.serviceName || r.serviceCode}</span>
+                        {isBest && (
+                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                            Best price
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700">
+                          {parseDays(r) ?? 0} business {parseDays(r) === 1 ? "day" : "days"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="self-center text-right text-base font-bold">
+                      {money(r.amount, r.currency)}
+                    </div>
                   </div>
-                  <div className="shipping-rate__meta">
-                    {typeof r.days === "number"
-                      ? `${r.days} business day${r.days === 1 ? "" : "s"}`
-                      : "—"}
-                  </div>
-                </div>
-                <div className="shipping-rate__price">{fmtMoney(r.cost, r.currency)}</div>
+                </label>
               </li>
             );
           })}
         </ul>
       )}
-    </div>
+
+      {/* Footer actions */}
+      {!!rates.length && (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-semibold text-gray-900 hover:bg-gray-200 disabled:opacity-50"
+            onClick={() => setRates([])}
+            disabled={loading || saving}
+          >
+            Clear
+          </button>
+          <button
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800 disabled:opacity-50"
+            onClick={applySelected}
+            disabled={selected < 0 || saving}
+          >
+            {saving ? "Saving…" : "Apply Shipping"}
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

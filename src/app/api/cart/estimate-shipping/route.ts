@@ -1,182 +1,144 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import "server-only";
-import { NextRequest } from "next/server";
-import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
-import { valueIdToGroupKey } from "@/lib/sinaliteOptionMap";
-
-type LineIn = { productId: number; optionIds: number[] };
-type BodyIn = {
-  shipCountry?: string;
-  shipState?: string;
-  shipZip?: string | number;
-  items?: LineIn[];
-  store?: "US" | "CA" | "USD" | "CAD";
-};
-
-const upper = (s: unknown) => String(s ?? "").trim().toUpperCase();
-const asZip = (u: unknown) => String(u ?? "").trim();
-
-function normStore(s: unknown): "US" | "CA" {
-  const v = String(s || "US").toUpperCase();
-  return v === "CA" || v === "CAD" ? "CA" : "US";
-}
-
-// detect a qty valueId by looking for a group that canonicalizes to 'qty'
-async function findQtyId(productId: number, optionIds: number[]): Promise<number | null> {
-  const v2g = await valueIdToGroupKey(productId);
-  for (const id of optionIds) {
-    const g = v2g[id];
-    if (!g) continue;
-    if (g.toLowerCase() === "qty" || g.toLowerCase() === "quantity") {
-      return id;
-    }
-  }
-  return null;
-}
-
-// Convert optionIds[] -> { options: { group: "valueIdAsString" } }
-async function idsToOptions(
-  productId: number,
-  optionIds: number[],
-): Promise<Record<string, string>> {
-  const v2g = await valueIdToGroupKey(productId);
-  const out: Record<string, string> = {};
-  for (const id of optionIds) {
-    const key = v2g[id];
-    if (!key) continue;
-    out[key] = String(id); // SinaLite expects stringified value IDs
-  }
-  return out;
-}
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
+import { carts } from "@/db/schema/cart";
+import { cartLines } from "@/db/schema/cartLines";
+import { and, eq, ne } from "drizzle-orm";
+import { getSinaliteBearer, API_BASE } from "@/lib/sinalite.server";
 
 export const runtime = "nodejs";
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+type ReqBody = {
+  shipCountry: "US" | "CA";
+  shipState: string;
+  shipZip: string;
+  items?: { productId: number; optionIds: number[] }[];
+};
+
+function toNumArray(u: unknown): number[] {
+  if (Array.isArray(u)) return u.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  return [];
+}
+function parseChain(chain?: string | null): number[] {
+  if (!chain) return [];
+  return chain
+    .split(/[^0-9]+/g)
+    .map((s) => Number(s))
+    .filter((n) => Number.isFinite(n));
+}
+
+export async function POST(req: Request) {
   try {
-    const body = (await req.json().catch(() => ({}))) as BodyIn;
-
-    const store = normStore(body.store);
-    const ShipCountry = upper(body.shipCountry);
-    const ShipState = upper(body.shipState);
-    const ShipZip = asZip(body.shipZip);
-
-    if (!ShipCountry || !ShipState || !ShipZip) {
-      return Response.json(
-        { ok: false, error: "country, state/province and postal/zip are required" },
-        { status: 400 },
+    const body: ReqBody = await req.json();
+    if (!body?.shipCountry || !body?.shipState || !body?.shipZip) {
+      return NextResponse.json(
+        { ok: false, error: "Missing destination fields (country/state/zip)." },
+        { status: 400 }
       );
     }
 
-    const rawLines = Array.isArray(body.items) ? body.items : [];
-    const lines = rawLines
-      .map((l) => ({
-        productId: Number(l?.productId),
-        optionIds: Array.isArray(l?.optionIds) ? l.optionIds.map(Number).filter(Number.isFinite) : [],
-      }))
-      .filter((l) => Number.isFinite(l.productId) && l.optionIds.length > 0) as LineIn[];
+    // 1) Build items
+    let items: { productId: number; optionIds: number[] }[] = [];
 
-    if (!lines.length) {
-      return Response.json(
+    if (Array.isArray(body.items) && body.items.length) {
+      items = body.items
+        .map((i) => ({ productId: Number(i.productId), optionIds: toNumArray(i.optionIds) }))
+        .filter((i) => Number.isFinite(i.productId) && i.optionIds.length > 0);
+    } else {
+      const sid = (await cookies()).get("sid")?.value ?? "";
+      if (!sid) return NextResponse.json({ ok: false, error: "No session/cart." }, { status: 400 });
+
+      const [cart] =
+        (await db
+          .select({ id: carts.id })
+          .from(carts)
+          .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
+          .limit(1)) ?? [];
+      if (!cart) return NextResponse.json({ ok: false, error: "Cart not found." }, { status: 404 });
+
+      const rows = await db
+        .select({
+          productId: cartLines.productId,
+          optionIds: cartLines.optionIds,
+          pricedOptionIds: cartLines.pricedOptionIds,
+          optionChain: cartLines.optionChain,
+        })
+        .from(cartLines)
+        .where(eq(cartLines.cartId, cart.id));
+
+      items = rows
+        .map((r) => {
+          const pid = Number(r.productId);
+          const opts =
+            toNumArray(r.pricedOptionIds) ||
+            toNumArray(r.optionIds) ||
+            parseChain(r.optionChain);
+          return { productId: pid, optionIds: opts };
+        })
+        .filter((i) => Number.isFinite(i.productId) && i.optionIds.length > 0);
+    }
+
+    if (!items.length) {
+      return NextResponse.json(
         { ok: false, error: "No shippable items (missing productId/optionIds[])." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Build items payload with robust qty handling
-    const items: Array<{ productId: number; options: Record<string, string> }> = [];
-    for (const l of lines) {
-      let options = await idsToOptions(l.productId, l.optionIds);
-
-      // Safety net: ensure a qty is present
-      const hasQty = Object.keys(options).some((k) => k.toLowerCase() === "qty" || k.toLowerCase() === "quantity");
-      if (!hasQty) {
-        const maybeQtyId = await findQtyId(l.productId, l.optionIds);
-        if (maybeQtyId != null) {
-          options = { ...options, qty: String(maybeQtyId) };
-        }
-      }
-
-      if (Object.keys(options).length === 0) {
-        return Response.json(
-          {
-            ok: false,
-            error:
-              "Missing required options for pricing/estimate (make sure all groups — including Qty — are selected).",
-            detail: { productId: l.productId, optionIds: l.optionIds, store },
-          },
-          { status: 400 },
-        );
-      }
-
-      items.push({ productId: l.productId, options });
-    }
-
-    // 🔗 SinaLite API call (per docs)
-    const bearer = await getSinaliteAccessToken();
-    const base = process.env.SINALITE_BASE_URL || "https://liveapi.sinalite.com";
-    const url = `${base}/order/shippingEstimate`;
-
+    // 2) Call Sinalite
+    const token = await getSinaliteBearer();
     const payload = {
-      items,
-      shippingInfo: { ShipState, ShipZip, ShipCountry },
+      items: items.map((it) => ({ productId: it.productId, options: it.optionIds.map(String) })),
+      shippingInfo: {
+        ShipCountry: body.shipCountry,
+        ShipState: body.shipState,
+        ShipZip: body.shipZip,
+      },
     };
 
-    const res = await fetch(url, {
+    const res = await fetch(`${API_BASE}/order/shippingEstimate`, {
       method: "POST",
-      headers: {
-        authorization: bearer, // "Bearer <token>"
-        "content-type": "application/json",
-      },
+      headers: { "content-type": "application/json", authorization: token },
       body: JSON.stringify(payload),
       cache: "no-store",
     });
 
-    const text = await res.text();
-    let json: any = null;
-    try { json = JSON.parse(text); } catch {}
-
+    const raw = await res.text();
     if (!res.ok) {
-      return Response.json(
-        { ok: false, error: `SinaLite estimate failed (${res.status})`, detail: json ?? text?.slice(0, 4000) ?? null },
-        { status: res.status },
+      return NextResponse.json(
+        { ok: false, error: `Sinalite error ${res.status}: ${raw.slice(0, 200)}` },
+        { status: 502 }
       );
     }
 
-    // Docs: { statusCode: 200, body: [ ["UPS","UPS Standard", 9.1, 1], ... ] }
-    const arr: any[] = Array.isArray(json?.body) ? json.body : Array.isArray(json) ? json : [];
-    const currency: "USD" | "CAD" = store === "CA" ? "CAD" : "USD";
+    // Some environments send HTML error pages — guard JSON parsing
+    let data: { statusCode: number; body: [string, string, number | string, number | string][] };
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: `Sinalite returned non-JSON (${res.status}). ${raw.slice(0, 200)}` },
+        { status: 502 }
+      );
+    }
 
-    const rates = arr
-      .map((r) => {
-        if (!Array.isArray(r) || r.length < 3) return null;
-        const [carrier, method, price, days] = r;
-        const cost = Number(price);
-        const etaDays = Number(days);
-        if (!Number.isFinite(cost)) return null;
-        return {
-          carrier: String(carrier ?? ""),
-          method: String(method ?? ""),
-          cost,
-          days: Number.isFinite(etaDays) ? etaDays : null,
-          currency,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a!.cost - b!.cost) as Array<{
-        carrier: string;
-        method: string;
-        cost: number;
-        days: number | null;
-        currency: "USD" | "CAD";
-      }>;
+    const currency: "USD" | "CAD" = body.shipCountry === "US" ? "USD" : "CAD";
+    const rates = (data.body ?? []).map(([carrier, method, price, days]) => {
+      const amt = Number(price);
+      const d = Number(days);
+      return {
+        carrier,
+        serviceCode: String(method),
+        serviceName: String(method),
+        amount: Number.isFinite(amt) ? amt : 0,
+        currency,
+        eta: Number.isFinite(d) ? `${d} business day${d === 1 ? "" : "s"}` : null,
+        days: Number.isFinite(d) ? d : null,
+      };
+    });
 
-    return Response.json({ ok: true, rates });
+    return NextResponse.json({ ok: true, rates });
   } catch (err: any) {
-    return Response.json(
-      { ok: false, error: "Shipping estimate route crashed", detail: String(err?.message || err) },
-      { status: 502 },
-    );
+    return NextResponse.json({ ok: false, error: err?.message ?? "Unknown error" }, { status: 500 });
   }
 }

@@ -1,50 +1,68 @@
 // src/app/api/webhooks/stripe/route.ts
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
-import { db } from "@/db";
-import { customers, loyaltyTransactions, loyaltyWallets, orders } from "@/db/schema/customer";
+import stripe from "@/lib/stripe";
+import type Stripe from "stripe";
+import { db } from "@/lib/db";
+
+// If your `orders` table is exported from a different module, adjust this import:
+import { orders } from "@/db/schema/customer"; // ← has `orders`
 import { eq } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" }); // keep current
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const sig = req.headers.get("stripe-signature")!;
+  const body = await req.text();
   let event: Stripe.Event;
 
   try {
-    const body = await req.text();
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
     return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed" || event.type === "payment_intent.succeeded") {
-    const obj = event.data.object as any;
-    const providerId = obj.id || obj.payment_intent || obj.client_secret;
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
 
-    // Find order by provider_id
-    const [order] = await db.select().from(orders).where(eq(orders.providerId, providerId)).limit(1);
-    if (order && order.status !== 'paid') {
-      // Mark paid (you may already do this elsewhere)
-      await db.update(orders).set({ status: 'paid', placedAt: order.placedAt ?? new Date() }).where(eq(orders.id, order.id));
+    const providerId = session.id; // stable id for CS
+    const amountTotal = session.amount_total ?? 0; // cents
+    const currency = (session.currency || "usd").toUpperCase() as "USD" | "CAD";
 
-      // Find wallet
-      const [wallet] = await db.select().from(loyaltyWallets).where(eq(loyaltyWallets.customerId, order.customerId)).limit(1);
-      const earn = Math.max(0, Math.round(order.totalCents / 100)); // 1pt per $1
+    const meta = session.metadata ?? {};
+    const sid = (meta.sid as string) || "";
+    const cartId = (meta.cartId as string) || "";
+    const shipping = meta.shipping ? JSON.parse(String(meta.shipping)) : null;
 
-      if (earn > 0 && wallet) {
-        await db.transaction(async (tx) => {
-          await tx.insert(loyaltyTransactions).values({
-            walletId: wallet.id, delta: earn, reason: 'purchase', orderId: order.id, note: 'Points for paid order',
-          });
-          await tx.update(loyaltyWallets).set({
-            pointsBalance: wallet.pointsBalance + earn,
-            updatedAt: new Date(),
-          }).where(eq(loyaltyWallets.id, wallet.id));
-        });
-      }
+    // 1) Find existing order by providerId
+    const existing = await db.select().from(orders)
+      .where(eq(orders.providerId, providerId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      // 2) Create the order (status: paid)
+      await db.insert(orders).values({
+        providerId,                 // text unique
+        sid,                        // associate by session if you use guest checkout
+        cartId,                     // optional column in your schema
+        status: "paid",             // or "completed" per your statuses
+        currency,                   // "USD" | "CAD"
+        totalCents: amountTotal,    // integer cents
+        placedAt: new Date(),
+        shipping: shipping,         // jsonb, matches your carts.selectedShipping shape
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any); // cast if your schema has extra cols
+    } else if (existing[0].status !== "paid") {
+      // 3) Idempotent update to paid
+      await db.update(orders)
+        .set({ status: "paid", totalCents: amountTotal, updatedAt: new Date(), placedAt: existing[0].placedAt ?? new Date() })
+        .where(eq(orders.id, existing[0].id));
     }
+
+    // (Optional) If you have an order_items table, copy cart lines here.
   }
 
+  // You can also handle `payment_intent.succeeded` similarly if needed.
   return NextResponse.json({ received: true });
 }

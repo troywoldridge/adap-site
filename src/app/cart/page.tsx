@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link"; // ⬅️ NEW
 import CartPageClient from "./CartPageClient";
 import type { CartItem } from "@/components/CartLineItem";
 import type { ShippingRate } from "@/components/CartShippingEstimator";
@@ -59,7 +60,7 @@ async function fetchCart(): Promise<{
     name: it.name ?? `Product ${it.productId}`,
     optionIds: Array.isArray(it.optionIds) ? it.optionIds : [],
     quantity: Number.isFinite(it.quantity) ? it.quantity : 1,
-    cloudflareImageId: it.image ?? null, // 🔥 Cloudflare Images delivery
+    cloudflareImageId: it.image ?? null, // 🔥 Cloudflare Images delivery via CDN
     serverUnitPrice: typeof it.unitPrice === "number" ? it.unitPrice : undefined,
   }));
 
@@ -72,13 +73,30 @@ async function fetchCart(): Promise<{
 export default async function CartPage() {
   const { items, currency, initialShipping } = await fetchCart();
   const store = currency === "CAD" ? "CA" : "US";
+  const hasItems = items.length > 0;
 
   return (
-    <CartPageClient
-      initialItems={items}
-      currency={currency}
-      store={store}
-      initialShipping={initialShipping}
-    />
+    <>
+      <CartPageClient
+        initialItems={items}
+        currency={currency}
+        store={store}
+        initialShipping={initialShipping}
+        // showShippingEstimator={false} // ⬅️ if your client currently renders a rates box, keep it OFF here
+      />
+
+      {/* CTA: move rates to the Review step */}
+      <div className="mt-6 flex justify-end">
+        <Link
+          href={hasItems ? "/cart/review" : "#"}
+          className={`inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-5 text-sm font-semibold text-white shadow hover:bg-blue-800 ${
+            hasItems ? "" : "pointer-events-none opacity-50"
+          }`}
+          aria-disabled={!hasItems}
+        >
+          Review &amp; Get Rates
+        </Link>
+      </div>
+    </>
   );
 }

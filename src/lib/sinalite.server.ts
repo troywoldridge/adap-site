@@ -1,92 +1,149 @@
 // src/lib/sinalite.server.ts
-// Canonical Sinalite server utilities: pricing + shipping estimate.
-// Uses your existing getSinaliteAccessToken() util.
-// Always refer to Sinalite API documentation. ✅
+// Canonical Sinalite server utilities (auth wrapper + pricing + shipping).
+// 🔗 Always refer to Sinalite API docs. Uses your existing getSinaliteAccessToken().
 
+import "server-only";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
 
-const DEFAULT_BASE = process.env.SINALITE_BASE_URL || "https://api.sinaliteuppy.com";
-// If you're pointing at live later, set SINALITE_BASE_URL="https://liveapi.sinalite.com"
+export const API_BASE =
+  process.env.SINALITE_API_BASE ||
+  process.env.SINALITE_BASE_URL ||
+  "https://api.sinaliteuppy.com"; // sandbox default
 
+/** Per Sinalite: 6 = Canada, 9 = US */
 export function resolveStoreCode(country: "US" | "CA"): 9 | 6 {
-  // Per Sinalite: 6 = Canada, 9 = US
   return country === "US" ? 9 : 6;
 }
 
+/** Normalize to "Bearer <token>" even if getSinaliteAccessToken already includes it. */
+export async function getSinaliteBearer(): Promise<string> {
+  const raw = await getSinaliteAccessToken();
+  return /^Bearer\s/i.test(raw) ? raw : `Bearer ${raw}`;
+}
+
+function asBearer(token: string): string {
+  return /^Bearer\s/i.test(token) ? token : `Bearer ${token}`;
+}
+
+/** Typed fetch to Sinalite with auth + JSON, no-store cache. */
 async function apiFetch<T>(
   path: string,
-  opts: RequestInit & { baseUrl?: string } = {}
+  init: RequestInit & { baseUrl?: string } = {}
 ): Promise<T> {
-  const baseUrl = opts.baseUrl ?? DEFAULT_BASE;
-  const token = await getSinaliteAccessToken(); // should return a Bearer token string
+  const baseUrl = init.baseUrl ?? API_BASE;
+  const token = await getSinaliteAccessToken();
 
   const res = await fetch(`${baseUrl}${path}`, {
-    ...opts,
+    ...init,
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(opts.headers || {}),
+      "content-type": "application/json",
+      authorization: asBearer(token),
+      ...(init.headers || {}),
     },
     cache: "no-store",
   });
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Sinalite ${path} failed: ${res.status} ${res.statusText} ${text}`);
+    throw new Error(
+      `Sinalite ${path} failed: ${res.status} ${res.statusText} ${text.slice(0, 500)}`
+    );
   }
   return res.json() as Promise<T>;
 }
 
-/**
- * Price a single product configuration against Sinalite.
- * Endpoint: POST /price/{productId}/{storeCode}
- * Body: { productOptions: string[] }  // array of optionIds as strings
- * Returns: { price, packageInfo?, productOptions? }  // productOptions is group->optionId map
- */
+/* ────────────────────────────────────────────────────────────────────────────
+   Pricing
+   Endpoint: POST /price/{productId}/{storeCode}
+   Body: { productOptions: string[] } // option value IDs as strings
+──────────────────────────────────────────────────────────────────────────── */
+
+type PriceResp = {
+  price?: string | number;
+  packageInfo?: Record<string, string>;
+  productOptions?: Record<string, string>; // group -> optionId
+};
+
 export async function priceByOptionIds(params: {
   productId: number;
   storeCode: 6 | 9;
-  optionIds: (string | number)[];
-  baseUrl?: string; // allow overriding sandbox/live per call if needed
-}) {
+  optionIds: (number | string)[];
+  baseUrl?: string;
+}): Promise<{ unitPriceCents: number; optionsByGroup: Record<string, string> }> {
   const { productId, storeCode, optionIds, baseUrl } = params;
-  type PriceResp = {
-    price: string | number;
-    packageInfo?: Record<string, string>;
-    productOptions?: Record<string, string>; // e.g. { qty: "105", size: "4", Stock: "30", Turnaround: "140" }
-  };
-  return apiFetch<PriceResp>(`/price/${productId}/${storeCode}`, {
+
+  const data = await apiFetch<PriceResp>(`/price/${productId}/${storeCode}`, {
     method: "POST",
     body: JSON.stringify({ productOptions: optionIds.map(String) }),
     baseUrl,
   });
+
+  const priceNum = Number(data?.price);
+  const unitPriceCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : 0;
+  const optionsByGroup = (data?.productOptions ?? {}) as Record<string, string>;
+  return { unitPriceCents, optionsByGroup };
 }
 
-/**
- * Ask Sinalite for shipping methods & rates for the given items + destination.
- * Endpoint: POST /order/shippingEstimate
- * Body:
- * {
- *   items: [{ productId: number, options: Record<string, string> }], // group->optionId
- *   shippingInfo: { ShipCountry: "US"|"CA", ShipState: string, ShipZip: string }
- * }
- * Response: [{ carrier, method, price, days? }]
- */
+/* ────────────────────────────────────────────────────────────────────────────
+   Shipping Estimate
+   Endpoint: POST /order/shippingEstimate
+   Supports BOTH shapes:
+   - items: [{ productId, optionIds: number[] }] ➜ send array of strings
+   - items: [{ productId, options: Record<string,string> }] ➜ send map directly
+──────────────────────────────────────────────────────────────────────────── */
+
+export type EstimateItemIds = { productId: number; optionIds: (number | string)[] };
+export type EstimateItemMap = { productId: number; options: Record<string, string> };
+export type EstimateDest = { ShipCountry: "US" | "CA"; ShipState: string; ShipZip: string };
+
+export type ShippingRate = {
+  carrier: string;
+  serviceCode: string;
+  serviceName: string;
+  amount: number;
+  currency: "USD" | "CAD";
+  eta: string | null;
+  days: number | null;
+};
+
+type EstimateRaw = {
+  statusCode: number;
+  body?: [string, string, number | string, number | string][];
+};
+
 export async function estimateShipping(params: {
-  items: { productId: number; options: Record<string, string> }[];
-  shippingInfo: { ShipCountry: "US" | "CA"; ShipState: string; ShipZip: string };
+  items: (EstimateItemIds | EstimateItemMap)[];
+  shippingInfo: EstimateDest;
   baseUrl?: string;
-}) {
+}): Promise<ShippingRate[]> {
   const { items, shippingInfo, baseUrl } = params;
-  type EstimateResp = {
-    carrier: string;
-    method: string;
-    price: number | string;
-    days?: string | number;
-  }[];
-  return apiFetch<EstimateResp>(`/order/shippingEstimate`, {
+  if (!items?.length) throw new Error("No shippable items.");
+
+  const itemsPayload = items.map((it: any) =>
+    Array.isArray(it.optionIds)
+      ? { productId: Number(it.productId), options: it.optionIds.map((v: any) => String(v)) }
+      : { productId: Number(it.productId), options: it.options }
+  );
+
+  const raw = await apiFetch<EstimateRaw>(`/order/shippingEstimate`, {
     method: "POST",
-    body: JSON.stringify({ items, shippingInfo }),
+    body: JSON.stringify({ items: itemsPayload, shippingInfo }),
     baseUrl,
+  });
+
+  const currency: "USD" | "CAD" = shippingInfo.ShipCountry === "US" ? "USD" : "CAD";
+
+  return (raw.body ?? []).map(([carrier, method, price, days]) => {
+    const amt = Number(price);
+    const d = Number(days);
+    return {
+      carrier,
+      serviceCode: String(method),
+      serviceName: String(method),
+      amount: Number.isFinite(amt) ? amt : 0,
+      currency,
+      eta: Number.isFinite(d) ? `${d} business day${d === 1 ? "" : "s"}` : null,
+      days: Number.isFinite(d) ? d : null,
+    };
   });
 }

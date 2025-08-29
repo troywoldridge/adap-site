@@ -1,36 +1,24 @@
 import {
-  pgTable,
-  uuid,
-  text,
-  boolean,
-  timestamp,
-  index,
+  pgTable, uuid, text, boolean, timestamp, index, uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { customers } from "./customer";
+import { eq } from "drizzle-orm/pg-core"; 
 
 /**
  * Customer addresses (normalized v2)
- * Matches the SQL migration you applied:
- *  - clerk_user_id (NOT NULL)
- *  - first_name / last_name
- *  - phone (plaintext; keep phone_enc in other tables if you still use it)
- *  - street1 / street2
- *  - city / state / postal_code / country
- *  - is_default (NOT NULL DEFAULT false)
- *  - optional customer_id FK → customers.id
+ * Fields align with what we send later to SinaLite:
+ *   ShipCountry, ShipState, ShipZip  ⇢ country/state/postal_code
  */
 export const customerAddresses = pgTable(
   "customer_addresses",
   {
     id: uuid("id").primaryKey().defaultRandom(),
 
-    // Either clerk-based join…
+    // Clerk user id (required)
     clerkUserId: text("clerk_user_id").notNull(),
 
-    // …or optional FK to our customers table (keep it nullable)
-    customerId: uuid("customer_id").references(() => customers.id, {
-      onDelete: "cascade",
-    }),
+    // Optional FK to our customers table
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "cascade" }),
 
     label: text("label"),
     firstName: text("first_name"),
@@ -47,15 +35,15 @@ export const customerAddresses = pgTable(
 
     isDefault: boolean("is_default").notNull().default(false),
 
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
     byClerk: index("idx_addr_clerk").on(t.clerkUserId),
     byCustomer: index("idx_addr_customer").on(t.customerId),
+    // Enforce ONE default address per clerk user
+    uniqDefaultPerUser: uniqueIndex("uniq_addr_default_by_clerk")
+      .on(t.clerkUserId)
+      .where(t.isDefault.eq(true)),
   })
 );
