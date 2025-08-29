@@ -1,3 +1,4 @@
+// src/components/CartShippingEstimator.tsx
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
@@ -11,6 +12,12 @@ export type ShippingRate = {
   currency: "USD" | "CAD";
   eta?: string | null;
   days?: number | null;
+};
+
+type Props = {
+  initialCountry?: "US" | "CA";
+  initialState?: string;
+  initialZip?: string;
 };
 
 function parseDays(rate: ShippingRate): number | null {
@@ -27,7 +34,7 @@ function money(n: number, currency: "USD" | "CAD") {
   }
 }
 
-/** Safely parse JSON; if server sent HTML/text, surface readable error text. */
+/** Safely parse JSON; if server sent HTML/text, surface a readable error. */
 async function parseJsonSafe(res: Response) {
   const ct = res.headers.get("content-type") || "";
   if (ct.includes("application/json")) return res.json();
@@ -35,12 +42,16 @@ async function parseJsonSafe(res: Response) {
   throw new Error(text?.slice(0, 200) || `HTTP ${res.status}`);
 }
 
-export default function CartShippingEstimator() {
+export default function CartShippingEstimator({
+  initialCountry = "US",
+  initialState = "",
+  initialZip = "",
+}: Props) {
   const router = useRouter();
 
-  const [country, setCountry] = useState<"US" | "CA">("US");
-  const [state, setState] = useState("");
-  const [zip, setZip] = useState("");
+  const [country, setCountry] = useState<"US" | "CA">(initialCountry);
+  const [state, setState] = useState(initialState);
+  const [zip, setZip] = useState(initialZip);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,7 +62,9 @@ export default function CartShippingEstimator() {
   const cheapestIdx = useMemo(() => {
     if (!rates.length) return -1;
     let idx = 0, min = rates[0].amount;
-    for (let i = 1; i < rates.length; i++) if (rates[i].amount < min) { min = rates[i].amount; idx = i; }
+    for (let i = 1; i < rates.length; i++) {
+      if (rates[i].amount < min) { min = rates[i].amount; idx = i; }
+    }
     return idx;
   }, [rates]);
 
@@ -59,17 +72,15 @@ export default function CartShippingEstimator() {
     setError(null);
     setLoading(true);
     try {
-      // Sinalite API: POST /order/shippingEstimate
+      // Per SinaLite API docs: POST /order/shippingEstimate
       const res = await fetch("/api/cart/estimate-shipping", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ shipCountry: country, shipState: state, shipZip: zip }),
         cache: "no-store",
       });
-
       const data = await parseJsonSafe(res);
       if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-
       const list: ShippingRate[] = (data.rates || []).map((r: ShippingRate) => ({
         ...r,
         days: parseDays(r),
@@ -103,11 +114,9 @@ export default function CartShippingEstimator() {
           zip,
         }),
       });
-
       const data = await parseJsonSafe(res);
       if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-
-      router.refresh(); // Review page totals update with selectedShipping
+      router.refresh(); // review page totals update with selectedShipping
     } catch (e: any) {
       setError(e?.message || "Failed to save shipping");
     } finally {
@@ -232,3 +241,4 @@ export default function CartShippingEstimator() {
     </section>
   );
 }
+

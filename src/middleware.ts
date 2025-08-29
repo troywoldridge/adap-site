@@ -1,92 +1,47 @@
-// src/middleware.ts
 import {
   clerkMiddleware,
   createRouteMatcher,
-  type ClerkMiddlewareAuth,
 } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Legacy review URLs → canonical /cart/review */
-const isLegacyReview = createRouteMatcher([
-  "/review-order(.*)",
-  "/revieworder(.*)",
-  "/order/review(.*)",
-]);
-
-/** PROTECTED: Upload routes */
-const isProductUpload = createRouteMatcher([
-  "/product/:productId/upload-artwork(.*)",
-  "/products/:productId/upload-artwork(.*)", // legacy safety
-]);
-
-/** PUBLIC: cart UI + cart APIs + estimator + Sinalite pricing */
-const isPublicCartArea = createRouteMatcher([
+// Public pages & APIs (no auth required)
+const isPublic = createRouteMatcher([
+  "/",
+  "/products(.*)",
+  "/product(.*)",
   "/cart(.*)",
-  "/api/cart/:path*",
-  "/api/cart/estimate-shipping(.*)",
-]);
-
-const isPublicSinalite = createRouteMatcher([
-  "/api/sinalite/price(.*)",
-  "/api/sinalite/products(.*)",
-]);
-
-/** PROTECTED app areas (require sign-in) */
-const isProtectedRoute = createRouteMatcher([
-  "/admin(.*)",
-  "/api/admin(.*)",
-  "/account(.*)",
-  "/orders(.*)",
   "/checkout(.*)",
-  "/cart/review(.*)",
-  // protected APIs that mutate or read user data:
-  "/api/artwork/:path*",
-  "/api/uploads/:path*",
-  "/api/order/:path*",
-  "/api/orders/:path*",
-  "/api/checkout/:path*",
+  "/api/(.*)",                // your public JSON APIs
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/assets(.*)",
+  "/images(.*)",
+  "/_next/static(.*)",
+  "/_next/image(.*)",
 ]);
 
-export default clerkMiddleware(async (auth, req: NextRequest) => {
-  // pass-thru for trivial requests
-  if (req.method === "HEAD" || req.method === "OPTIONS") {
-    return NextResponse.next();
+export default clerkMiddleware((auth, req: NextRequest) => {
+  // Pretty product URLs: /product/123-business-cards -> internally render /product/123
+  const { pathname } = req.nextUrl;
+  const m = pathname.match(/^\/product\/(\d+)-/);
+  if (m) {
+    const id = m[1];
+    const url = req.nextUrl.clone();
+    url.pathname = `/product/${id}`;
+    return NextResponse.rewrite(url);
   }
 
-  // Canonicalize legacy review routes
-  if (isLegacyReview(req)) {
-    return NextResponse.redirect(new URL("/cart/review", req.url), 308);
-  }
-
-  const { userId, redirectToSignIn } = await auth();
-  const pathname = req.nextUrl.pathname;
-
-  // Public zones
-  if (isPublicCartArea(req) || isPublicSinalite(req)) {
-    return NextResponse.next();
-  }
-
-  // Gateway/webhooks bypass
-  const isWebhook = pathname.startsWith("/api/webhooks/") || pathname.startsWith("/api/stripe/");
-
-  // Require auth for non-GET API calls (unless webhook)
-  if (pathname.startsWith("/api/") && req.method !== "GET" && !isWebhook && !userId) {
-    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
-  }
-
-  // Uploads must be signed in
-  if (isProductUpload(req) && !userId) {
-    return redirectToSignIn({ returnBackUrl: req.url });
-  }
-
-  // Protected app areas
-  if (isProtectedRoute(req) && !userId) {
-    return redirectToSignIn({ returnBackUrl: req.url });
-  }
-
+  // No special handling otherwise
   return NextResponse.next();
+}, {
+  // Treat these as public; the rest can be protected if you add private areas later
+  publicRoutes: (req) => isPublic(req),
+  // Never intercept Stripe webhooks
+  ignoredRoutes: ["/api/webhooks/stripe"],
 });
 
+// Run on everything except Next internals & static files
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map)$).*)"],
 };

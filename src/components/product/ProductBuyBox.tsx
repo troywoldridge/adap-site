@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react"; // ★ useRef
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProceedToCheckout from "@/components/ProceedToCheckout";
 import { flushShipChoiceToCart } from "@/lib/shippingChoice";
@@ -23,7 +23,6 @@ type PriceResp =
 function normalizeLabel(s: unknown) {
   return String(s ?? "").toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9]/g, "");
 }
-
 function findQtyGroupIndex(optionGroups: Group[]): number | null {
   const candidates = new Set(["qty", "quantity", "orderqty", "orderquantity"]);
   for (let i = 0; i < optionGroups.length; i++) {
@@ -32,7 +31,6 @@ function findQtyGroupIndex(optionGroups: Group[]): number | null {
   }
   return null;
 }
-
 function findQtyValueIdByCount(g: Group, count: number): number | null {
   const wanted = String(count);
   const exact = g.options.find((o) => normalizeLabel(o.name) === normalizeLabel(wanted));
@@ -62,9 +60,11 @@ export default function ProductBuyBox({
   const [loadingPrice, setLoadingPrice] = useState<boolean>(false);
   const [priceError, setPriceError] = useState<string | null>(null);
 
-  // ★ guard to avoid duplicate adds (Add & Upload → Go to Cart)
+  // guard to avoid duplicate adds (Add & Upload → Go to Cart)
   const lastLineId = useRef<string | null>(null);
-  await flushShipChoiceToCart();
+
+  // If you want to ensure any chosen shipping is flushed, do it when the user clicks buttons
+  // (calling it here at render was causing the await error).
 
   useEffect(() => {
     const qIdx = findQtyGroupIndex(optionGroups);
@@ -99,7 +99,7 @@ export default function ProductBuyBox({
         const res = await fetch(`/api/sinalite/price/${productId}?store=${store}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ optionIds }), // qty is in optionIds
+          body: JSON.stringify({ optionIds }),
           cache: "no-store",
         });
         const json = (await res.json().catch(() => ({}))) as PriceResp;
@@ -119,20 +119,17 @@ export default function ProductBuyBox({
         if (!abort) setLoadingPrice(false);
       }
     })();
-    return () => {
-      abort = true;
-    };
+    return () => { abort = true; };
   }, [productId, store, JSON.stringify(optionIds)]);
 
   const router = useRouter();
 
   async function addAndGetLineId(): Promise<string | null> {
-    // ★ pass quantity: sets if you want the line quantity reflected in DB totals
     const payload = {
       productId,
       name: productName,
       optionIds,
-      quantity: sets, // ★ was 1
+      quantity: sets,
       store,
       cloudflareImageId: cloudflareImageId ?? null,
     };
@@ -150,79 +147,71 @@ export default function ProductBuyBox({
   }
 
   async function onAddAndUpload() {
-  try {
-    const lineId = await addAndGetLineId();
-    // flush chosen shipping (if any was picked on this page)
-    await flushShipChoiceToCart();
-
-    if (lineId) {
-      router.push(`/product/${productId}/upload-artwork?lineId=${encodeURIComponent(lineId)}`);
-    } else {
-      router.push("/cart");
+    try {
+      const lineId = await addAndGetLineId();
+      await flushShipChoiceToCart(); // flush chosen shipping (if any)
+      if (lineId) {
+        router.push(`/product/${productId}/upload-artwork?lineId=${encodeURIComponent(lineId)}`);
+      } else {
+        router.push("/cart");
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to add to cart");
     }
-  } catch (e) {
-    alert(e instanceof Error ? e.message : "Failed to add to cart");
   }
-}
 
   const subtotal = unitPrice * sets;
 
   return (
     <div className="buybox">
       {optionGroups.map((g, idx) => (
-        <div key={g.name} style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>{g.name}</label>
+        <div key={g.name} className="mb-3">
+          <label className="block font-semibold mb-1.5">{g.name}</label>
           <select
-            className="select"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             value={selected[idx] ?? ""}
             onChange={(e) => setSelected((prev) => ({ ...prev, [idx]: Number(e.target.value) }))}
-            style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #e5e7eb" }}
           >
             {g.options.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}
-              </option>
+              <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
         </div>
       ))}
 
-      <div style={{ marginTop: 16 }}>
-        <label style={{ display: "block", fontWeight: 600, marginBottom: 6 }}>Quantity</label>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="mt-4">
+        <label className="block font-semibold mb-1.5">Quantity</label>
+        <div className="flex items-center gap-2">
           <button
             type="button"
             aria-label="decrease"
             onClick={() => setSets((s) => Math.max(1, s - 1))}
-            className="btn"
-            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e5e7eb" }}
-          >
-            –
-          </button>
-          <span style={{ minWidth: 30, textAlign: "center" }}>{sets}</span>
+            className="rounded-md border border-gray-300 px-3 py-1.5"
+          >–</button>
+          <span className="min-w-[32px] text-center">{sets}</span>
           <button
             type="button"
             aria-label="increase"
             onClick={() => setSets((s) => Math.min(9999, s + 1))}
-            className="btn"
-            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e5e7eb" }}
-          >
-            +
-          </button>
+            className="rounded-md border border-gray-300 px-3 py-1.5"
+          >+</button>
         </div>
       </div>
 
-      <div style={{ marginTop: 16, fontWeight: 600 }}>
-        <div>Price{loadingPrice ? "…" : ""}: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(unitPrice)}</div>
-        <div>Subtotal: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(subtotal)}</div>
-        {priceError ? <div style={{ color: "#b91c1c", marginTop: 6 }}>{priceError}</div> : null}
+      <div className="mt-4 font-semibold space-y-1">
+        <div>
+          Price{loadingPrice ? "…" : ""}: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(unitPrice)}
+        </div>
+        <div>
+          Subtotal: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(subtotal)}
+        </div>
+        {priceError ? <div className="text-red-700 mt-1">{priceError}</div> : null}
       </div>
 
       <button
         type="button"
         onClick={onAddAndUpload}
-        className="btn primary w-full"
-        style={{ marginTop: 16 }}
+        className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800"
         disabled={optionIds.length === 0}
       >
         Add & Upload Artwork
@@ -230,12 +219,12 @@ export default function ProductBuyBox({
 
       <ProceedToCheckout
         to="/cart"
-        className="btn w-full"
+        className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-4 text-sm font-semibold text-gray-900 hover:bg-gray-200"
         ensureAdded={async () => {
-          // ★ don’t add again if we already added
           if (!lastLineId.current) {
             lastLineId.current = (await addAndGetLineId()) || lastLineId.current;
           }
+          await flushShipChoiceToCart();
         }}
       >
         Go to Cart

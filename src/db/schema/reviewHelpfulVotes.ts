@@ -1,20 +1,23 @@
-// src/db/schema/reviewHelpfulVotes.ts
-import { pgTable, uuid, varchar, boolean, timestamp, index } from "drizzle-orm/pg-core";
-import { productReviews } from "./productReviews"; // ← adjust path if your file is elsewhere
+import {
+  pgTable, uuid, integer, varchar, timestamp, index, uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { productReviews } from "./productReviews";
 
 export const reviewHelpfulVotes = pgTable(
   "review_helpful_votes",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    reviewId: uuid("review_id")
+    reviewId: integer("review_id")
       .notNull()
       .references(() => productReviews.id, { onDelete: "cascade" }),
-    userId: varchar("user_id", { length: 64 }),
-    ip: varchar("ip", { length: 48 }),
-    isHelpful: boolean("is_helpful").notNull(),
-    createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+    voterFingerprint: varchar("voter_fingerprint", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
-  (t) => [
-    index("idx_review_votes_review").on(t.reviewId),
-  ],
+  (t) => ({
+    uqByReviewVoter: uniqueIndex("uq_helpful_review_voter").on(
+      t.reviewId,
+      t.voterFingerprint
+    ),
+    byReview: index("idx_helpful_by_review").on(t.reviewId),
+  })
 );

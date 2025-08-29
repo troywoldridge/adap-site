@@ -1,174 +1,106 @@
 // src/app/orders/page.tsx
-export const dynamic = "force-dynamic";
-
-import { headers, cookies } from "next/headers";
+import "server-only";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { db } from "@/lib/db";
+import { orders } from "@/db/schema/customer"; // adjust if different
+import { desc, eq, or, isNotNull, and } from "drizzle-orm";
 
-type OrderSummary = {
-  id: string | number;
-  total?: number;
-  status?: string;
-  createdAt?: string; // or created_time depending on your API
-};
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-async function getCookieJar() {
-  const c = cookies() as any;
-  return typeof c?.then === "function" ? await c : c;
+function money(cents: number, cur: "USD" | "CAD" = "USD") {
+  try { return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format((cents || 0) / 100); }
+  catch { return `$${((cents || 0) / 100).toFixed(2)}`; }
 }
 
-async function baseUrl(): Promise<string> {
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
+export default async function OrdersPage() {
+  const jar = await cookies();
+  const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? "";
 
-async function fetchOrders(page = 1, pageSize = 20) {
-  const b = await baseUrl();
-  const jar = await getCookieJar();
-  const cookieHeader =
-    jar?.getAll?.().map((c: any) => `${c.name}=${c.value}`).join("; ") ?? "";
-
-  // Try /api/orders first, then /api/me/orders as a fallback
-  const endpoints = ["/api/orders", "/api/me/orders"];
-
-  for (const ep of endpoints) {
-    const url = new URL(`${b}${ep}`);
-    url.searchParams.set("page", String(page));
-    url.searchParams.set("pageSize", String(pageSize));
-
-    const res = await fetch(url.toString(), {
-      cache: "no-store",
-      headers: cookieHeader ? { cookie: cookieHeader } : {},
-    });
-
-    if (res.ok) {
-      const json = await res.json().catch(() => ({}));
-      // Normalize a couple of shapes:
-      const orders: OrderSummary[] =
-        json?.orders ??
-        json?.data ??
-        json ??
-        [];
-
-      const total =
-        Number(json?.total ?? json?.count ?? orders.length) || orders.length;
-
-      return { orders, total, source: ep };
-    }
-
-    // If 404/401/etc, continue to next endpoint
-  }
-
-  return { orders: [] as OrderSummary[], total: 0, source: null as string | null };
-}
-
-export default async function OrdersPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}) {
-  const page = Number(
-    (Array.isArray(searchParams?.page)
-      ? searchParams?.page[0]
-      : searchParams?.page) ?? 1
-  ) || 1;
-
-  const pageSize = Number(
-    (Array.isArray(searchParams?.pageSize)
-      ? searchParams?.pageSize[0]
-      : searchParams?.pageSize) ?? 20
-  ) || 20;
-
-  const { orders, total } = await fetchOrders(page, pageSize);
+  // Pull recent orders for this session (and optionally those without sid if you later attach a user id)
+  const rows =
+    sid
+      ? await db.select().from(orders)
+          .where(or(eq(orders.sid as any, sid), isNotNull(orders.sid as any))) // tweak to your auth story
+          .orderBy(desc(orders.placedAt as any))
+          .limit(20)
+      : await db.select().from(orders).orderBy(desc(orders.placedAt as any)).limit(10);
 
   return (
-    <main className="container" style={{ maxWidth: 960, margin: "0 auto", padding: 16 }}>
-      <h1 style={{ marginBottom: 12 }}>Your Orders</h1>
+    <main className="container mx-auto max-w-5xl px-4 py-8">
+      <header className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Your Orders</h1>
+          <p className="text-sm text-gray-600">Review past purchases, download receipts, and track status.</p>
+        </div>
+        <Link
+          href="/products"
+          className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800"
+        >
+          Continue shopping
+        </Link>
+      </header>
 
-      {orders.length === 0 ? (
-        <p>No orders yet.</p>
+      {!rows.length ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-gray-700">No orders yet.</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Once you complete checkout, your order will appear here automatically.
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/products"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800"
+            >
+              Browse products
+            </Link>
+          </div>
+        </div>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {orders.map((o) => {
-            // Try a few common shapes from your API
-            const id = (o as any).id ?? (o as any).orderId;
-            const status =
-              (o as any).status ??
-              (o as any).order_status ??
-              "NEW";
-            const totalAmount =
-              Number((o as any).total ?? (o as any).amount_total ?? 0);
-            const created =
-              (o as any).createdAt ??
-              (o as any).created_time ??
-              (o as any).created ??
-              null;
+        <ul className="grid gap-4">
+          {rows.map((o: any) => {
+            const status = String(o.status || "paid");
+            const pill =
+              status === "paid"
+                ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                : status === "processing"
+                ? "bg-amber-50 text-amber-700 ring-amber-200"
+                : "bg-gray-100 text-gray-700 ring-gray-200";
 
             return (
-              <li
-                key={String(id)}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 10,
-                  padding: 12,
-                  marginBottom: 10,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                  <div>
-                    <div style={{ fontWeight: 700 }}>Order #{String(id)}</div>
-                    <div style={{ color: "#64748b", fontSize: 13 }}>
-                      {created ? new Date(created).toLocaleString() : ""}
+              <li key={o.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">Order</span>
+                      <span className="truncate text-sm text-gray-600">#{String(o.id).slice(0, 8)}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${pill}`}>
+                        {status}
+                      </span>
                     </div>
-                    <div style={{ marginTop: 4 }}>
-                      Status: <strong>{String(status)}</strong>
+                    <div className="mt-1 text-sm text-gray-600">
+                      Placed {o.placedAt ? new Date(o.placedAt).toLocaleString() : "—"}
+                      {o.shipping?.method ? (
+                        <span className="ml-2 text-gray-500">• {o.shipping.carrier} {o.shipping.method}</span>
+                      ) : null}
                     </div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700 }}>
-                      {Number.isFinite(totalAmount) ? `$${totalAmount.toFixed(2)}` : ""}
+                  <div className="text-right">
+                    <div className="text-base font-bold">{money(o.totalCents ?? 0, (o.currency as any) ?? "USD")}</div>
+                    <div className="mt-1 flex items-center justify-end gap-2">
+                      {/* Wire these routes when you have detail/invoice pages */}
+                      <Link href={`/orders/${o.id}`} className="text-sm font-medium text-blue-700 hover:underline">
+                        View details
+                      </Link>
+                      {/* <Link href={`/orders/${o.id}/invoice`} className="text-sm text-gray-700 hover:underline">Invoice</Link> */}
                     </div>
-                    <Link
-                      href={`/orders/${encodeURIComponent(String(id))}`}
-                      style={{
-                        display: "inline-block",
-                        marginTop: 6,
-                        padding: "8px 12px",
-                        borderRadius: 8,
-                        border: "1px solid #e5e7eb",
-                      }}
-                    >
-                      View details
-                    </Link>
                   </div>
                 </div>
               </li>
             );
           })}
         </ul>
-      )}
-
-      {/* Simple pager (optional) */}
-      {total > pageSize && (
-        <nav style={{ marginTop: 12, display: "flex", gap: 8 }}>
-          {page > 1 && (
-            <Link
-              href={`/orders?page=${page - 1}&pageSize=${pageSize}`}
-              style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6 }}
-            >
-              ← Prev
-            </Link>
-          )}
-          {page * pageSize < total && (
-            <Link
-              href={`/orders?page=${page + 1}&pageSize=${pageSize}`}
-              style={{ padding: "6px 10px", border: "1px solid #e5e7eb", borderRadius: 6 }}
-            >
-              Next →
-            </Link>
-          )}
-        </nav>
       )}
     </main>
   );

@@ -1,23 +1,15 @@
+// src/db/schema/customerAddresses.ts
 import {
   pgTable, uuid, text, boolean, timestamp, index, uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { eq } from "drizzle-orm";              // ✅ add this
 import { customers } from "./customer";
-import { eq } from "drizzle-orm/pg-core"; 
 
-/**
- * Customer addresses (normalized v2)
- * Fields align with what we send later to SinaLite:
- *   ShipCountry, ShipState, ShipZip  ⇢ country/state/postal_code
- */
 export const customerAddresses = pgTable(
   "customer_addresses",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-
-    // Clerk user id (required)
     clerkUserId: text("clerk_user_id").notNull(),
-
-    // Optional FK to our customers table
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "cascade" }),
 
     label: text("label"),
@@ -41,9 +33,9 @@ export const customerAddresses = pgTable(
   (t) => ({
     byClerk: index("idx_addr_clerk").on(t.clerkUserId),
     byCustomer: index("idx_addr_customer").on(t.customerId),
-    // Enforce ONE default address per clerk user
+    // ✅ use eq(...) instead of t.isDefault.eq(true)
     uniqDefaultPerUser: uniqueIndex("uniq_addr_default_by_clerk")
       .on(t.clerkUserId)
-      .where(t.isDefault.eq(true)),
+      .where(eq(t.isDefault, true)),
   })
 );

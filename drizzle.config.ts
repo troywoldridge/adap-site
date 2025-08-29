@@ -1,8 +1,9 @@
+// drizzle.config.ts
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  // ⬇️ Whitelist only the files you actually use
   schema: [
+    // ✅ your actual schema files live here
     "./src/db/schema/cart.ts",
     "./src/db/schema/cartLines.ts",
     "./src/db/schema/cartAttachments.ts",
@@ -18,7 +19,8 @@ export default defineConfig({
     "./src/db/schema/uploads.ts",
     "./src/db/schema/relations.ts", // only if you actually have it
   ],
-  out: "./drizzle/migrations",
+  // ✅ NEW output folder (stop using /drizzle/migrations)
+  out: "./src/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
     host: "localhost",

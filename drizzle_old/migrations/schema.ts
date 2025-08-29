@@ -1,7 +1,8 @@
-import { pgTable, foreignKey, varchar, boolean, timestamp, uuid, index, text, numeric, char, integer, jsonb, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, varchar, boolean, timestamp, uuid, index, text, numeric, char, integer, jsonb, uniqueIndex, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const cartStatus = pgEnum("cart_status", ['open', 'submitted', 'abandoned'])
+export const currencyCode = pgEnum("currency_code", ['USD', 'CAD'])
 export const loyaltyReason = pgEnum("loyalty_reason", ['purchase', 'refund', 'adjustment', 'signup', 'promotion'])
 export const orderStatus = pgEnum("order_status", ['draft', 'submitted', 'paid', 'fulfilled', 'cancelled', 'refunded'])
 
@@ -43,6 +44,7 @@ export const orders = pgTable("orders", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 }, (table) => [
 	index("idx_orders_customer").using("btree", table.customerId.asc().nullsLast().op("uuid_ops")),
+	index("idx_orders_placed_at").using("btree", table.placedAt.asc().nullsLast().op("timestamptz_ops")),
 	index("idx_orders_provider_id").using("btree", table.provider.asc().nullsLast().op("text_ops"), table.providerId.asc().nullsLast().op("text_ops")),
 ]);
 
@@ -115,7 +117,9 @@ export const loyaltyTransactions = pgTable("loyalty_transactions", {
 	orderId: integer("order_id"),
 	note: text(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-});
+}, (table) => [
+	index("idx_loyalty_wallet").using("btree", table.walletId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("timestamptz_ops")),
+]);
 
 export const orderItems = pgTable("order_items", {
 	productId: integer("product_id").notNull(),
@@ -127,6 +131,7 @@ export const orderItems = pgTable("order_items", {
 	orderId: uuid("order_id").notNull(),
 	id: uuid().defaultRandom().primaryKey().notNull(),
 }, (table) => [
+	index("idx_order_items_order").using("btree", table.orderId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.orderId],
 			foreignColumns: [orders.id],
@@ -146,7 +151,10 @@ export const productReviews = pgTable("product_reviews", {
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 	verified: boolean().default(false),
 	id: uuid().defaultRandom().primaryKey().notNull(),
-});
+}, (table) => [
+	index("idx_product_reviews_approved").using("btree", table.approved.asc().nullsLast().op("bool_ops")),
+	index("idx_product_reviews_product").using("btree", table.productId.asc().nullsLast().op("text_ops")),
+]);
 
 export const cartLines = pgTable("cart_lines", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -162,7 +170,17 @@ export const cartLines = pgTable("cart_lines", {
 	unitPriceCents: integer("unit_price_cents").default(0).notNull(),
 	lineTotalCents: integer("line_total_cents").default(0).notNull(),
 	pricedOptionIds: jsonb("priced_option_ids"),
-});
+	optionChain: text("option_chain"),
+}, (table) => [
+	index("idx_cart_lines_cart").using("btree", table.cartId.asc().nullsLast().op("uuid_ops")),
+	index("idx_cart_lines_product").using("btree", table.productId.asc().nullsLast().op("int4_ops")),
+	uniqueIndex("uq_cart_product_chain").using("btree", table.cartId.asc().nullsLast().op("text_ops"), table.productId.asc().nullsLast().op("int4_ops"), table.optionChain.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.cartId],
+			foreignColumns: [carts.id],
+			name: "fk_cart_lines_cart"
+		}).onDelete("cascade"),
+]);
 
 export const carts = pgTable("carts", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -173,7 +191,11 @@ export const carts = pgTable("carts", {
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
 	selectedShipping: jsonb("selected_shipping"),
 	currency: text().default('USD').notNull(),
-});
+}, (table) => [
+	index("idx_carts_sid").using("btree", table.sid.asc().nullsLast().op("text_ops")),
+	index("idx_carts_status").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	index("idx_carts_user").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+]);
 
 export const customers = pgTable("customers", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -187,6 +209,7 @@ export const customers = pgTable("customers", {
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
 	index("idx_customers_clerk").using("btree", table.clerkUserId.asc().nullsLast().op("text_ops")),
+	index("idx_customers_email").using("btree", table.email.asc().nullsLast().op("text_ops")),
 ]);
 
 export const loyaltyWallets = pgTable("loyalty_wallets", {
@@ -226,6 +249,6 @@ export const customerAddresses = pgTable("customer_addresses", {
 }, (table) => [
 	index("idx_addr_clerk").using("btree", table.clerkUserId.asc().nullsLast().op("text_ops")),
 	index("idx_addr_customer").using("btree", table.customerId.asc().nullsLast().op("uuid_ops")),
+	uniqueIndex("uniq_addr_default_by_clerk").using("btree", table.clerkUserId.asc().nullsLast().op("text_ops")).where(sql`(is_default IS TRUE)`),
+	uniqueIndex("uq_addr_default_per_clerk").using("btree", table.clerkUserId.asc().nullsLast().op("text_ops")).where(sql`(is_default = true)`),
 ]);
-
-
