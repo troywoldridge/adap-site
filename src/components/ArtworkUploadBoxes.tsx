@@ -44,37 +44,50 @@ export default function ArtworkUploadBoxes({
     setError(null);
   }
 
-  /** Prefer an explicit lineId; else try provided lines; else hit your ensure route. */
+  /**
+   * Prefer explicit lineId -> provided cartLines -> ensure endpoint.
+   * Our ensure endpoint returns: { ok: true, lineId, quantity }
+   */
   async function resolveTargetLines(): Promise<CartLine[]> {
     if (lineId) return [{ id: lineId, quantity: 1 }];
     if (Array.isArray(cartLines) && cartLines.length > 0) {
       return cartLines.map((l) => ({ id: l.id, quantity: 1 }));
     }
 
-    // Fallback: ask server to ensure a line exists for this product
     const url = new URL("/api/cart/lines/ensure", window.location.origin);
     url.searchParams.set("productId", String(productId));
     url.searchParams.set("qty", "1");
 
-    const r = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+    const r = await fetch(url.toString(), {
+      method: "GET",
+      cache: "no-store",
+      credentials: "include", // ← keep SID cookie
+    });
+
     let j: any = null;
     try {
       j = await r.json();
-    } catch {}
-    if (!r.ok || !j?.ok || !Array.isArray(j?.lines) || j.lines.length === 0) {
-      throw new Error(j?.error || "Unable to create a cart line for this item.");
+    } catch {
+      // ignore
     }
-    // Expect shape: [{ id, quantity }]
-    return j.lines as CartLine[];
+
+    // Support both shapes just in case:
+    //  A) { ok, lineId, quantity }
+    //  B) { ok, lines: [{id, quantity}] }
+    if (r.ok && j?.ok) {
+      if (j.lineId) return [{ id: j.lineId, quantity: j.quantity ?? 1 }];
+      if (Array.isArray(j.lines) && j.lines.length > 0) return j.lines as CartLine[];
+    }
+
+    throw new Error(j?.error || `Unable to create a cart line for this item (status ${r.status}).`);
   }
 
-  /** Upload a single file to R2 using our presign route. Returns the public URL. */
+  /** Upload a single file to R2 (or Cloudflare Images) via your presign route. */
   async function uploadOne(f: File, targetLineId?: string): Promise<UploadedPart> {
-    // Basic validations
     const name = f.name || "upload";
     const type = (f.type || "application/octet-stream").toLowerCase();
 
-    // Require PDFs for now (adjust if you want images too)
+    // PDFs only (adjust if you want to allow image formats)
     if (type !== "application/pdf") {
       throw new Error(`"${name}" is not a PDF. Please upload PDF files only.`);
     }
@@ -82,10 +95,11 @@ export default function ArtworkUploadBoxes({
       throw new Error(`"${name}" exceeds 100MB. Please upload a smaller file.`);
     }
 
-    // Ask the server for a signed upload URL
+    // Ask server for signed upload URL (to R2 or Cloudflare Images Direct Upload)
     const presign = await fetch("/api/uploads/r2", {
       method: "POST",
       headers: { "content-type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         filename: name,
         contentType: type,
@@ -100,7 +114,7 @@ export default function ArtworkUploadBoxes({
 
     const { uploadUrl, publicUrl } = presignJson as { uploadUrl: string; publicUrl: string };
 
-    // PUT the file directly to R2
+    // PUT the file to the signed URL
     const putRes = await fetch(uploadUrl, {
       method: "PUT",
       headers: { "content-type": type },
@@ -111,11 +125,13 @@ export default function ArtworkUploadBoxes({
       throw new Error(`Upload failed: ${txt.slice(0, 200)}`);
     }
 
-    // We’ll store publicUrl as storageId for display
+    // Store publicUrl as storageId (for display / later rendering)
+    // If you’re using Cloudflare Images, this should be the imagedelivery URL:
+    // https://imagedelivery.net/<ACCOUNT_HASH>/<IMAGE_ID>/<VARIANT_NAME>
     return { fileName: name, storageId: publicUrl };
   }
 
-  /** Upload all selected files (to the first target line for now) */
+  /** Upload all selected files (to the first target line for now). */
   async function uploadAll(targetLines: CartLine[]): Promise<UploadedPart[]> {
     const results: UploadedPart[] = [];
     const target = targetLines[0]?.id || undefined;
@@ -140,6 +156,7 @@ export default function ArtworkUploadBoxes({
       method: "POST",
       headers: { "content-type": "application/json" },
       cache: "no-store",
+      credentials: "include",
       body: JSON.stringify({
         productId: Number(productId),
         cartLines: lines.map((l) => ({ id: l.id, quantity: l.quantity ?? 1 })),
@@ -151,7 +168,9 @@ export default function ArtworkUploadBoxes({
     let json: any = null;
     try {
       json = JSON.parse(text);
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     if (!resp.ok || !json?.ok) {
       throw new Error(json?.error || text || "Failed to save attachments.");
     }
@@ -172,20 +191,17 @@ export default function ArtworkUploadBoxes({
       const parts = await uploadAll(lines);
       await attachToCart(lines, parts);
 
-      // Broadcast success for any “continue” gates
+      // Broadcast success for the continue gate
       try {
         window.dispatchEvent(
           new CustomEvent("adap:artworkUploaded", { detail: { ok: true, count: parts.length } })
         );
       } catch {}
 
-      // Optional callback for parent
       onVerified?.(parts.length);
-
       setDone(true);
       setUploading(false);
 
-      // If not signed in, gate to sign-in with redirect
       if (!isSignedIn) {
         const redirectUrl = encodeURIComponent("/cart/review");
         router.push(`/sign-in?redirect_url=${redirectUrl}`);

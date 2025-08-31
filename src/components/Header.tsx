@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState, useMemo, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
+import { useCart } from "@/hooks/useCart";
 
 // Brand / content
 const SITE_BRAND = "ADAP";
@@ -14,13 +15,13 @@ const SITE_TAGLINE = "Custom Print Experts";
 const DEFAULT_DESCRIPTION =
   "Top-class custom printing solutions: business cards, invitations, promotional items, and more. Fast turnaround, dynamic pricing, and professional quality.";
 
-// Cloudflare Images (env-driven with safe defaults)
+// Cloudflare Images
 const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH ?? "pJ0fKvjCAbyoF8aD0BGu8Q";
-const DEFAULT_LOGO_ID = "a90ba357-76ea-48ed-1c65-44fff4401600"; // your logo image id
+const DEFAULT_LOGO_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
 const LOGO_ID = process.env.NEXT_PUBLIC_CF_LOGO_ID ?? DEFAULT_LOGO_ID;
 const LOGO_URL = `https://imagedelivery.net/${CF_HASH}/${LOGO_ID}/public`;
 
-// Social share (fallback image id; swap if you have a nicer banner)
+// Social share
 const DEFAULT_SOCIAL_IMAGE_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
 const DEFAULT_SOCIAL_SHARE_IMAGE = `https://imagedelivery.net/${CF_HASH}/${DEFAULT_SOCIAL_IMAGE_ID}/public`;
 
@@ -59,6 +60,7 @@ export default function Header({
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
+  const { itemCount } = useCart();
 
   const fullTitle = useMemo(
     () => (title ? `${title} | ${SITE_TAGLINE}` : SITE_TAGLINE),
@@ -86,7 +88,7 @@ export default function Header({
 
   return (
     <>
-      {/* Meta (OK in app router as a client component; feel free to move to generateMetadata if you prefer) */}
+      {/* Meta */}
       <Head>
         <title>{fullTitle}</title>
         <meta name="description" content={description} />
@@ -116,12 +118,14 @@ export default function Header({
         <link rel="icon" type="image/webp" href="/adap_favicon.webp" />
         <meta name="theme-color" content="#0f172a" />
 
-        {/* Preconnect & (optional) preload */}
+        {/* Preconnect */}
         <link rel="preconnect" href="https://imagedelivery.net" crossOrigin="anonymous" />
       </Head>
 
       {/* Sticky header */}
-      <header className="sticky top-0 z-[60] border-b bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+      <header className="relative border-b bg-white">
+
+        {/* Row 1: Brand + Search + Icons */}
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           {/* Logo / Brand */}
           <Link
@@ -156,6 +160,14 @@ export default function Header({
           {/* Icons */}
           <div className="flex items-center gap-2">
             <Link
+              href="/"
+              title="Home"
+              className="rounded-lg p-2 text-xl hover:bg-gray-100"
+              aria-label="Home"
+            >
+              🏠
+            </Link>
+            <Link
               href="/shipping-info"
               title="Shipping Info"
               className="rounded-lg p-2 text-xl hover:bg-gray-100"
@@ -174,10 +186,17 @@ export default function Header({
             <Link
               href="/cart"
               title="Cart"
-              className="rounded-lg p-2 text-xl hover:bg-gray-100"
+              className="relative rounded-lg p-2 text-xl hover:bg-gray-100"
               aria-label="Cart"
             >
               🛒
+              {itemCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 inline-flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold leading-none text-white"
+                >
+                  {itemCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/account"
@@ -201,43 +220,62 @@ export default function Header({
           </div>
         </div>
 
-        {/* Secondary row (optional categories / quick links) */}
+        {/* Row 2 (desktop): Categories evenly spaced */}
         <nav className="hidden border-t border-gray-200 bg-white md:block">
-          <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-2 text-sm">
-            <Link className="text-gray-700 hover:text-blue-700" href="/category/business-cards">
-              Business Cards
-            </Link>
-            <Link className="text-gray-700 hover:text-blue-700" href="/category/print-products">
-              Print Products
-            </Link>
-            <Link className="text-gray-700 hover:text-blue-700" href="/category/large-format">
-              Large Format
-            </Link>
-            <Link className="text-gray-700 hover:text-blue-700" href="/category/labels-and-packaging">
-              Labels & Packaging
-            </Link>
-            <Link className="text-gray-700 hover:text-blue-700" href="/category/apparel">
-              Apparel
-            </Link>
-            <Link className="text-gray-700 hover:text-blue-700" href="/category/sample-kits">
-              Sample Kits
-            </Link>
+          <div className="mx-auto max-w-7xl px-4">
+            <ul className="grid grid-cols-6 w-full text-sm">
+              <li>
+                <Link className="block py-2 text-center hover:text-blue-700" href="/category/business-cards">
+                  Business Cards
+                </Link>
+              </li>
+              <li>
+                <Link className="block py-2 text-center hover:text-blue-700" href="/category/print-products">
+                  Print Products
+                </Link>
+              </li>
+              <li>
+                <Link className="block py-2 text-center hover:text-blue-700" href="/category/large-format">
+                  Large Format
+                </Link>
+              </li>
+              <li>
+                <Link className="block py-2 text-center hover:text-blue-700" href="/category/labels-and-packaging">
+                  Labels &amp; Packaging
+                </Link>
+              </li>
+              <li>
+                <Link className="block py-2 text-center hover:text-blue-700" href="/category/apparel">
+                  Apparel
+                </Link>
+              </li>
+              <li>
+                <Link className="block py-2 text-center hover:text-blue-700" href="/category/sample-kits">
+                  Sample Kits
+                </Link>
+              </li>
+            </ul>
           </div>
         </nav>
 
-        {/* Mobile nav */}
+        {/* Mobile menu */}
         {menuOpen && (
           <div id="mobile-menu" className="border-t border-gray-200 bg-white md:hidden">
             <div className="mx-auto max-w-7xl px-4 py-3">
               <div className="mb-3">
                 <SearchBar />
               </div>
+
+              {/* Quick actions */}
               <div className="grid grid-cols-2 gap-2 text-sm">
+                <Link href="/" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
+                  🏠 Home
+                </Link>
                 <Link href="/search" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
                   🔍 Search
                 </Link>
                 <Link href="/cart" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
-                  🛒 Cart
+                  🛒 Cart{itemCount > 0 ? ` (${itemCount})` : ""}
                 </Link>
                 <Link href="/account" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
                   👤 Account
@@ -245,8 +283,10 @@ export default function Header({
                 <Link href="/shipping-info" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
                   🚚 Shipping Info
                 </Link>
+              </div>
 
-                {/* Quick categories */}
+              {/* Categories — full width, evenly spaced */}
+              <div className="mt-3 flex w-full justify-evenly text-sm">
                 <Link href="/category/business-cards" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
                   Business Cards
                 </Link>
@@ -257,7 +297,7 @@ export default function Header({
                   Large Format
                 </Link>
                 <Link href="/category/labels-and-packaging" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
-                  Labels & Packaging
+                  Labels &amp; Packaging
                 </Link>
                 <Link href="/category/apparel" onClick={closeMenu} className="rounded-md px-3 py-2 hover:bg-gray-50">
                   Apparel

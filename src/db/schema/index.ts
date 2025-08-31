@@ -1,7 +1,7 @@
 // src/db/schema/index.ts
 
 // ── Customers & addresses
-export * from "./customer";            // <-- includes orders + orderItems today
+export * from "./customer";            // includes orders + orderItems today
 export * from "./customerAddresses";   // remove if you kept addresses inside customer.ts
 
 // ── Cart core
@@ -26,5 +26,6 @@ export * from "./uploads";            // owns `artworkUploads` in your current s
 // export * from "./orders";
 // export * from "./orderItems";
 
-// ── Relations (only if the file exists)
-export * from "./relations";
+// ── Relations (avoid star-export to prevent duplicate named exports)
+import * as schemaRelations from "./relations";
+export const relations = schemaRelations;

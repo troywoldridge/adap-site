@@ -5,28 +5,16 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getHeroSlides, type HeroSlide } from "@/lib/heroSlides";
 import { trackHeroImpression, trackHeroClick } from "@/lib/heroAnalytics";
+import { cfImage } from "@/lib/cfImages";
 
 const AUTO_PLAY_MS = 7000;
 
-/**
- * Adapters so TypeScript is happy regardless of whether your analytics
- * helpers are typed for 1 or 2 params. At runtime they’re no-ops if missing.
- */
+// analytics adapters (safe if not defined)
 const trackImp = (id: string | number, ctaText?: string) => {
-  try {
-    (trackHeroImpression as unknown as (id: string | number, ctaText?: string) => void)(
-      id,
-      ctaText
-    );
-  } catch {}
+  try { (trackHeroImpression as unknown as (id: string | number, ctaText?: string) => void)(id, ctaText); } catch {}
 };
 const trackClk = (id: string | number, ctaText?: string) => {
-  try {
-    (trackHeroClick as unknown as (id: string | number, ctaText?: string) => void)(
-      id,
-      ctaText
-    );
-  } catch {}
+  try { (trackHeroClick as unknown as (id: string | number, ctaText?: string) => void)(id, ctaText); } catch {}
 };
 
 export default function Hero() {
@@ -45,7 +33,6 @@ export default function Hero() {
   const schedule = useCallback(() => {
     clear();
     if (!hoveringRef.current && slides.length > 1) {
-      // keep the hero compact; do not stretch page height
       timerRef.current = window.setTimeout(
         () => setIndex((i) => (i + 1) % slides.length),
         AUTO_PLAY_MS
@@ -53,77 +40,70 @@ export default function Hero() {
     }
   }, [slides.length]);
 
-  useEffect(() => {
-    schedule();
-    return clear;
-  }, [index, schedule]);
+  useEffect(() => { schedule(); return clear; }, [index, schedule]);
 
-  // Track each visible slide once it becomes active
+  // track visible slide
   useEffect(() => {
     const s = slides[index];
     if (s) trackImp(s.id, (s as any).ctaText);
   }, [index, slides]);
 
-  const goTo = useCallback(
-    (i: number) => {
-      if (!slides.length) return;
-      const len = slides.length;
-      setIndex(((i % len) + len) % len);
-    },
-    [slides.length]
-  );
+  const goTo = useCallback((i: number) => {
+    if (!slides.length) return;
+    const len = slides.length;
+    setIndex(((i % len) + len) % len);
+  }, [slides.length]);
 
   const prev = () => goTo(index - 1);
   const next = () => goTo(index + 1);
 
   if (!slides.length) return null;
 
-  const onEnter = () => {
-    hoveringRef.current = true;
-    clear();
-  };
-  const onLeave = () => {
-    hoveringRef.current = false;
-    schedule();
-  };
+  const onEnter = () => { hoveringRef.current = true; clear(); };
+  const onLeave = () => { hoveringRef.current = false; schedule(); };
 
   return (
     <section
-      className="mx-auto mt-2 max-w-5xl px-3 isolate"
+      className="mx-auto mt-3 max-w-7xl px-4 isolate"
       aria-label="Featured promotions"
       data-hero
     >
       <div
         className="
-          relative z-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-sm
-          h-[140px] min-h-[140px] max-h-[140px]
-          md:h-[220px] md:min-h-[220px] md:max-h-[220px]
+          relative z-0 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm
+          h-[180px] min-h-[180px] max-h-[180px]
+          md:h-[260px] md:min-h-[260px] md:max-h-[260px]
         "
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
       >
         {slides.map((s, i) => {
           const active = i === index;
+
+          // Build Cloudflare Images variant URL (served via Cloudflare CDN)
+          const url = cfImage(s.imageUrl, "hero");
+
           return (
             <article
               key={s.id}
-              className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-500 ${
-                active ? "opacity-100" : "opacity-0"
-              }`}
+              className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-500 ${active ? "opacity-100" : "opacity-0"}`}
               aria-hidden={!active}
               aria-roledescription="slide"
             >
               <Image
-                src={s.imageUrl}
+                src={cfImage(s.imageUrl, "hero")}   // 👈 change "hero" to whatever the actual variant name is
                 alt={s.alt}
                 fill
                 priority={i === 0}
-                sizes="(min-width: 1024px) 900px, 100vw"
-                className="object-cover"
+                sizes="(min-width: 1024px) 1024px, 100vw"
+                className="object-contain"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-white/75 via-white/25 to-transparent" />
+
+              {/* subtle gradient so text stays readable */}
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-white/80 via-white/30 to-transparent" />
+
               <div className="relative z-10 flex h-full items-center px-3">
-                <div className="pointer-events-auto max-w-sm rounded-md bg-white/80 p-2 shadow">
+                <div className="pointer-events-auto max-w-sm rounded-md bg-white/85 p-2 shadow">
                   <h1 className="text-[13px] font-extrabold tracking-tight text-slate-900">
                     {s.title}
                   </h1>
@@ -132,7 +112,6 @@ export default function Hero() {
                       {s.description}
                     </p>
                   )}
-
                   {s.ctaHref && s.ctaText && (
                     <div className="mt-2">
                       <Link
@@ -186,9 +165,7 @@ export default function Hero() {
                   aria-selected={active}
                   aria-label={`Go to slide ${i + 1}`}
                   onClick={() => goTo(i)}
-                  className={`h-1.5 rounded-full transition ${
-                    active ? "w-4 bg-blue-700" : "w-1.5 bg-gray-400 hover:bg-gray-500"
-                  }`}
+                  className={`h-1.5 rounded-full transition ${active ? "w-4 bg-blue-700" : "w-1.5 bg-gray-400 hover:bg-gray-500"}`}
                 />
               );
             })}

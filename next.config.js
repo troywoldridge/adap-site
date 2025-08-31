@@ -84,7 +84,7 @@ const imgSrcList = [
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
   `https://r2.cloudflarestorage.com`,
-  `https://*.r2.cloudflarestorage.com`,  // ← bucket subdomains for direct preview if used
+  `https://.r2.cloudflarestorage.com`,  // ← bucket subdomains for direct preview if used
   R2_PUBLIC_ORIGIN,
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,

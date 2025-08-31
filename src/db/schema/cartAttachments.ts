@@ -1,13 +1,28 @@
-// db/schema/cartAttachments.ts
-import { pgTable, text, uuid, timestamp } from "drizzle-orm/pg-core";
+// src/db/schema/cartAttachments.ts
+import { pgTable, text, uuid, timestamp, integer, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { carts } from "./cart";
 import { cartLines } from "./cartLines";
 
-export const cartAttachments = pgTable("cart_attachments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  cartId: uuid("cart_id").notNull().references(() => carts.id, { onDelete: "cascade" }),
-  lineId: uuid("line_id").references(() => cartLines.id, { onDelete: "cascade" }),
-  key: text("key").notNull(),      // cloudflare image id or storage key
-  url: text("url").notNull(),      // cf delivery URL if you store it directly
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const cartAttachments = pgTable(
+  "cart_attachments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    cartId: uuid("cart_id").references(() => carts.id, { onDelete: "cascade" }),
+    lineId: uuid("line_id").references(() => cartLines.id, { onDelete: "cascade" }),
+
+    productId: integer("product_id").notNull(),
+    fileName: text("file_name").notNull(),
+
+    key: text("key").notNull(),
+    url: text("url").notNull(),
+
+    createdAt: timestamp("created_at", { mode: "date" }).notNull(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull(),
+  },
+  (t) => ({
+    lineKeyUnique: uniqueIndex("cart_attachments_line_key_uq").on(t.lineId, t.key),
+    cartIdx: index("cart_attachments_cart_id_idx").on(t.cartId),
+    lineIdx: index("cart_attachments_line_id_idx").on(t.lineId),
+  })
+);

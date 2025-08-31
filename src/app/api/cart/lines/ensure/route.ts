@@ -1,110 +1,115 @@
-// src/app/api/cart/lines/ensure/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
-export const runtime = "nodejs";
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
-
-function noStore(res: NextResponse) {
-  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-  return res;
+// ---------- utils ----------
+function toInt(u: unknown, fallback = 0) {
+  const n = Number(u as any);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
 }
 
-// Support Next 14 (sync) & Next 15 (async) cookies()
-async function getJar() {
-  const jarOrPromise = cookies() as any;
-  return typeof jarOrPromise?.then === "function" ? await jarOrPromise : jarOrPromise;
+type EnsureInput = { productId: number; qty?: number };
+
+async function ensureCartIdForSid(sid: string): Promise<string> {
+  // find open cart
+  const found = await db.query.carts.findFirst({
+    where: and(eq(carts.sid, sid), eq(carts.status, "open")),
+  });
+  if (found?.id) return found.id;
+
+  // create new cart
+  const [row] = await db
+    .insert(carts)
+    .values({ sid, status: "open" })
+    .returning({ id: carts.id });
+
+  return row.id;
 }
 
-function setSidCookies(res: NextResponse, sid: string) {
-  const common = {
-    httpOnly: true as const,
-    sameSite: "lax" as const,
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-  };
-  // Set BOTH names for full compatibility with old code
-  res.cookies.set("adap_sid", sid, common);
-  res.cookies.set("sid", sid, common);
+async function ensureLine(cartId: string, input: EnsureInput) {
+  const productId = toInt(input.productId, 0);
+  const qty = Math.max(1, toInt(input.qty, 1));
+  if (!productId) return { ok: false as const, error: "Missing productId" };
+
+  // If you key lines by option chain/hash, include those columns in the where
+  const existing = await db.query.cartLines.findFirst({
+    where: and(eq(cartLines.cartId, cartId), eq(cartLines.productId, productId)),
+  });
+
+  if (existing) {
+    const newQty = Math.max(1, (existing.quantity ?? 1) + qty);
+    const [updated] = await db
+      .update(cartLines)
+      .set({ quantity: newQty, updatedAt: sql`now()` })
+      .where(eq(cartLines.id, existing.id))
+      .returning({ id: cartLines.id, quantity: cartLines.quantity });
+
+    return { ok: true as const, lineId: updated.id, quantity: updated.quantity };
+  }
+
+  const [inserted] = await db
+    .insert(cartLines)
+    .values({ cartId, productId, quantity: qty })
+    .returning({ id: cartLines.id, quantity: cartLines.quantity });
+
+  return { ok: true as const, lineId: inserted.id, quantity: inserted.quantity };
 }
 
-function sameArray(a: number[] = [], b: number[] = []) {
-  if (a.length !== b.length) {
-    return false;
-    }
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) {
-    return false;
-    }
-  return true;
+async function readOrCreateSid(): Promise<{ sid: string; created: boolean }> {
+  const jar = (await (typeof (cookies() as any)?.then === "function"
+    ? (cookies() as any)
+    : cookies())) as any;
+
+  const existing = jar.get?.("adap_sid")?.value ?? jar.get?.("sid")?.value;
+  if (existing) return { sid: existing, created: false };
+
+  return { sid: crypto.randomUUID(), created: true };
+}
+
+function attachSidCookie(res: NextResponse, sid: string) {
+  // set both keys for compatibility
+  res.cookies.set("adap_sid", sid, { httpOnly: true, sameSite: "lax", path: "/" });
+  res.cookies.set("sid", sid, { httpOnly: true, sameSite: "lax", path: "/" });
+}
+
+// ---------- handlers ----------
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const productId = toInt(url.searchParams.get("productId"));
+    const qty = toInt(url.searchParams.get("qty"), 1);
+
+    const { sid, created } = await readOrCreateSid();
+    const cartId = await ensureCartIdForSid(sid);
+    const result = await ensureLine(cartId, { productId, qty });
+
+    const res = NextResponse.json(result, { status: result.ok ? 200 : 400 });
+    if (created) attachSidCookie(res, sid);
+    return res;
+  } catch (err: any) {
+    console.error("[ensure GET] error:", err);
+    return NextResponse.json({ ok: false, error: "Server error creating line" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { productId, quantity = 1, optionIds = [] } = body as {
-      productId: number;
-      quantity?: number;
-      optionIds?: number[];
-    };
+    const body = (await req.json().catch(() => ({}))) as Partial<EnsureInput>;
+    const productId = toInt(body.productId);
+    const qty = toInt(body.qty, 1);
 
-    // Build a response so we can attach Set-Cookie if needed
-    let res = NextResponse.json({ ok: true });
+    const { sid, created } = await readOrCreateSid();
+    const cartId = await ensureCartIdForSid(sid);
+    const result = await ensureLine(cartId, { productId, qty });
 
-    // Read (or mint) SID
-    const jar = await getJar();
-    let sid: string | undefined = jar.get?.("adap_sid")?.value ?? jar.get?.("sid")?.value;
-    if (!sid) {
-      sid = crypto.randomUUID();
-      setSidCookies(res, sid);
-    }
-
-    // Find or create open cart
-    let cart = await db.query.carts.findFirst({
-      where: and(eq(carts.sid, sid), eq(carts.status, "open")),
-    });
-
-    if (!cart) {
-      [cart] = await db.insert(carts).values({ sid, status: "open" }).returning();
-      // Ensure cookies set if we just created cart for a new SID
-      setSidCookies(res, sid);
-    }
-
-    // Upsert line: if same productId + optionIds exists, bump quantity; else insert
-    const existingLines = await db
-      .select()
-      .from(cartLines)
-      .where(and(eq(cartLines.cartId, cart.id), eq(cartLines.productId, productId)));
-
-    const match = existingLines.find((l: any) => sameArray(l.optionIds ?? [], optionIds));
-
-    if (match) {
-      await db
-        .update(cartLines)
-        .set({ quantity: Number(match.quantity ?? 0) + Number(quantity ?? 1) })
-        .where(eq(cartLines.id, match.id));
-    } else {
-      await db.insert(cartLines).values({
-        cartId: cart.id,
-        productId: Number(productId),
-        quantity: Number(quantity),
-        optionIds: optionIds as any, // jsonb[] in schema
-        artwork: null,
-      });
-    }
-
-    // Return OK (client typically re-fetches /api/cart/current or /api/cart)
-    return noStore(res);
-  } catch (e: any) {
-    console.error("POST /api/cart/lines/ensure failed:", e);
-    return NextResponse.json(
-      { ok: false, error: String(e?.message ?? e) },
-      { status: 500, headers: { "Cache-Control": "no-store" } }
-    );
+    const res = NextResponse.json(result, { status: result.ok ? 200 : 400 });
+    if (created) attachSidCookie(res, sid);
+    return res;
+  } catch (err: any) {
+    console.error("[ensure POST] error:", err);
+    return NextResponse.json({ ok: false, error: "Server error creating line" }, { status: 500 });
   }
 }

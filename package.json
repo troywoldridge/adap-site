@@ -50,6 +50,7 @@
     "axios": "^1.11.0",
     "chalk": "^5.5.0",
     "cli-progress": "^3.12.0",
+    "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.3",

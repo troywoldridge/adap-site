@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 const STORAGE_KEY = "adap_notice_dismissed_v1";
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -29,7 +28,10 @@ export default function NotificationBar() {
   const dismiss = () => {
     setShow(false);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dismissedAt: Date.now() }));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ dismissedAt: Date.now() })
+      );
     } catch {
       // ignore
     }
@@ -39,30 +41,25 @@ export default function NotificationBar() {
 
   return (
     <div className="w-full border-b border-amber-300 bg-gradient-to-r from-amber-500 to-orange-600 text-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 text-sm">
-        <div className="flex items-center gap-2">
+      <div className="mx-auto flex max-w-7xl items-center justify-center relative px-4 py-2 text-sm">
+        {/* Centered message */}
+        <div className="flex items-center gap-2 text-center">
           <span aria-hidden>⚠️</span>
           <p className="leading-tight">
-            We are currently experiencing high volumes for roll labels and Business Cards UV/Foil orders. Thank you for your patience!
+            We are currently experiencing high volumes for roll labels and
+            Business Cards UV/Foil orders. Thank you for your patience!
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/support"
-            className="rounded-md bg-white/10 px-2 py-1 font-medium text-white hover:bg-white/20"
-          >
-            Support
-          </Link>
-          <button
-            type="button"
-            onClick={dismiss}
-            className="rounded-md p-1 hover:bg-white/20"
-            aria-label="Dismiss notice"
-          >
-            ✕
-          </button>
-        </div>
+        {/* Dismiss button absolutely on the right */}
+        <button
+          type="button"
+          onClick={dismiss}
+          className="absolute right-4 rounded-md p-1 hover:bg-white/20"
+          aria-label="Dismiss notice"
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

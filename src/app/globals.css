@@ -1,2 +1,15 @@
 @import "tailwindcss";
 
+@layer utilities {
+  /* Prevent descendants from escaping their box; creates a sturdy paint/layout boundary */
+  .contain-paint { contain: layout paint; }
+
+  /* Optional “nuclear” last resort if something keeps forcing height/position */
+  .hero-h-important { height: clamp(140px, 46vw, 520px) !important; }
+
+   .main-nav, .top-nav, .nav, .menu, .category-bar {
+    text-align: inherit;
+    justify-content: inherit;
+    width: auto;  
+    }
+}
