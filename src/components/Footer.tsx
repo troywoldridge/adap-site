@@ -121,7 +121,7 @@ export default function SiteFooter() {
             </h3>
             <ul className="mt-3 space-y-2 text-sm">
               <li><Link className="hover:text-white" href="/support">Support Center</Link></li>
-              <li><Link className="hover:text-white" href="/artwork-setup">Artwork Setup Guides</Link></li>
+              <li><Link className="hover:text-white" href="/guides">Artwork Setup Guides</Link></li>
               <li><Link className="hover:text-white" href="/business-tools">Business Tools</Link></li>
               <li><Link className="hover:text-white" href="/accessibility">Accessibility</Link></li>
             </ul>

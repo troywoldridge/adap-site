@@ -1,256 +1,96 @@
 "use client";
 
-import * as React from "react";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-
-type UploadedPart = { fileName: string; storageId: string };
-type CartLine = { id: string; quantity?: number };
-
-type Props = {
-  productId: string | number;
-  numSides: number;
-  /** Optional: existing cart lines for this product (if you already fetched them) */
-  cartLines?: Array<{ id: string }>;
-  /** Optional: lineId for the exact line added from “Add & Upload” flow */
-  lineId?: string;
-  /** Optional: called after files successfully attached */
-  onVerified?: (fileCount: number) => void;
-};
+import ArtworkUpload, { ArtworkFile } from "./ArtworkUpload";
 
 export default function ArtworkUploadBoxes({
-  productId,
-  numSides,
-  cartLines = [],
+  cartId,
   lineId,
-  onVerified,
-}: Props) {
-  const [files, setFiles] = useState<(File | null)[]>(Array(numSides).fill(null));
-  const [uploading, setUploading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const router = useRouter();
-  const { isSignedIn } = useAuth();
-
-  const hasAtLeastOneFile = useMemo(() => files.some(Boolean), [files]);
-
-  function handleFileChange(i: number, f: File | null) {
-    const next = files.slice();
-    next[i] = f;
-    setFiles(next);
-    setDone(false);
-    setError(null);
-  }
-
-  /**
-   * Prefer explicit lineId -> provided cartLines -> ensure endpoint.
-   * Our ensure endpoint returns: { ok: true, lineId, quantity }
-   */
-  async function resolveTargetLines(): Promise<CartLine[]> {
-    if (lineId) return [{ id: lineId, quantity: 1 }];
-    if (Array.isArray(cartLines) && cartLines.length > 0) {
-      return cartLines.map((l) => ({ id: l.id, quantity: 1 }));
-    }
-
-    const url = new URL("/api/cart/lines/ensure", window.location.origin);
-    url.searchParams.set("productId", String(productId));
-    url.searchParams.set("qty", "1");
-
-    const r = await fetch(url.toString(), {
-      method: "GET",
-      cache: "no-store",
-      credentials: "include", // ← keep SID cookie
-    });
-
-    let j: any = null;
-    try {
-      j = await r.json();
-    } catch {
-      // ignore
-    }
-
-    // Support both shapes just in case:
-    //  A) { ok, lineId, quantity }
-    //  B) { ok, lines: [{id, quantity}] }
-    if (r.ok && j?.ok) {
-      if (j.lineId) return [{ id: j.lineId, quantity: j.quantity ?? 1 }];
-      if (Array.isArray(j.lines) && j.lines.length > 0) return j.lines as CartLine[];
-    }
-
-    throw new Error(j?.error || `Unable to create a cart line for this item (status ${r.status}).`);
-  }
-
-  /** Upload a single file to R2 (or Cloudflare Images) via your presign route. */
-  async function uploadOne(f: File, targetLineId?: string): Promise<UploadedPart> {
-    const name = f.name || "upload";
-    const type = (f.type || "application/octet-stream").toLowerCase();
-
-    // PDFs only (adjust if you want to allow image formats)
-    if (type !== "application/pdf") {
-      throw new Error(`"${name}" is not a PDF. Please upload PDF files only.`);
-    }
-    if (f.size && f.size > 100 * 1024 * 1024) {
-      throw new Error(`"${name}" exceeds 100MB. Please upload a smaller file.`);
-    }
-
-    // Ask server for signed upload URL (to R2 or Cloudflare Images Direct Upload)
-    const presign = await fetch("/api/uploads/r2", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        filename: name,
-        contentType: type,
-        lineId: targetLineId ?? null,
-      }),
-    });
-
-    const presignJson = await presign.json().catch(() => ({}));
-    if (!presign.ok || !presignJson?.ok || !presignJson?.uploadUrl) {
-      throw new Error(presignJson?.error || "Failed to create upload URL.");
-    }
-
-    const { uploadUrl, publicUrl } = presignJson as { uploadUrl: string; publicUrl: string };
-
-    // PUT the file to the signed URL
-    const putRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "content-type": type },
-      body: f,
-    });
-    if (!putRes.ok) {
-      const txt = await putRes.text().catch(() => "");
-      throw new Error(`Upload failed: ${txt.slice(0, 200)}`);
-    }
-
-    // Store publicUrl as storageId (for display / later rendering)
-    // If you’re using Cloudflare Images, this should be the imagedelivery URL:
-    // https://imagedelivery.net/<ACCOUNT_HASH>/<IMAGE_ID>/<VARIANT_NAME>
-    return { fileName: name, storageId: publicUrl };
-  }
-
-  /** Upload all selected files (to the first target line for now). */
-  async function uploadAll(targetLines: CartLine[]): Promise<UploadedPart[]> {
-    const results: UploadedPart[] = [];
-    const target = targetLines[0]?.id || undefined;
-
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      if (!f) continue;
-      const part = await uploadOne(f, target);
-      results.push(part);
-    }
-
-    if (results.length === 0) {
-      throw new Error("Please choose at least one PDF to upload.");
-    }
-
-    return results;
-  }
-
-  /** Save attachments onto the server-side cart line(s). */
-  async function attachToCart(lines: CartLine[], parts: UploadedPart[]) {
-    const resp = await fetch("/api/cart/attachments", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      cache: "no-store",
-      credentials: "include",
-      body: JSON.stringify({
-        productId: Number(productId),
-        cartLines: lines.map((l) => ({ id: l.id, quantity: l.quantity ?? 1 })),
-        parts,
-      }),
-    });
-
-    const text = await resp.text();
-    let json: any = null;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      /* ignore */
-    }
-    if (!resp.ok || !json?.ok) {
-      throw new Error(json?.error || text || "Failed to save attachments.");
-    }
-  }
-
-  async function onContinue() {
-    if (uploading) return;
-    if (!hasAtLeastOneFile) {
-      setError("Please add at least one PDF before continuing.");
-      return;
-    }
-
-    try {
-      setError(null);
-      setUploading(true);
-
-      const lines = await resolveTargetLines();
-      const parts = await uploadAll(lines);
-      await attachToCart(lines, parts);
-
-      // Broadcast success for the continue gate
-      try {
-        window.dispatchEvent(
-          new CustomEvent("adap:artworkUploaded", { detail: { ok: true, count: parts.length } })
-        );
-      } catch {}
-
-      onVerified?.(parts.length);
-      setDone(true);
-      setUploading(false);
-
-      if (!isSignedIn) {
-        const redirectUrl = encodeURIComponent("/cart/review");
-        router.push(`/sign-in?redirect_url=${redirectUrl}`);
-        return;
-      }
-      router.push("/cart/review");
-    } catch (e: any) {
-      setUploading(false);
-      setError(e?.message || "Upload failed.");
-    }
-  }
-
+  sides = 2,
+}: {
+  cartId?: string;
+  lineId: string;
+  sides?: number; // default 2 (front/back)
+}) {
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Upload Artwork</h3>
-      <p className="text-sm text-gray-600">
-        Upload your print-ready PDF files. We’ll attach them to your order and show them on the review page.
-      </p>
+    <section className="grid place-items-center px-4 py-6">
+      <div className="w-full max-w-[1100px] rounded-xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+        {/* Header */}
+        <header className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
+          <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-900">
+            Set #1
+          </span>
+          <h2 className="m-0 text-base font-semibold text-slate-900">
+            Upload your file {sides === 2 ? "— 2 sides" : sides > 1 ? `— ${sides} sides` : ""}
+          </h2>
+        </header>
 
-      <div className="grid gap-3">
-        {Array.from({ length: numSides }).map((_, i) => (
-          <label key={i} className="block">
-            <span className="text-sm font-medium">Side {i + 1}</span>
-            <input
-              type="file"
-              accept="application/pdf"
-              className="mt-1 block w-full rounded border p-2"
-              onChange={(e) => handleFileChange(i, e.target.files?.[0] ?? null)}
-            />
-            {files[i]?.name ? (
-              <span className="mt-1 block truncate text-xs text-gray-600">{files[i]!.name}</span>
-            ) : null}
-          </label>
-        ))}
+        {/* Body */}
+        <div className="grid gap-6 px-5 py-4 md:grid-cols-[1.2fr_1fr]">
+          {/* Left: uploaders */}
+          <div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <div className="font-semibold text-slate-700">Front</div>
+                <ArtworkUpload
+                  cartId={cartId}
+                  lineId={lineId}
+                  side={1}
+                  label="Choose File"
+                  onUploaded={(f: ArtworkFile | null) => {
+                    // hook if needed
+                  }}
+                />
+              </div>
+
+              {sides >= 2 && (
+                <div className="space-y-2">
+                  <div className="font-semibold text-slate-700">Back</div>
+                  <ArtworkUpload
+                    cartId={cartId}
+                    lineId={lineId}
+                    side={2}
+                    label="Choose File"
+                    onUploaded={(f: ArtworkFile | null) => {
+                      // hook if needed
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <button className="inline-flex items-center rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">
+                Upload
+              </button>
+              <button className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-900 hover:bg-slate-50">
+                Go back
+              </button>
+            </div>
+          </div>
+
+          {/* Right: prep tips (kept concise; matches Sinalite guidance) */}
+          <aside className="border-t border-slate-100 pt-4 md:border-l md:border-t-0 md:pl-4">
+            <h3 className="mb-2 text-base font-semibold text-slate-900">Artwork Preparation Tips</h3>
+            <ul className="ml-4 list-disc space-y-1 text-slate-700">
+              <li>Delete hidden/setup layers not intended to print.</li>
+              <li>Correct orientation, include bleed, 300&nbsp;DPI raster.</li>
+              <li>CMYK (not RGB). Outline all text (no embedded fonts).</li>
+              <li>No linked images, form fields, or comments.</li>
+              <li>Provide a separate <em className="not-italic font-semibold">Dieline</em> spot-color layer.</li>
+              <li>Use vector for logos/shapes where possible.</li>
+              <li>Rich black e.g. <span className="font-mono">C30 M20 Y20 K100</span> for large areas.</li>
+              <li>White ink: separate spot-color layer named <em className="not-italic font-semibold">White_Ink</em>.</li>
+              <li>Thin white text on rich black: thicken / apply slight swelling.</li>
+              <li>Formats: PDF (preferred), AI, EPS, PNG, JPG, TIFF.</li>
+            </ul>
+
+            <h4 className="mt-3 text-sm font-semibold text-slate-900">PDF Template References</h4>
+            <p className="mt-1 text-sm text-slate-600">
+              Download product-specific templates from the product page (per Sinalite API documentation).
+            </p>
+          </aside>
+        </div>
       </div>
-
-      {error && <div className="whitespace-pre-wrap text-sm text-red-600">{error}</div>}
-
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          disabled={uploading || !hasAtLeastOneFile}
-          onClick={onContinue}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-        >
-          {uploading ? "Processing…" : "Go to review order"}
-        </button>
-        {done && <span className="text-sm text-green-700">Artwork saved to your cart.</span>}
-      </div>
-    </div>
+    </section>
   );
 }

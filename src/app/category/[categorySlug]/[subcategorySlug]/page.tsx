@@ -10,12 +10,11 @@ import productAssetsRaw from "@/data/productAssets.json";
 import { humanizeName } from "@/lib/data";
 import { productImagesForProductId } from "@/lib/product-images";
 import { getSinaliteProductMeta } from "@/lib/sinalite.client";
+import { cfImage } from "@/lib/cfImages"; // build Cloudflare URLs
 
 export const dynamic = "force-dynamic";
 
-/* ──────────────────────────────────────────────────────────
-   Types
-   ────────────────────────────────────────────────────────── */
+/* Types */
 type CategoryAsset = {
   [slug: string]: {
     imageId?: string | null;
@@ -27,7 +26,7 @@ type CategoryAsset = {
 
 type SubAsset = {
   id: number;
-  category_id: string;   // matches category slug
+  category_id: string;
   slug: string;
   name: string;
   description?: string | null;
@@ -44,27 +43,21 @@ type ProductAsset = {
   matched_sku?: string | null;
 };
 
-/* ──────────────────────────────────────────────────────────
-   Local data coercion + helpers
-   ────────────────────────────────────────────────────────── */
+/* Local data */
 const productAssets: ProductAsset[] = Array.isArray(productAssetsRaw)
   ? (productAssetsRaw as ProductAsset[])
   : [];
 
-/** Prefer API meta name; else SKU/name fallbacks. */
+/* Helpers */
 function titleFromMetaOrLocal(meta: any | null, p: ProductAsset): string {
   const apiName = (meta?.name ?? "").toString().trim();
   if (apiName) return apiName;
-
   const sku = (meta?.sku ?? p.matched_sku ?? "").toString().trim();
   if (sku) return humanizeName(sku);
-
   if (p.name) return humanizeName(p.name);
-
   return `Product ${p.product_id}`;
 }
 
-/** Dedupe by product_id while preserving first occurrence order. */
 function dedupeByProductId(rows: ProductAsset[]) {
   const seen = new Set<string>();
   const out: ProductAsset[] = [];
@@ -77,45 +70,50 @@ function dedupeByProductId(rows: ProductAsset[]) {
   return out;
 }
 
-/* ──────────────────────────────────────────────────────────
-   Page
-   ────────────────────────────────────────────────────────── */
+/** If `raw` is a CF IMAGE_ID → build imagedelivery URL; if URL or local path → passthrough. */
+function toImageUrl(
+  raw: string | undefined | null,
+  variant: "saleCard" | "category" | "productThumb" = "saleCard"
+): string {
+  if (!raw) return "";
+  if (raw.startsWith("/")) return raw; // local file
+  return cfImage(raw, variant); // handles IMAGE_ID or full URL
+}
+
+/* Page */
 export default async function SubcategoryPage({
   params,
 }: {
   params: Promise<{ categorySlug: string; subcategorySlug: string }>;
 }) {
+  // 👇 This is the key fix
   const { categorySlug, subcategorySlug } = await params;
 
-  // Validate category
   const catMap = categoryAssets as unknown as CategoryAsset;
   const cat = catMap[categorySlug];
   if (!cat) return notFound();
 
-  // All subs under this category
   const subs = (subcategoryAssets as SubAsset[]).filter(
     (s) => s.category_id === categorySlug
   );
   if (!subs.length) return notFound();
 
-  // Current subcategory
   const sub = subs.find((s) => s.slug === subcategorySlug);
   if (!sub) return notFound();
 
-  // Products mapped to this subcategory → DEDUPE by product_id
+  // products mapped to this subcategory → dedupe
   const subId = Number(sub.id);
   const mappedProductsRaw = productAssets.filter(
     (p) => Number(p.subcategory_id) === subId && p.product_id != null
   );
   const mappedProducts = dedupeByProductId(mappedProductsRaw);
 
-  // Fetch live meta (SinaLite docs) + Cloudflare image per product
+  // pull Sinalite meta (per Sinalite API docs) + Cloudflare image per product
   const productsWithMeta = await Promise.all(
     mappedProducts.map(async (p) => {
       const id = String(p.product_id);
-      const cfImage =
-        productImagesForProductId(id)[0] ||
-        "https://imagedelivery.net/placeholder/placeholder/public";
+      const raw = productImagesForProductId(id)[0]; // may be IMAGE_ID or full URL
+      const imageUrl = toImageUrl(raw, "saleCard") || "/placeholder.png";
 
       try {
         const meta = await getSinaliteProductMeta(id);
@@ -123,25 +121,22 @@ export default async function SubcategoryPage({
           id,
           title: titleFromMetaOrLocal(meta, p),
           category: meta?.category ?? "",
-          image: cfImage, // Cloudflare CDN URL
+          image: imageUrl, // final URL (Cloudflare CDN)
         };
       } catch {
         return {
           id,
           title: titleFromMetaOrLocal(null, p),
           category: "",
-          image: cfImage,
+          image: imageUrl,
         };
       }
     })
   );
 
-  // Stable sort for consistent UX
   productsWithMeta.sort((a, b) => a.title.localeCompare(b.title));
 
-  const titleCat = categorySlug
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (m) => m.toUpperCase());
+  const titleCat = categorySlug.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
   const titleSub = sub.name.replace(/[_-]+/g, " ");
 
   return (
@@ -203,12 +198,14 @@ export default async function SubcategoryPage({
                     marginBottom: 12,
                   }}
                 >
+                  {/* Fetch directly from Cloudflare CDN (no Next proxy) */}
                   <Image
                     src={p.image}
                     alt={p.title}
                     fill
                     sizes="(max-width: 768px) 50vw, 360px"
                     style={{ objectFit: "cover" }}
+                    unoptimized
                     priority={false}
                   />
                 </div>
