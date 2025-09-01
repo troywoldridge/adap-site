@@ -16,7 +16,7 @@ export default function ShippingPage() {
         <p className="mt-2 text-indigo-900/80">
           We partner with the largest carriers in North America to deliver your
           prints fast—safely and discreetly. Orders ship blind by default (no
-          ADAP or SinaLite branding on the label).
+          ADAP  branding on the label).
         </p>
       </section>
 

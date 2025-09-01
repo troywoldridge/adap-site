@@ -69,8 +69,6 @@ export default function TurnaroundPage() {
           <a href="/support" className="font-semibold text-blue-700 underline">
             Chat with an expert
           </a>
-          . We follow the latest <strong>SinaLite API</strong> spec for product
-          options and production rules, so your ETA matches real press time.
         </p>
       </section>
     </main>
