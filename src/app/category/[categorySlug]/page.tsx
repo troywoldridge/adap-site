@@ -5,160 +5,211 @@ import Link from "next/link";
 import categoryAssets from "@/data/categoryAssets.json";
 import subcategoryAssets from "@/data/subcategoryAssets.json";
 import productAssets from "@/data/productAssets.json";
-import productImages from "@/data/productImages.json";
-import imagesJson from "@/data/images.json";
 
 import SubcategoryTileImage from "@/components/Categories/SubcategoryTileImage";
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Types (relaxed to match your JSON)
-────────────────────────────────────────────────────────────────────────── */
-type CategoryAssetMap = Record<
-  string,
-  {
-    imageId?: string | null;
-    imageUrl?: string | null;
-    description?: string | null;
-    variant?: string | null;
-  }
->;
+/* ─────────────────────────────────────────────────────────────
+   Types (loose/tolerant to your JSON columns)
+────────────────────────────────────────────────────────────── */
+type CategoryAsset = {
+  slug: string;
+  id?: number | string;
+  category_id?: number | string;
+  ["Id (category)"]?: number | string;
+  name?: string;
+  description?: string | null;
+  cf_image_id?: string | null;
+  sort_order?: number | string | null;
+  [k: string]: unknown;
+};
 
 type SubAsset = {
-  id: number;
-  category_id: string; // category slug (e.g., "labels-and-packaging")
-  slug: string;
+  id?: number | string;
+  subcategory_id?: number | string;
+  category_id?: number | string;
+  category_slug?: string;
+  slug?: string; // ← make optional; we’ll ensure it below
   name: string;
   description?: string | null;
-  cloudflare_image_id?: string | null;
+  cf_image_id?: string | null;
+  sort_order?: number | string | null;
+  [k: string]: unknown;
 };
 
 type ProductAsset = {
-  id?: number;
-  name?: string;
-  slug?: string;
-  cloudflare_id?: string | null;       // productAssets.json uses this
-  cloudflare_image_id?: string | null; // some entries may use this
-  description?: string | null;
-};
-
-type ImagesRow = {
+  id?: number | string;
   category_id?: number | string;
   subcategory_id?: number | string;
+  sinalite_id?: number | string;
+  sku?: string;
   name?: string;
-  image_name?: string; // filename or URL
-  cloudflare_id?: string;
-  product_id?: number;
-  matched_sku?: string;
+  slug?: string;
+  cf_image_1_id?: string | null;
+  cf_image_2_id?: string | null;
+  cf_image_3_id?: string | null;
+  cf_image_4_id?: string | null;
+  [k: string]: unknown;
 };
 
-type ProductImagesMap = Record<
-  string, // subcategory slug
-  {
-    imageId?: string;
-    variant?: string;
-    imageUrl?: string;
-    description?: string;
-  }
->;
-
-/* ──────────────────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────
    Helpers
-────────────────────────────────────────────────────────────────────────── */
+────────────────────────────────────────────────────────────── */
 function titleCaseFromSlug(slug: string) {
-  return slug
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (m) => m.toUpperCase());
+  return slug.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function simpleKey(t: string) {
-  return t.toLowerCase().replace(/[_-]+/g, " ").trim();
+function toNum(n: unknown): number | null {
+  if (n === null || n === undefined) return null;
+  const s = String(n).trim();
+  if (s === "") return null;
+  const v = Number(s);
+  return Number.isFinite(v) ? v : null;
 }
 
-// Find a product asset likely representing the subcategory and having a CF id
-function findProductAssetIdForSub(sub: SubAsset, products: ProductAsset[]): string | null {
-  const exact = products.find(
-    (p) => p.slug === sub.slug && (p.cloudflare_id || p.cloudflare_image_id)
-  );
-  if (exact) return exact.cloudflare_id || exact.cloudflare_image_id || null;
-
-  const ss = simpleKey(sub.slug);
-  const sn = simpleKey(sub.name);
-
-  const relaxed = products.find((p) => {
-    const pid = p.cloudflare_id || p.cloudflare_image_id;
-    if (!pid) return false;
-    const ps = p.slug ? simpleKey(p.slug) : "";
-    const pn = p.name ? simpleKey(p.name) : "";
-    return ps === ss || pn === sn || pn.includes(sn) || sn.includes(pn);
-  });
-
-  return relaxed ? (relaxed.cloudflare_id || relaxed.cloudflare_image_id || null) : null;
+// prefer `id`, else `subcategory_id`
+function pickSubId(s: SubAsset): number | null {
+  return toNum(s.id ?? s.subcategory_id);
 }
 
-/**
- * Resolve best image for a subcategory.
- * Priority:
- *  1) productImages.json[slug].imageId / imageUrl
- *  2) images.json by subcategory_id → cloudflare_id / image_name
- *  3) productAssets.json by slug/name → cloudflare_id/cloudflare_image_id
- *  4) subcategoryAssets.json.cloudflare_image_id
- *  5) placeholder
- *
- * Returns { src, kind, alt } where:
- *   - kind: "id" (Cloudflare IMAGE_ID → client loader) or "url" (direct URL → unoptimized)
- */
-function resolveSubImage(sub: SubAsset): { src: string; kind: "id" | "url"; alt: string } {
-  const prodImgs = productImages as ProductImagesMap;
-
-  // 1) productImages.json by slug
-  const pi = prodImgs[sub.slug];
-  if (pi?.imageId) return { src: pi.imageId, kind: "id", alt: pi.description || sub.name };
-  if (pi?.imageUrl) return { src: pi.imageUrl, kind: "url", alt: pi.description || sub.name };
-
-  // 2) images.json by subcategory_id
-  const rows = (imagesJson as ImagesRow[]).filter(
-    (r) => Number(r.subcategory_id) === Number(sub.id)
-  );
-  const withCf = rows.find((r) => !!r.cloudflare_id);
-  if (withCf?.cloudflare_id) return { src: withCf.cloudflare_id, kind: "id", alt: sub.name };
-
-  const withName = rows.find((r) => !!r.image_name);
-  if (withName?.image_name) {
-    const name = withName.image_name;
-    const isAbs =
-      name.startsWith("http://") || name.startsWith("https://") || name.startsWith("/");
-    const url = isAbs ? name : `/images/${name}`;
-    return { src: url, kind: "url", alt: sub.name };
+function getCategoryNumericIds(cat: CategoryAsset): number[] {
+  const candidates = [cat.id, cat.category_id, (cat as any)["Id (category)"]];
+  const out = new Set<number>();
+  for (const c of candidates) {
+    const n = toNum(c);
+    if (n !== null) out.add(n);
   }
+  return [...out];
+}
 
-  // 3) productAssets.json by slug/name
-  const prodId = findProductAssetIdForSub(sub, productAssets as unknown as ProductAsset[]);
-  if (prodId) return { src: prodId, kind: "id", alt: sub.name };
+function collectProductImageIds(p: ProductAsset): string[] {
+  const out: string[] = [];
+  const keys = ["cf_image_1_id", "cf_image_2_id", "cf_image_3_id", "cf_image_4_id"] as const;
+  for (const k of keys) {
+    const v = (p as any)[k];
+    if (typeof v === "string" && v.trim()) out.push(v.trim());
+  }
+  return out;
+}
 
-  // 4) subcategoryAssets.json field
-  if (sub.cloudflare_image_id) return { src: sub.cloudflare_image_id, kind: "id", alt: sub.name };
+// simple slugify (no extra deps here)
+function toSlug(s?: string) {
+  const v = (s ?? "").toLowerCase().trim();
+  if (!v) return "";
+  return v.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
 
-  // 5) placeholder
+function ensureSubSlug(s: SubAsset): string | null {
+  const byField = (s.slug ?? "").toString().trim();
+  if (byField) return byField;
+  const byName = toSlug(s.name);
+  if (byName) return byName;
+  const id = pickSubId(s);
+  if (id !== null) return `sub-${id}`;
+  return null;
+}
+
+function resolveSubImage(
+  sub: SubAsset,
+  products: ProductAsset[]
+): { src: string; kind: "id" | "url"; alt: string } {
+  if (sub.cf_image_id && typeof sub.cf_image_id === "string") {
+    return { src: sub.cf_image_id, kind: "id", alt: sub.name };
+  }
+  const subId = pickSubId(sub);
+  if (subId !== null) {
+    const p = products.find((pr) => toNum(pr.subcategory_id) === subId);
+    if (p) {
+      const imgs = collectProductImageIds(p);
+      if (imgs.length) return { src: imgs[0], kind: "id", alt: sub.name };
+    }
+  }
   return { src: "/placeholder.png", kind: "url", alt: sub.name };
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
+function bySortOrderAsc<T extends { sort_order?: number | string | null; name?: string }>(a: T, b: T) {
+  const sa = toNum(a.sort_order);
+  const sb = toNum(b.sort_order);
+  if (sa !== null && sb !== null && sa !== sb) return sa - sb;
+  const an = (a.name ?? "").toString();
+  const bn = (b.name ?? "").toString();
+  return an.localeCompare(bn);
+}
+
+/* ─────────────────────────────────────────────────────────────
    Page
-────────────────────────────────────────────────────────────────────────── */
-export default function CategoryPage({
+────────────────────────────────────────────────────────────── */
+export default async function CategoryPage({
   params,
 }: {
-  params: { categorySlug: string };
+  params: Promise<{ categorySlug: string }>;
 }) {
-  const { categorySlug } = params;
+  const { categorySlug } = await params;
 
-  const catMap = categoryAssets as unknown as CategoryAssetMap;
-  const cat = catMap[categorySlug];
+  const categories = categoryAssets as unknown as CategoryAsset[];
+  const subsAllRaw = subcategoryAssets as unknown as SubAsset[];
+  const products = productAssets as unknown as ProductAsset[];
+
+  // 0) normalize sub slugs up-front (prevents `/undefined`)
+  const subsAll = subsAllRaw
+    .map((s) => {
+      const slug = ensureSubSlug(s);
+      if (!slug) return null;
+      return { ...s, slug };
+    })
+    .filter(Boolean) as SubAsset[];
+
+  // 1) category by slug
+  const cat = categories.find((c) => (c.slug ?? "").toString() === categorySlug);
   if (!cat) return notFound();
 
-  const subs = (subcategoryAssets as unknown as SubAsset[]).filter(
-    (s) => s.category_id === categorySlug
-  );
+  // 2) numeric ids for this category
+  const catIds = getCategoryNumericIds(cat);
+  const hasCatIds = catIds.length > 0;
+
+  // 3) derive subcategory_ids from products for THIS category (SinaLite-aligned join)
+  const productMatchesForCategory = hasCatIds
+    ? products.filter((p) => {
+        const pcid = toNum(p.category_id);
+        return pcid !== null && catIds.includes(pcid);
+      })
+    : [];
+
+  const subIdsFromProducts = new Set<number>();
+  for (const p of productMatchesForCategory) {
+    const sid = toNum(p.subcategory_id);
+    if (sid !== null) subIdsFromProducts.add(sid);
+  }
+
+  // 4) collect subs by those ids, OR fall back to direct slug/ID link
+  let subs: SubAsset[] = [];
+  if (subIdsFromProducts.size > 0) {
+    subs = subsAll.filter((s) => {
+      const sid = pickSubId(s);
+      return sid !== null && subIdsFromProducts.has(sid);
+    });
+  } else {
+    subs = subsAll.filter((s) => {
+      const bySlug = (s.category_slug ?? "").toString() === categorySlug;
+      if (bySlug) return true;
+      if (!hasCatIds) return false;
+      const scid = toNum(s.category_id);
+      return scid !== null && catIds.includes(scid);
+    });
+  }
+
+  // 5) de-dupe before render — prefer `id/subcategory_id`, else slug
+  const seen = new Set<string>();
+  const uniqueSubs: SubAsset[] = [];
+  for (const s of subs) {
+    const sid = pickSubId(s);
+    const key = sid !== null ? `id:${sid}` : `slug:${s.slug}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueSubs.push(s);
+  }
+
+  // 6) sort nicely
+  uniqueSubs.sort(bySortOrderAsc);
 
   const title = titleCaseFromSlug(categorySlug);
 
@@ -173,7 +224,7 @@ export default function CategoryPage({
         ) : null}
       </header>
 
-      {subs.length === 0 ? (
+      {uniqueSubs.length === 0 ? (
         <p className="category-intro__desc">No subcategories found for this category.</p>
       ) : (
         <ul
@@ -189,11 +240,13 @@ export default function CategoryPage({
             justifyItems: "center",
           }}
         >
-          {subs.map((s) => {
-            const resolved = resolveSubImage(s);
+          {uniqueSubs.map((s) => {
+            const resolved = resolveSubImage(s, products);
+            const sid = pickSubId(s);
+            const key = sid !== null ? `sub-${sid}` : `slug-${s.slug}`;
             return (
               <li
-                key={s.slug}
+                key={key}
                 className="category-card"
                 style={{
                   border: "1px solid #e5e7eb",
@@ -203,10 +256,11 @@ export default function CategoryPage({
                   width: "100%",
                   maxWidth: 360,
                   textAlign: "center",
+                  transition: "transform 160ms ease, box-shadow 160ms ease",
                 }}
               >
                 <Link
-                  href={`/category/${categorySlug}/${s.slug}`}
+                  href={`/category/${categorySlug}/${s.slug}`} // ✅ slug guaranteed
                   title={s.name}
                   style={{ color: "inherit", textDecoration: "none" }}
                 >

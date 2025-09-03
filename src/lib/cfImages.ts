@@ -1,16 +1,48 @@
 // src/lib/cfImages.ts
 export const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH ?? "";
 
+// Toggle runtime variant warnings (on by default).
+// Set NEXT_PUBLIC_CF_VARIANT_WARN="false" to silence in dev.
+const WARN_VARIANTS =
+  (process.env.NEXT_PUBLIC_CF_VARIANT_WARN ?? "true").toLowerCase() !== "false";
+
 // Keep in sync with your Cloudflare Images dashboard variants
 export type Variant =
   | "hero"
+  | "hero2x"            // e.g. width ~2560, q=85
   | "saleCard"
   | "category"
   | "categoryThumb"
   | "subcategoryThumb"
   | "productHero"
   | "productThumb"
+  | "productCard"       // ✅ now supported everywhere
   | "public";
+
+/** Registry used for runtime checks */
+const VALID_VARIANTS: ReadonlySet<Variant> = new Set<Variant>([
+  "hero",
+  "hero2x",
+  "saleCard",
+  "category",
+  "categoryThumb",
+  "subcategoryThumb",
+  "productHero",
+  "productThumb",
+  "productCard",
+  "public",
+]);
+
+/** Simple warn-once cache */
+const warned = new Set<string>();
+function warnOnce(key: string, message: string) {
+  if (!WARN_VARIANTS) return;
+  if (process.env.NODE_ENV === "production") return;
+  if (warned.has(key)) return;
+  warned.add(key);
+  // eslint-disable-next-line no-console
+  console.warn(message);
+}
 
 /** True if string is an imagedelivery.net URL */
 function isCFUrl(s: string) {
@@ -22,6 +54,40 @@ function isCFUrl(s: string) {
   }
 }
 
+/** Extract the last path segment (Cloudflare variant) from a CF URL, if any */
+function extractVariantFromCfUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const segs = u.pathname.split("/").filter(Boolean);
+    return segs[segs.length - 1] || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Assert our outgoing target variant exists; warn in dev if not */
+function assertVariant(variant: string) {
+  if (!VALID_VARIANTS.has(variant as Variant)) {
+    warnOnce(
+      `cf-variant:${variant}`,
+      `[cfImages] Variant "${variant}" isn't in VALID_VARIANTS. ` +
+        `Add it to your Cloudflare Images dashboard & the Variant union to avoid 404s.`
+    );
+  }
+}
+
+/** If caller passes a full CF URL with an unknown variant, warn (non-blocking) */
+function maybeWarnIncomingVariant(url: string) {
+  const v = extractVariantFromCfUrl(url);
+  if (v && !VALID_VARIANTS.has(v as Variant)) {
+    warnOnce(
+      `incoming-cf-variant:${v}`,
+      `[cfImages] Incoming Cloudflare URL uses unknown variant "${v}". ` +
+        `We will still swap to your requested variant, but you may want to align dashboards & code.`
+    );
+  }
+}
+
 /** Build Cloudflare Images URL from ID or full imagedelivery URL. */
 export function cfImage(
   idOrUrl: string,
@@ -30,15 +96,19 @@ export function cfImage(
 ): string {
   if (!idOrUrl) return "";
 
+  // Runtime assert (warn-only) for the outgoing variant
+  assertVariant(variant);
+
   // Case 1: already a full Cloudflare URL -> swap last segment to our variant
   if (idOrUrl.startsWith("http") && isCFUrl(idOrUrl)) {
+    maybeWarnIncomingVariant(idOrUrl);
     const u = new URL(idOrUrl);
     u.pathname = u.pathname.replace(/\/([^/]+)$/, `/${variant}`);
     if (params) for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
     return u.toString();
   }
 
-  // Case 2: other remote URL (S3/R2/whatever) -> just passthrough (add params if any)
+  // Case 2: other remote URL (S3/R2/whatever) -> passthrough (add params if any)
   if (idOrUrl.startsWith("http")) {
     if (!params) return idOrUrl;
     const pass = new URL(idOrUrl);
@@ -48,12 +118,10 @@ export function cfImage(
 
   // Case 3: treat as Cloudflare image ID
   if (!CF_HASH) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        "[cfImages] NEXT_PUBLIC_CF_ACCOUNT_HASH is missing; cannot build Cloudflare URL from ID."
-      );
-    }
-    // Returning empty will make Next/Image show nothing; prefer to throw a loud URL to spot bugs
+    warnOnce(
+      "cf-hash-missing",
+      "[cfImages] NEXT_PUBLIC_CF_ACCOUNT_HASH is missing; cannot build Cloudflare URL from ID."
+    );
     return "";
   }
   const base = `https://imagedelivery.net/${CF_HASH}/${idOrUrl}/${variant}`;
@@ -69,15 +137,15 @@ type LoaderPreset = "default" | "categoryCard" | "subcategoryCard" | "productCar
 
 /**
  * Threshold tables: [maxWidthInclusive, variant]
- * Make sure variants listed actually exist in your CF dashboard.
+ * Ensure these variants exist in your Cloudflare Images dashboard.
  */
 const TABLES: Record<LoaderPreset, Array<[number, Variant]>> = {
   default: [
     [360, "productThumb"],
     [640, "saleCard"],
     [900, "category"],
-    [1400, "productHero"],
-    [99999, "hero"],
+    [1400, "hero"],     // desktop
+    [99999, "hero2x"],  // very large / retina
   ],
   categoryCard: [
     [240, "categoryThumb"],
@@ -125,7 +193,7 @@ export function makeCloudflareLoader(preset: LoaderPreset = "default") {
     const row = table.find(([max]) => width <= max) ?? table[table.length - 1];
     const variant = row[1];
 
-    // Build Cloudflare URL from image ID
+    // Build Cloudflare URL from image ID (cfImage also asserts variant at runtime)
     const url = cfImage(src, variant);
 
     // If CF hash was missing or we somehow made an empty URL, better to return src

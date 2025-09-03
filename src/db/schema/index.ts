@@ -29,3 +29,7 @@ export * from "./uploads";            // owns `artworkUploads` in your current s
 // ── Relations (avoid star-export to prevent duplicate named exports)
 import * as schemaRelations from "./relations";
 export const relations = schemaRelations;
+
+// ── Carrers
+export * from "./careerEvents";
+

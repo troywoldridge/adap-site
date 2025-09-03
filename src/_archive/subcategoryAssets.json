@@ -1,0 +1,682 @@
+[
+  {
+    "id": 1,
+    "category_id": "business-cards",
+    "slug": "standard-business-cards-1",
+    "name": "standard_business_cards",
+    "description": "Standard business cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 2,
+    "category_id": "business-cards",
+    "slug": "specialty-business-cards-2",
+    "name": "specialty_business-cards",
+    "description": "Specialty business cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 3,
+    "category_id": "print-products",
+    "slug": "specialty-invitations-3",
+    "name": "specialty_invitations",
+    "description": "Specialty invitations product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 4,
+    "category_id": "print-products",
+    "slug": "standard-invitations-4",
+    "name": "standard_invitations",
+    "description": "Standard invitations product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 5,
+    "category_id": "print-products",
+    "slug": "wall-calendars-5",
+    "name": "wall_calendars",
+    "description": "Wall calendars product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 6,
+    "category_id": "print-products",
+    "slug": "cut-to-shape-magnets-6",
+    "name": "cut_to_shape_magnets",
+    "description": "Cut to shape magnets product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 7,
+    "category_id": "print-products",
+    "slug": "standard-flyers-7",
+    "name": "standard_flyers",
+    "description": "Standard flyers product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 8,
+    "category_id": "print-products",
+    "slug": "specialty-flyers-8",
+    "name": "specialty_flyers",
+    "description": "Specialty flyers product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 9,
+    "category_id": "print-products",
+    "slug": "standard-greeting-cards-9",
+    "name": "standard_greeting_cards",
+    "description": "Standard greeting cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 10,
+    "category_id": "print-products",
+    "slug": "specialty-greeting-cards-10",
+    "name": "specialty_greeting_cards",
+    "description": "Specialty greeting cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 11,
+    "category_id": "print-products",
+    "slug": "standard-postcards-11",
+    "name": "standard_postcards",
+    "description": "Standard postcards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 12,
+    "category_id": "print-products",
+    "slug": "specialty-postcards-12",
+    "name": "specialty_postcards",
+    "description": "Specialty postcards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 13,
+    "category_id": "print-products",
+    "slug": "postcard-addressed-postage-due-13",
+    "name": "Postcard-addressed-postage-due",
+    "description": "Postcard addressed postage due product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 14,
+    "category_id": "print-products",
+    "slug": "postcard-enveloped-and-addressed-postage-included-14",
+    "name": "postcard-enveloped-and-addressed-postage-included",
+    "description": "Postcard enveloped and addressed postage included product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 15,
+    "category_id": "print-products",
+    "slug": "unaddressed-postcard-15",
+    "name": "Unaddressed-postcard",
+    "description": "Unaddressed postcard product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 16,
+    "category_id": "print-products",
+    "slug": "standard-bookmark-16",
+    "name": "standard_bookmark",
+    "description": "Standard bookmark product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 17,
+    "category_id": "print-products",
+    "slug": "specialty-bookmark-17",
+    "name": "specialty_bookmark",
+    "description": "Specialty bookmark product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 18,
+    "category_id": "print-products",
+    "slug": "standard-rack-cards-18",
+    "name": "Standard-rack-cards",
+    "description": "Standard rack cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 19,
+    "category_id": "print-products",
+    "slug": "standard-tear-cards-19",
+    "name": "standard_tear_cards",
+    "description": "Standard tear cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 20,
+    "category_id": "print-products",
+    "slug": "posters-20",
+    "name": "posters",
+    "description": "Posters product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 21,
+    "category_id": "print-products",
+    "slug": "door-hangers-21",
+    "name": "door_hangers",
+    "description": "Door hangers product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 22,
+    "category_id": "print-products",
+    "slug": "brochures-22",
+    "name": "brochures",
+    "description": "Brochures product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 23,
+    "category_id": "print-products",
+    "slug": "brochure-enveloped-and-addressed-postage-due-23",
+    "name": "Brochure-enveloped-and-addressed-postage-due",
+    "description": "Brochure enveloped and addressed postage due product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 24,
+    "category_id": "print-products",
+    "slug": "brochure-enveloped-and-addressed-postage-included-24",
+    "name": "Brochure-enveloped-and-addressed-postage-included",
+    "description": "Brochure enveloped and addressed postage included product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 25,
+    "category_id": "print-products",
+    "slug": "magnets-25",
+    "name": "magnets",
+    "description": "Magnets product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 26,
+    "category_id": "print-products",
+    "slug": "booklets-26",
+    "name": "booklets",
+    "description": "Booklets product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 27,
+    "category_id": "print-products",
+    "slug": "digital-sheets-27",
+    "name": "Digital-sheets",
+    "description": "Digital sheets product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 28,
+    "category_id": "print-products",
+    "slug": "variable-printing-28",
+    "name": "variable_printing",
+    "description": "Variable printing product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 29,
+    "category_id": "print-products",
+    "slug": "presentation-folders-29",
+    "name": "presentation_folders",
+    "description": "Presentation folders product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 30,
+    "category_id": "print-products",
+    "slug": "canvas-30",
+    "name": "Canvas",
+    "description": "Canvas product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 31,
+    "category_id": "print-products",
+    "slug": "plastic-31",
+    "name": "plastic",
+    "description": "Plastic product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 32,
+    "category_id": "print-products",
+    "slug": "clings-transparent-32",
+    "name": "clings_transparent",
+    "description": "Clings transparent product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 33,
+    "category_id": "print-products",
+    "slug": "clings-opaque-33",
+    "name": "clings_opaque",
+    "description": "Clings opaque product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 34,
+    "category_id": "print-products",
+    "slug": "tent-cards-34",
+    "name": "tent_cards",
+    "description": "Tent cards product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 35,
+    "category_id": "print-products",
+    "slug": "notepads-50-pages-35",
+    "name": "notepads_50_pages",
+    "description": "Notepads 50 pages product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 36,
+    "category_id": "print-products",
+    "slug": "notepads-25-pages-36",
+    "name": "Notepads_25_pages",
+    "description": "Notepads 25 pages product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 37,
+    "category_id": "print-products",
+    "slug": "number-tickets-37",
+    "name": "number_tickets",
+    "description": "Number tickets product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 50,
+    "category_id": "print-products",
+    "slug": "banners-50",
+    "name": "banners",
+    "description": "Banners product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 51,
+    "category_id": "large-format",
+    "slug": "pull-up-banners-51",
+    "name": "pull_up_banners",
+    "description": "Pull up banners product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 52,
+    "category_id": "large-format",
+    "slug": "x-frame-banners-52",
+    "name": "x_frame_banners",
+    "description": "X frame banners product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 53,
+    "category_id": "large-format",
+    "slug": "4mm-foam-board-53",
+    "name": "4mm_foam_board",
+    "description": "4mm foam board product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 54,
+    "category_id": "large-format",
+    "slug": "a-frame-signs-54",
+    "name": "a_frame_signs",
+    "description": "A frame signs product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 55,
+    "category_id": "large-format",
+    "slug": "cut-to-shape-permanent-decals-55",
+    "name": "Cut-to-shape-permanent-decals",
+    "description": "Cut to shape permanent decals product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 56,
+    "category_id": "large-format",
+    "slug": "cut-shape-removable-decals-56",
+    "name": "cut_shape_removable_decals",
+    "description": "Cut shape removable decals product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 57,
+    "category_id": "large-format",
+    "slug": "3mm-aluminum-signs-1-57",
+    "name": "3mm-aluminum-signs_1",
+    "description": "3mm aluminum signs 1 product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 58,
+    "category_id": "large-format",
+    "slug": "table-covers-58",
+    "name": "table_covers",
+    "description": "Table covers product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 59,
+    "category_id": "large-format",
+    "slug": "car-magnets-30mil-2-59",
+    "name": "car-magnets-30mil_2",
+    "description": "Car magnets 30mil 2 product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 60,
+    "category_id": "large-format",
+    "slug": "coroplast-60",
+    "name": "coroplast",
+    "description": "Coroplast product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 61,
+    "category_id": "large-format",
+    "slug": "removable-wall-decals-61",
+    "name": "removable_wall_decals",
+    "description": "Removable wall decals product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 62,
+    "category_id": "large-format",
+    "slug": "3mm-sintra-62",
+    "name": "3mm-sintra",
+    "description": "3mm sintra product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 63,
+    "category_id": "large-format",
+    "slug": "floor-graphics-63",
+    "name": "floor_graphics",
+    "description": "Floor graphics product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 64,
+    "category_id": "large-format",
+    "slug": "20pt-styrene-64",
+    "name": "20pt_styrene",
+    "description": "20pt styrene product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 65,
+    "category_id": "large-format",
+    "slug": "glossy-adhesive-vinyl-65",
+    "name": "glossy_adhesive_vinyl",
+    "description": "Glossy adhesive vinyl product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 66,
+    "category_id": "large-format",
+    "slug": "large-format-posters-66",
+    "name": "large-format-posters",
+    "description": "Large format posters product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 67,
+    "category_id": "large-format",
+    "slug": "window-perforated-vinyl-67",
+    "name": "window_perforated_vinyl",
+    "description": "Window perforated vinyl product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 68,
+    "category_id": "large-format",
+    "slug": "h-stands-68",
+    "name": "h_stands",
+    "description": "H stands product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 69,
+    "category_id": "large-format",
+    "slug": "display-board-24pt-69",
+    "name": "display_board_24pt",
+    "description": "Display board 24pt product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 70,
+    "category_id": "large-format",
+    "slug": "a-frame-stands-70",
+    "name": "a_frame_stands",
+    "description": "A frame stands product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 100,
+    "category_id": "stationery",
+    "slug": "envelopes-100",
+    "name": "envelopes",
+    "description": "Envelopes product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 101,
+    "category_id": "stationery",
+    "slug": "letterhead-101",
+    "name": "letterhead",
+    "description": "Letterhead product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 102,
+    "category_id": "stationery",
+    "slug": "ncr-forms-102",
+    "name": "ncr_forms",
+    "description": "Ncr forms product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 120,
+    "category_id": "labels-and-packaging",
+    "slug": "roll-labels-120",
+    "name": "roll_labels",
+    "description": "Roll labels product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 121,
+    "category_id": "labels-and-packaging",
+    "slug": "packaging-121",
+    "name": "packaging",
+    "description": "Packaging product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 122,
+    "category_id": "labels-and-packaging",
+    "slug": "stickers-122",
+    "name": "stickers",
+    "description": "Stickers product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 128,
+    "category_id": "large-format",
+    "slug": "4mm-foam-board-128",
+    "name": "4mm_foam_board",
+    "description": "4mm foam board product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 130,
+    "category_id": "promotional",
+    "slug": "promotional-main-130",
+    "name": "promotional_main",
+    "description": "Promotional main product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 150,
+    "category_id": "sample-kits",
+    "slug": "sample-pack-150",
+    "name": "sample_pack",
+    "description": "Sample pack product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  },
+  {
+    "id": 151,
+    "category_id": "9",
+    "slug": "apparel-151",
+    "name": "apparel",
+    "description": "Apparel product description.",
+    "cloudflare_image_id": null,
+    "created_at": "2025-07-29 18:49:54.244957",
+    "updated_at": "2025-07-29 18:49:54.244957"
+  }
+]

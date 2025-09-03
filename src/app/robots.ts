@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 /**
  * Robots config with a clean allowlist, sensible disallows,
- * and a pointer to the sitemap we generate above.
+ * and pointers to BOTH sitemaps.
  */
 export default function robots(): MetadataRoute.Robots {
   const site =
@@ -32,7 +32,8 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${site}/sitemap.xml`,
+    // ✅ Register both sitemaps (main + jobs)
+    sitemap: [`${site}/sitemap.xml`, `${site}/sitemap-jobs.xml`],
     host: site,
   };
 }

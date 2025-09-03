@@ -220,43 +220,48 @@ export default function Header({
           </div>
         </div>
 
-        {/* Row 2 (desktop): Categories evenly spaced */}
-        <nav className="hidden border-t border-gray-200 bg-white md:block">
-          <div className="mx-auto max-w-7xl px-4">
-            <ul className="grid grid-cols-6 w-full text-sm">
-              <li>
-                <Link className="block py-2 text-center hover:text-blue-700" href="/category/business-cards">
-                  Business Cards
-                </Link>
-              </li>
-              <li>
-                <Link className="block py-2 text-center hover:text-blue-700" href="/category/print-products">
-                  Print Products
-                </Link>
-              </li>
-              <li>
-                <Link className="block py-2 text-center hover:text-blue-700" href="/category/large-format">
-                  Large Format
-                </Link>
-              </li>
-              <li>
-                <Link className="block py-2 text-center hover:text-blue-700" href="/category/labels-and-packaging">
-                  Labels &amp; Packaging
-                </Link>
-              </li>
-              <li>
-                <Link className="block py-2 text-center hover:text-blue-700" href="/category/apparel">
-                  Apparel
-                </Link>
-              </li>
-              <li>
-                <Link className="block py-2 text-center hover:text-blue-700" href="/category/sample-kits">
-                  Sample Kits
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </nav>
+        {/* Row 2 (desktop): Categories evenly spaced (one row) */}
+<nav className="hidden border-t border-gray-200 bg-white md:block" aria-label="Category quick links">
+  <div className="mx-auto max-w-7xl px-4">
+    <ul className="grid grid-flow-col auto-cols-fr w-full items-stretch text-sm">
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/categories">
+          Categories
+        </Link>
+      </li>
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/category/business-cards">
+          Business Cards
+        </Link>
+      </li>
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/category/print-products">
+          Print Products
+        </Link>
+      </li>
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/category/large-format">
+          Large Format
+        </Link>
+      </li>
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/category/labels-and-packaging">
+          Labels &amp; Packaging
+        </Link>
+      </li>
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/category/apparel">
+          Apparel
+        </Link>
+      </li>
+      <li className="flex">
+        <Link className="flex-1 py-2 text-center hover:text-blue-700 whitespace-nowrap" href="/category/sample-kits">
+          Sample Kits
+        </Link>
+      </li>
+    </ul>
+  </div>
+</nav>
 
         {/* Mobile menu */}
         {menuOpen && (

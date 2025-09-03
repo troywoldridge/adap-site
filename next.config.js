@@ -1,3 +1,4 @@
+// next.config.mjs
 /** @type {import('next').NextConfig} */
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -65,7 +66,7 @@ const connectSrcList = [
   `https://cdn.jsdelivr.net`,
   // R2 endpoints
   `https://r2.cloudflarestorage.com`,
-  `https://*.r2.cloudflarestorage.com`, // ← wildcard for bucket subdomains (presigned PUT)
+  `https://*.r2.cloudflarestorage.com`, // presigned PUT bucket subdomains
   R2_BUCKET_HOST ? `https://${R2_BUCKET_HOST}` : "",
   R2_PUBLIC_ORIGIN, // if you ever fetch via your public CDN origin
   R2_DIRECT_HTTPS,
@@ -84,7 +85,7 @@ const imgSrcList = [
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
   `https://r2.cloudflarestorage.com`,
-  `https://.r2.cloudflarestorage.com`,  // ← bucket subdomains for direct preview if used
+  `https://*.r2.cloudflarestorage.com`,  // ✅ fixed wildcard
   R2_PUBLIC_ORIGIN,
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
@@ -128,12 +129,13 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
-/* --- next/image remotePatterns --- */
+/* --- next/image remotePatterns ---
+   NOTE: Next.js remotePatterns typically expect exact hostnames (wildcards may not match).
+*/
 const imageRemotePatterns = [
   { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
-  { protocol: "https", hostname: "*.r2.dev" }, // keep if you need it
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
 ];
 
@@ -165,7 +167,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: imageRemotePatterns,
-    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER,
+    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER, // let Cloudflare handle optimization if false
     formats: ["image/avif", "image/webp"],
   },
   async headers() {
@@ -173,6 +175,17 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // ✅ Temporary redirects for categories not ready at launch
+      { source: "/category/promotional", destination: "/coming-soon/promotional", permanent: false },
+      { source: "/category/promotional/:path*", destination: "/coming-soon/promotional", permanent: false },
+      { source: "/category/apparel", destination: "/coming-soon/apparel", permanent: false },
+      { source: "/category/apparel/:path*", destination: "/coming-soon/apparel", permanent: false },
+
+      // common typos
+      { source: "/category/promotionas", destination: "/coming-soon/promotional", permanent: false },
+      { source: "/category/apperal", destination: "/coming-soon/apparel", permanent: false },
+
+      // existing review-order redirects
       { source: "/review-order", destination: "/cart/review", permanent: true },
       { source: "/revieworder", destination: "/cart/review", permanent: true },
       { source: "/order/review", destination: "/cart/review", permanent: true },

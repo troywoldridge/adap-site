@@ -1,33 +1,35 @@
 // src/app/layout.tsx
 import "./globals.css";
 import NotificationBar from "@/components/NotificationBar";
-import TopNav from "@/components/TopNav";
 import Header from "@/components/Header";
-import MainNav from "@/components/MainNav";
 import SupportBanner from "@/components/SupportBanner";
 import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cfUrl } from "@/lib/data";
 
-// 👉 add: client Navigation
+// If you want to use your client Navigation, keep these lines and the <Navigation /> below.
+// If not, you can remove both import + NAV_ITEMS.
 import Navigation, { type NavItem } from "@/client/components/navigation";
 
 const SITE =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
-  "https://adapnow.com";
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
 
-const DEFAULT_OG = cfUrl(process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID || null);
+// Make DEFAULT_OG safe even if env is missing
+const DEFAULT_OG = process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID
+  ? cfUrl(process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID)
+  : undefined;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: "Custom Print Experts | American Design And Printing",
   description:
     "Your one-stop for trade printing—business cards, banners, invitations, and more. Powered by SinaLite.",
-  alternates: { canonical: SITE },
+  alternates: { canonical: "/" }, // metadataBase makes this absolute
   openGraph: {
     title: "Custom Print Experts | American Design And Printing",
-    description: "Shop business cards, postcards, signs, and custom print products—delivered fast!",
+    description:
+      "Shop business cards, postcards, signs, and custom print products—delivered fast!",
     url: SITE,
     siteName: "American Design And Printing",
     images: DEFAULT_OG ? [{ url: DEFAULT_OG, width: 1200, height: 630 }] : undefined,
@@ -42,7 +44,7 @@ export const metadata: Metadata = {
   },
 };
 
-// 👉 add: main nav items for the new Navigation component
+// 👉 optional: main nav items for the client Navigation component
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", exact: true },
   { href: "/products", label: "Products" },
@@ -57,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     console.warn("⚠️ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing");
   }
 
-  // JSON-LD
+  // JSON-LD graph (Organization + WebSite)
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -66,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         "@id": `${SITE}#org`,
         name: "American Design And Printing",
         url: SITE,
+        // If you have a real logo image, swap this to your Cloudflare Images logo URL
         logo: DEFAULT_OG || undefined,
       },
       {
@@ -104,9 +107,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             href="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-theme-classic@1.19.2/dist/theme.min.css"
           />
 
+          {/* Site JSON-LD */}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+
+          {/* Organization JSON-LD (explicit) */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: "American Design And Printing",
+                url: process.env.NEXT_PUBLIC_SITE_URL || "https://adapnow.com", // fix: no double .com
+                logo:
+                  "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/61efd326-bd63-48a4-75a0-8844a6c44400/public",
+              }),
+            }}
           />
         </head>
 
