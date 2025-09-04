@@ -1,42 +1,53 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/api/cart/lines/[lineId]/artwork/route.ts
 import "server-only";
-import crypto from "node:crypto";
 import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
-import { db } from "@/lib/db";
-
 import { cartArtwork } from "@/db/schema/cartArtwork";
 
-function getSid(): string | null {
-  return cookies().get("sid")?.value ?? null;
+export const dynamic = "force-dynamic";
+
+async function getSid(): Promise<string | null> {
+  const jar = await cookies(); // ✅ must await in Next 15
+  // prefer your custom cookie if present
+  return jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 }
 
-export async function POST(req: NextRequest, { params }: { params: { lineId: string } }) {
+export async function POST(
+  req: NextRequest,
+  ctx: { params: Promise<{ lineId: string }> } // ✅ params is a Promise in Next 15
+) {
   try {
-    const { lineId } = params;
-    const { side, url } = (await req.json()) as { side?: number; url: string };
+    const { lineId } = await ctx.params; // ✅ await params
+    const body = (await req.json()) as { side?: number; url?: string };
 
-    if (!url) return Response.json({ ok: false, error: "url required" }, { status: 400 });
+    if (!body?.url || typeof body.url !== "string") {
+      return Response.json({ ok: false, error: "url required" }, { status: 400 });
+    }
 
-    const sid = getSid();
+    const sid = await getSid(); // ✅ await cookies()
     if (!sid) return Response.json({ ok: false, error: "no session" }, { status: 401 });
 
-    const cart = await db.query.carts.findFirst({ where: and(eq(carts.sid, sid), eq(carts.status, "open")) });
+    // open cart for this session
+    const cart = await db.query.carts.findFirst({
+      where: and(eq(carts.sid, sid), eq(carts.status, "open")),
+    });
     if (!cart) return Response.json({ ok: false, error: "cart not found" }, { status: 404 });
 
+    // verify line belongs to the cart
     const line = await db.query.cartLines.findFirst({
       where: and(eq(cartLines.id, lineId), eq(cartLines.cartId, cart.id)),
     });
     if (!line) return Response.json({ ok: false, error: "line not found" }, { status: 404 });
 
-    const s = Number.isFinite(Number(side)) && Number(side) > 0 ? Number(side) : 1;
+    const side = Number.isFinite(Number(body.side)) && Number(body.side) > 0 ? Number(body.side) : 1;
 
-    // Upsert (simple: delete then insert for (lineId, side))
-    await db.delete(cartArtwork).where(and(eq(cartArtwork.cartLineId, lineId), eq(cartArtwork.side, s)));
-    await db.insert(cartArtwork).values({ cartLineId: lineId, side: s, url });
+    // simple upsert: delete any existing (lineId, side), then insert the new URL
+    await db.delete(cartArtwork).where(and(eq(cartArtwork.cartLineId, lineId), eq(cartArtwork.side, side)));
+    await db.insert(cartArtwork).values({ cartLineId: lineId, side, url: body.url });
 
     return Response.json({ ok: true });
   } catch (err: any) {

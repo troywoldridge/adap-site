@@ -6,6 +6,7 @@ const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || process.env.R2_PUBLIC
 const R2_DIRECT_HOST = process.env.R2_DIRECT_HOST || "";
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
 const R2_BUCKET = process.env.R2_BUCKET || "";
+const R2_CDN_HOST = process.env.R2_CDN_HOST || "cdn.adap.com";
 const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false";
 
 // Compute public origin pieces
@@ -44,6 +45,7 @@ const scriptSrcList = [
   `https://clerk-assets.com`,
   `https://assets.clerk.dev`,
   `https://*.clerk.accounts.dev`,
+  `https://${R2_CDN_HOST}`,
 ];
 
 const connectSrcList = [
@@ -71,6 +73,7 @@ const connectSrcList = [
   R2_PUBLIC_ORIGIN, // if you ever fetch via your public CDN origin
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
+  `https://${R2_CDN_HOST}`,  
   `https://clerk-telemetry.com`,
   isDev ? `ws:` : ``,
   isDev ? `wss:` : ``,
@@ -85,7 +88,8 @@ const imgSrcList = [
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
   `https://r2.cloudflarestorage.com`,
-  `https://*.r2.cloudflarestorage.com`,  // ✅ fixed wildcard
+  `https://*.r2.cloudflarestorage.com`,
+  `https://*.r2.dev`,  // ✅ fixed wildcard
   R2_PUBLIC_ORIGIN,
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
@@ -109,7 +113,7 @@ const directives = {
   "worker-src": `'self' blob:`,
   "connect-src": connectSrcList.join(" "),
   "frame-src":
-    `https://js.stripe.com https://hooks.stripe.com https://clerk.com https://clerk.dev https://clerk.accounts.dev https://*.clerk.accounts.dev https://challenges.cloudflare.com`,
+  `https://js.stripe.com https://hooks.stripe.com https://clerk.com https://clerk.dev https://clerk.accounts.dev https://.clerk.accounts.dev https://challenges.cloudflare.com`,
   "object-src": `'none'`,
   "base-uri": `'self'`,
   "form-action": `'self' https://api.stripe.com`,
@@ -137,6 +141,8 @@ const imageRemotePatterns = [
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
+  { protocol: "https", hostname: "**.r2.cloudflarestorage.com", pathname: "/**" },
+  { protocol: "https", hostname: R2_CDN_HOST, pathname: "/**" },
 ];
 
 // Add public CDN origin host (from R2_PUBLIC_BASEURL)
@@ -182,7 +188,7 @@ const nextConfig = {
       { source: "/category/apparel/:path*", destination: "/coming-soon/apparel", permanent: false },
 
       // common typos
-      { source: "/category/promotionas", destination: "/coming-soon/promotional", permanent: false },
+      { source: "/category/promotional", destination: "/coming-soon/promotional", permanent: false },
       { source: "/category/apperal", destination: "/coming-soon/apparel", permanent: false },
 
       // existing review-order redirects

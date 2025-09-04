@@ -8,7 +8,13 @@ import subcategoryAssets from "@/data/subcategoryAssets.json";
 import productAssets from "@/data/productAssets.json";
 import { cfImage } from "@/lib/cfImages"; // Cloudflare CDN URL builder
 
-type Category = { slug?: string | null; id?: number | string | null; category_id?: number | string | null; name?: string | null; };
+/* ───────────────── Types (loose to match JSON) ───────────────── */
+type Category = {
+  slug?: string | null;
+  id?: number | string | null;
+  category_id?: number | string | null;
+  name?: string | null;
+};
 
 type Subcategory = {
   id?: number | string | null;
@@ -31,6 +37,8 @@ type Product = {
   slug?: string | null;
   ["slugs (products)"]?: string | null;
   product_slug?: string | null;
+
+  // product-level image fields
   cf_image_id?: string | null;
   cf_image_1_id?: string | null;
   cf_image_2_id?: string | null;
@@ -40,6 +48,7 @@ type Product = {
   cloudflare_image_id?: string | null;
 };
 
+/* ───────────────── Helpers ───────────────── */
 function toNum(n: unknown): number | null {
   const s = n == null ? "" : String(n).trim();
   if (!s) return null;
@@ -86,15 +95,18 @@ function findSubByRouteSlug(subs: Subcategory[], routeSlug: string): Subcategory
   return subs.find((s) => toSlug(s.name) === routeSlug);
 }
 
-/* ---------- Image selection (trust product IDs like the product page) ---------- */
+/* ───────── Image selection (use your CF variant: productThumb) ───────── */
 const CF_PLACEHOLDER_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
+
+// default to your real variant; you can override via env
+const CARD_VARIANT = "productThumb" as const;
 
 function isProtocolRelative(s: string) { return s.startsWith("//"); }
 function isHttpUrl(s: string) { return s.startsWith("http://") || s.startsWith("https://"); }
 function isImagedeliveryUrl(s: string) {
   try { return new URL(s).hostname === "imagedelivery.net"; } catch { return false; }
 }
-function swapVariant(url: string, variant: string): string {
+function swapToVariant(url: string, variant: string): string {
   try {
     const u = new URL(url);
     if (u.hostname !== "imagedelivery.net") return url;
@@ -105,48 +117,52 @@ function swapVariant(url: string, variant: string): string {
 
 function pickProductImageRef(p: Product): string | null {
   const refs = [
-    p.cf_image_1_id,
-    p.cf_image_2_id,
-    p.cf_image_3_id,
-    p.cf_image_4_id,
-    p.cf_image_id,
-    p.cloudflare_id,
-    p.cloudflare_image_id,
-  ]
-    .map((x) => (typeof x === "string" ? x.trim() : ""))
-    .filter(Boolean);
+    p.cf_image_1_id, p.cf_image_2_id, p.cf_image_3_id, p.cf_image_4_id,
+    p.cf_image_id, p.cloudflare_id, p.cloudflare_image_id,
+  ].map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
   return refs[0] || null;
 }
 function pickSubImageRef(sub: Subcategory): string | null {
   const refs = [sub.cf_image_id, sub.cloudflare_id, sub.cloudflare_image_id]
-    .map((x) => (typeof x === "string" ? x.trim() : ""))
-    .filter(Boolean);
+    .map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
   return refs[0] || null;
 }
 
-function buildProductCardUrl(prodRef: string | null, subRef: string | null, dbg?: string): string {
-  // 1) Prefer product-level image
+function buildProductCardUrl(prodRef: string | null, subRef: string | null): string {
+  // 1) Prefer product image
   if (prodRef) {
     if (isProtocolRelative(prodRef)) return "https:" + prodRef;
-    if (isHttpUrl(prodRef)) return isImagedeliveryUrl(prodRef) ? swapVariant(prodRef, "productCard") : prodRef;
-    // treat ANY non-URL as a Cloudflare image ID (matches product page behavior)
-    const built = cfImage(prodRef, "productCard");
+    if (isHttpUrl(prodRef)) return isImagedeliveryUrl(prodRef) ? swapToVariant(prodRef, CARD_VARIANT) : prodRef;
+
+    // Treat as Cloudflare ID → try your variant, then fallbacks
+    const built =
+      cfImage(prodRef, CARD_VARIANT) ||
+      cfImage(prodRef, "category") ||
+      cfImage(prodRef, "public");
     if (built) return built;
   }
 
   // 2) Fallback: subcategory image
   if (subRef) {
     if (isProtocolRelative(subRef)) return "https:" + subRef;
-    if (isHttpUrl(subRef)) return isImagedeliveryUrl(subRef) ? swapVariant(subRef, "subcategoryThumb") : subRef;
-    const built = cfImage(subRef, "subcategoryThumb") || cfImage(subRef, "category") || cfImage(subRef, "public");
+    if (isHttpUrl(subRef)) return isImagedeliveryUrl(subRef) ? swapToVariant(subRef, "subcategoryThumb") : subRef;
+
+    const built =
+      cfImage(subRef, "subcategoryThumb") ||
+      cfImage(subRef, "category") ||
+      cfImage(subRef, "public");
     if (built) return built;
   }
 
-  // 3) Last resort: Cloudflare placeholder
-  return cfImage(CF_PLACEHOLDER_ID, "productCard")!;
+  // 3) Last resort: Cloudflare placeholder (exists)
+  return (
+    cfImage(CF_PLACEHOLDER_ID, CARD_VARIANT) ||
+    cfImage(CF_PLACEHOLDER_ID, "public") ||
+    "/placeholder.png"
+  );
 }
 
-// ----- Page (Next 15: params is async) -----
+/* ───────────────── Page (Next 15: params is async) ───────────────── */
 export default async function SubcategoryPage({
   params,
 }: {
@@ -179,10 +195,9 @@ export default async function SubcategoryPage({
 
       const prodRef = pickProductImageRef(p);
       const subRef = pickSubImageRef(sub);
-      const url = buildProductCardUrl(prodRef, subRef, key);
+      const url = buildProductCardUrl(prodRef, subRef);
 
       if (process.env.NODE_ENV !== "production") {
-        // helpful one-liner in dev so you can spot any odd rows fast
         console.debug("[subcategory grid] image src", { key, url, prodRef, subRef });
       }
 
@@ -221,7 +236,7 @@ export default async function SubcategoryPage({
                     fill
                     sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
                     className="object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out motion-safe:group-hover:scale-[1.03]"
-                    unoptimized  // Cloudflare CDN handles optimization
+                    unoptimized // Cloudflare CDN handles optimization
                   />
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
                 </div>
