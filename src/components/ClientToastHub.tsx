@@ -2,25 +2,47 @@
 
 import { useEffect, useState } from "react";
 
-type Toast = { id: number; message: string; tone?: "success" | "error" | "info" };
+type ToastTone = "success" | "error" | "info";
+type Toast = { id: number; message: string; tone: ToastTone };
+
+function normalizeTone(input: unknown): ToastTone {
+  const s = String(input ?? "").toLowerCase();
+  return s === "success" || s === "error" || s === "info" ? (s as ToastTone) : "info";
+}
 
 export default function ClientToastHub() {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
     let seq = 1;
-    const onToast = (e: Event) => {
-      const detail = (e as CustomEvent).detail || {};
-      const t: Toast = {
-        id: seq++,
-        message: String(detail.message || ""),
-        tone: detail.tone || "info",
-      };
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail ?? {};
+      const message = String(detail.message ?? detail.text ?? "");
+      if (!message) return;
+
+      const tone = normalizeTone(detail.type ?? detail.tone);
+      const t: Toast = { id: seq++, message, tone };
+
       setToasts((prev) => [...prev, t]);
-      setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 2500);
+
+      // Auto-dismiss after 2.5s
+      const timeout = setTimeout(() => {
+        setToasts((prev) => prev.filter((x) => x.id !== t.id));
+      }, 2500);
+
+      // If you want to allow sticky toasts: pass detail.sticky=true and skip timeout
+      if (detail.sticky) clearTimeout(timeout);
     };
-    window.addEventListener("cart:toast", onToast as EventListener);
-    return () => window.removeEventListener("cart:toast", onToast as EventListener);
+
+    // Support new + legacy event names
+    window.addEventListener("adap:toast", handler as EventListener);
+    window.addEventListener("cart:toast", handler as EventListener);
+
+    return () => {
+      window.removeEventListener("adap:toast", handler as EventListener);
+      window.removeEventListener("cart:toast", handler as EventListener);
+    };
   }, []);
 
   return (

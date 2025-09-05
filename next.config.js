@@ -1,38 +1,44 @@
-// next.config.mjs
+// next.config.js
 /** @type {import('next').NextConfig} */
 
 const isDev = process.env.NODE_ENV !== "production";
+
+// ------- Inputs you already use -------
 const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || process.env.R2_PUBLIC_BASE || "";
-const R2_DIRECT_HOST = process.env.R2_DIRECT_HOST || "";
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
-const R2_BUCKET = process.env.R2_BUCKET || "";
-const R2_CDN_HOST = process.env.R2_CDN_HOST || "cdn.adap.com";
+const R2_DIRECT_HOST    = process.env.R2_DIRECT_HOST || ""; // e.g. uploads.adapnow.com (optional)
+const R2_ACCOUNT_ID     = process.env.R2_ACCOUNT_ID || "";
+const R2_BUCKET         = process.env.R2_BUCKET || "";
+const R2_CDN_HOST       = process.env.R2_CDN_HOST || "cdn.adap.com";
 const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false";
 
-// Compute public origin pieces
-let R2_PUBLIC_ORIGIN = "";
-let R2_PUBLIC_HOST = "";
-let R2_PUBLIC_PROTOCOL = "";
-let R2_PUBLIC_PORT = "";
+// ------- Compute CDN / public origin -------
+const PUBLIC_CDN = R2_PUBLIC_BASEURL || `https://${R2_CDN_HOST}`;
+
+let PUBLIC_CDN_ORIGIN = "";
+let PUBLIC_CDN_HOST = "";
+let PUBLIC_CDN_PROTOCOL = "";
+let PUBLIC_CDN_PORT = "";
 
 try {
-  if (R2_PUBLIC_BASEURL) {
-    const u = new URL(R2_PUBLIC_BASEURL);
-    R2_PUBLIC_ORIGIN = u.origin;
-    R2_PUBLIC_HOST = u.hostname;
-    R2_PUBLIC_PROTOCOL = u.protocol.replace(":", "");
-    R2_PUBLIC_PORT = u.port || "";
-  }
+  const u = new URL(PUBLIC_CDN);
+  PUBLIC_CDN_ORIGIN   = u.origin;         // e.g. "https://cdn.adap.com"
+  PUBLIC_CDN_HOST     = u.hostname;       // e.g. "cdn.adap.com"
+  PUBLIC_CDN_PROTOCOL = u.protocol.replace(":", "");
+  PUBLIC_CDN_PORT     = u.port || "";
 } catch {}
 
-// Direct bucket host (presigned PUT target)
+// ------- R2 bucket/direct helpers -------
 const R2_BUCKET_HOST =
   R2_BUCKET && R2_ACCOUNT_ID ? `${R2_BUCKET}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : "";
 
 const R2_DIRECT_HTTPS = R2_DIRECT_HOST ? `https://${R2_DIRECT_HOST}` : "";
-const R2_DIRECT_HTTP = R2_DIRECT_HOST ? `http://${R2_DIRECT_HOST}` : "";
+const R2_DIRECT_HTTP  = R2_DIRECT_HOST ? `http://${R2_DIRECT_HOST}` : "";
 
-/* --- CSP --- */
+// small helper: dedupe, drop falsy, and remove accidental "https://." entries
+const sanitize = (arr) =>
+  Array.from(new Set(arr.filter(Boolean))).filter((s) => !/^https:\/\/\./.test(s));
+
+// ------- CSP lists -------
 const scriptSrcList = [
   `'self'`,
   `'unsafe-inline'`,
@@ -44,11 +50,11 @@ const scriptSrcList = [
   `https://cdn.clerk.com`,
   `https://clerk-assets.com`,
   `https://assets.clerk.dev`,
+  `https://clerk.accounts.dev`,
   `https://*.clerk.accounts.dev`,
-  `https://${R2_CDN_HOST}`,
 ];
 
-const connectSrcList = [
+const connectSrcList = sanitize([
   `'self'`,
   `https://api.stripe.com`,
   `https://liveapi.sinalite.com`,
@@ -62,39 +68,62 @@ const connectSrcList = [
   `https://assets.clerk.dev`,
   `https://api.clerk.com`,
   `https://clerk.dev`,
-  `https://clerk.services`,
   `https://clerk.accounts.dev`,
   `https://*.clerk.accounts.dev`,
   `https://cdn.jsdelivr.net`,
-  // R2 endpoints
+  // R2 endpoints you might call directly
   `https://r2.cloudflarestorage.com`,
-  `https://*.r2.cloudflarestorage.com`, // presigned PUT bucket subdomains
+  `https://*.r2.cloudflarestorage.com`,
   R2_BUCKET_HOST ? `https://${R2_BUCKET_HOST}` : "",
-  R2_PUBLIC_ORIGIN, // if you ever fetch via your public CDN origin
+  PUBLIC_CDN_ORIGIN,
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
-  `https://${R2_CDN_HOST}`,  
   `https://clerk-telemetry.com`,
   isDev ? `ws:` : ``,
   isDev ? `wss:` : ``,
   isDev ? `http://localhost:3000` : ``,
-].filter(Boolean);
+]);
 
-const imgSrcList = [
+const imgSrcList = sanitize([
   `'self'`,
   `data:`,
   `blob:`,
-  `https://imagedelivery.net`,           // Cloudflare Images CDN
+  `https://imagedelivery.net`,              // Cloudflare Images
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
+  // R2 public reads (images/thumbs)
   `https://r2.cloudflarestorage.com`,
   `https://*.r2.cloudflarestorage.com`,
-  `https://*.r2.dev`,  // ✅ fixed wildcard
-  R2_PUBLIC_ORIGIN,
+  `https://*.r2.dev`,
+  `https://${R2_CDN_HOST}`,                 // explicit CDN host (e.g. https://cdn.adap.com)
+  PUBLIC_CDN_ORIGIN,                        // computed from R2_PUBLIC_BASEURL or R2_CDN_HOST
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
   isDev ? `http://localhost:3000` : ``,
-].filter(Boolean);
+]);
+
+// PDFs shown via <object>/<embed>
+const mediaSrcList = sanitize([
+  `'self'`,
+  `https:`,
+  `data:`,
+  `blob:`,
+  `https://${R2_CDN_HOST}`,
+  PUBLIC_CDN_ORIGIN,
+  R2_DIRECT_HTTPS,
+  R2_DIRECT_HTTP,
+]);
+
+const frameSrcList = sanitize([
+  `https://js.stripe.com`,
+  `https://hooks.stripe.com`,
+  `https://pay.google.com`,
+  `https://clerk.com`,
+  `https://clerk.dev`,
+  `https://clerk.accounts.dev`,
+  `https://*.clerk.accounts.dev`,
+  `https://challenges.cloudflare.com`,
+]);
 
 const directives = {
   "default-src": `'self'`,
@@ -109,11 +138,10 @@ const directives = {
   ].join(" "),
   "img-src": imgSrcList.join(" "),
   "font-src": `'self' data: https://fonts.gstatic.com`,
-  "media-src": `'self' https: data: blob:`,
+  "media-src": mediaSrcList.join(" "),
   "worker-src": `'self' blob:`,
   "connect-src": connectSrcList.join(" "),
-  "frame-src":
-  `https://js.stripe.com https://hooks.stripe.com https://clerk.com https://clerk.dev https://clerk.accounts.dev https://.clerk.accounts.dev https://challenges.cloudflare.com`,
+  "frame-src": frameSrcList.join(" "),   // ✅ no invalid "https://.clerk.accounts.dev"
   "object-src": `'none'`,
   "base-uri": `'self'`,
   "form-action": `'self' https://api.stripe.com`,
@@ -133,38 +161,36 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
-/* --- next/image remotePatterns ---
-   NOTE: Next.js remotePatterns typically expect exact hostnames (wildcards may not match).
-*/
+// ------- next/image remotePatterns -------
+// Note: wildcards like "**.domain" aren’t supported—list exact hosts.
 const imageRemotePatterns = [
   { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
-  { protocol: "https", hostname: "**.r2.cloudflarestorage.com", pathname: "/**" },
-  { protocol: "https", hostname: R2_CDN_HOST, pathname: "/**" },
 ];
 
-// Add public CDN origin host (from R2_PUBLIC_BASEURL)
-if (R2_PUBLIC_HOST) {
+// Add the public CDN
+if (PUBLIC_CDN_HOST) {
   imageRemotePatterns.push(
-    R2_PUBLIC_PORT
-      ? { protocol: R2_PUBLIC_PROTOCOL || "https", hostname: R2_PUBLIC_HOST, pathname: "/**", port: R2_PUBLIC_PORT }
-      : { protocol: R2_PUBLIC_PROTOCOL || "https", hostname: R2_PUBLIC_HOST, pathname: "/**" }
+    PUBLIC_CDN_PORT
+      ? { protocol: PUBLIC_CDN_PROTOCOL || "https", hostname: PUBLIC_CDN_HOST, port: PUBLIC_CDN_PORT, pathname: "/**" }
+      : { protocol: PUBLIC_CDN_PROTOCOL || "https", hostname: PUBLIC_CDN_HOST, pathname: "/**" }
   );
 }
 
-// Add direct bucket host (env override)
-if (R2_DIRECT_HOST) {
-  imageRemotePatterns.push({ protocol: "https", hostname: R2_DIRECT_HOST, pathname: "/**" });
-  imageRemotePatterns.push({ protocol: "http", hostname: R2_DIRECT_HOST, pathname: "/**" });
-}
-
-// Add computed bucket host if available (bucket.account.r2.cloudflarestorage.com)
+// Add the bucket subdomain (bucket.account.r2.cloudflarestorage.com)
 if (R2_BUCKET_HOST) {
   imageRemotePatterns.push({ protocol: "https", hostname: R2_BUCKET_HOST, pathname: "/**" });
 }
 
+// Add optional direct/custom host (http+https for local proxies, etc.)
+if (R2_DIRECT_HOST) {
+  imageRemotePatterns.push({ protocol: "https", hostname: R2_DIRECT_HOST, pathname: "/**" });
+  imageRemotePatterns.push({ protocol: "http",  hostname: R2_DIRECT_HOST, pathname: "/**" });
+}
+
+// Local dev
 if (isDev) {
   imageRemotePatterns.push({ protocol: "http", hostname: "localhost", port: "3000", pathname: "/**" });
 }
@@ -173,7 +199,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: imageRemotePatterns,
-    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER, // let Cloudflare handle optimization if false
+    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER, // let Cloudflare handle if false
     formats: ["image/avif", "image/webp"],
   },
   async headers() {
@@ -181,19 +207,17 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      // ✅ Temporary redirects for categories not ready at launch
       { source: "/category/promotional", destination: "/coming-soon/promotional", permanent: false },
       { source: "/category/promotional/:path*", destination: "/coming-soon/promotional", permanent: false },
       { source: "/category/apparel", destination: "/coming-soon/apparel", permanent: false },
       { source: "/category/apparel/:path*", destination: "/coming-soon/apparel", permanent: false },
 
-      // common typos
-      { source: "/category/promotional", destination: "/coming-soon/promotional", permanent: false },
+      // common typo
       { source: "/category/apperal", destination: "/coming-soon/apparel", permanent: false },
 
       // existing review-order redirects
       { source: "/review-order", destination: "/cart/review", permanent: true },
-      { source: "/revieworder", destination: "/cart/review", permanent: true },
+      { source: "/revieworder",  destination: "/cart/review", permanent: true },
       { source: "/order/review", destination: "/cart/review", permanent: true },
     ];
   },

@@ -1,22 +1,21 @@
 // src/app/api/create-checkout-session/route.ts
+import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies, headers } from "next/headers";
-import stripe from "@/lib/stripe"; // centralized client (API version handled there)
-import type Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { and, eq, ne } from "drizzle-orm";
 
-// Local asset map for names/images (Cloudflare Images only; no images.json)
+// Cloudflare Images helper + local product assets
+import { cfImage } from "@/lib/cfImages";
 import productAssetsRaw from "@/data/productAssets.json";
 
-export const runtime = "nodejs";
-export const revalidate = 0;
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-/* ------------------------ helpers ------------------------ */
-
+/* ---------------- helpers (origin, assets, CF) ---------------- */
 function originFromHeaders(h: Headers): string {
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
@@ -24,26 +23,25 @@ function originFromHeaders(h: Headers): string {
   return `${proto}://${host}`;
 }
 
-type SelectedShipping =
-  | {
-      carrier: string;
-      method: string;
-      cost: number;
-      days: number | null;
-      currency: "USD" | "CAD";
-      country: "US" | "CA";
-      state: string;
-      zip: string;
-    }
-  | null;
-
-type Asset = {
-  product_id?: number;
-  name?: string;
-  matched_sku?: string | null;
+type ProductAsset = {
+  id?: number | string | null;
+  sku?: string | null;
+  name?: string | null;
+  cf_image_id?: string | null;
+  cf_image_1_id?: string | null;
+  cf_image_2_id?: string | null;
+  cf_image_3_id?: string | null;
+  cf_image_4_id?: string | null;
   cloudflare_id?: string | null;
   cloudflare_image_id?: string | null;
+  [k: string]: unknown;
 };
+
+const assetsById = new Map<number, ProductAsset>();
+for (const p of productAssetsRaw as ProductAsset[]) {
+  const id = Number(p?.id);
+  if (Number.isFinite(id) && !assetsById.has(id)) assetsById.set(id, p);
+}
 
 function titleCase(s?: string | null) {
   if (!s) return "";
@@ -53,38 +51,57 @@ function titleCase(s?: string | null) {
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
-function niceName(a?: Asset, productId?: number) {
-  if (!a) return `Product ${productId ?? ""}`.trim();
-  return titleCase(a.name || a.matched_sku || `Product ${productId ?? ""}`);
+
+function firstCfIdFromAsset(p?: ProductAsset | null): string | null {
+  if (!p) return null;
+  const refs = [
+    p.cf_image_1_id,
+    p.cf_image_2_id,
+    p.cf_image_3_id,
+    p.cf_image_4_id,
+    p.cf_image_id,
+    p.cloudflare_image_id,
+    p.cloudflare_id,
+  ]
+    .map((x) => (typeof x === "string" ? x.trim() : ""))
+    .filter(Boolean);
+  return refs[0] || null;
 }
-function cfUrl(id?: string | null, variant = "public") {
+
+function productName(productId: number): string {
+  const row = assetsById.get(productId);
+  return (
+    (row?.name && titleCase(row.name)) ||
+    (row?.sku ?? "") ||
+    (Number.isFinite(productId) ? `Product ${productId}` : "Product")
+  );
+}
+
+function productSku(productId: number): string | undefined {
+  const row = assetsById.get(productId);
+  return typeof row?.sku === "string" && row.sku.trim() ? row.sku.trim() : undefined;
+}
+
+function productImageUrl(productId: number): string | undefined {
+  const row = assetsById.get(productId);
+  const id = firstCfIdFromAsset(row);
   if (!id) return undefined;
-  const hash = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH;
-  return hash ? `https://imagedelivery.net/${hash}/${id}/${variant}` : undefined;
+  // Serve through Cloudflare CDN variants
+  return cfImage(id, "productCard") || cfImage(id, "public") || undefined;
 }
 
-/* ------------------------ POST handler ------------------------ */
-
+/* ---------------- main handler ---------------- */
 export async function POST(_req: NextRequest) {
   try {
-    // Next 15: await dynamic APIs
     const h = await headers();
-    const jar = await cookies();
     const origin = originFromHeaders(h);
 
+    const jar = await cookies();
     const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
     if (!sid) return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
 
-    // Build product asset index (first hit wins)
-    const byProductId = new Map<number, Asset>();
-    for (const a of productAssetsRaw as any[]) {
-      if (typeof a?.product_id === "number" && !byProductId.has(a.product_id)) {
-        byProductId.set(a.product_id, a);
-      }
-    }
-
-    // Load open cart by sid
-    const [cart] =
+    // Load open cart
+    const [cartRow] =
       (await db
         .select({
           id: carts.id,
@@ -95,86 +112,127 @@ export async function POST(_req: NextRequest) {
         .from(carts)
         .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
         .limit(1)) ?? [];
-    if (!cart) return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
 
-    const rows = await db
+    if (!cartRow) return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
+
+    // Load lines
+    const lineRows = await db
       .select({
-        id: cartLines.id,
         productId: cartLines.productId,
         quantity: cartLines.quantity,
-        unitPriceCents: cartLines.unitPriceCents, // snapshot cents
+        unitPriceCents: cartLines.unitPriceCents,
+        lineTotalCents: cartLines.lineTotalCents,
         optionIds: cartLines.optionIds,
       })
       .from(cartLines)
-      .where(eq(cartLines.cartId, cart.id));
+      .where(eq(cartLines.cartId, cartRow.id));
 
-    const selectedShipping: SelectedShipping = (cart as any)?.selectedShipping ?? null;
-    const store: "US" | "CA" = selectedShipping?.country === "CA" ? "CA" : "US";
-    const stripeCurrency: "usd" | "cad" =
-      (cart.currency === "CAD" || selectedShipping?.currency === "CAD") ? "cad" : "usd";
+    if (lineRows.length === 0) return NextResponse.json({ ok: false, error: "empty_cart" }, { status: 400 });
 
-    // Build Stripe line items
-    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    // Shipping selection (for country/state/zip + shipping line)
+    const ship = (cartRow as any)?.selectedShipping ?? null;
+    const country = (ship?.country === "CA" ? "CA" : "US") as "US" | "CA";
+    const state = typeof ship?.state === "string" ? ship.state : undefined;
+    const zip = typeof ship?.zip === "string" ? ship.zip : undefined;
 
-    for (const ln of rows) {
-      const qty = Math.max(1, Math.min(9999, Number(ln.quantity ?? 1)));
-      const unitCents = Math.max(0, Number(ln.unitPriceCents ?? 0));
-      if (!unitCents || !qty) continue;
+    // Build batch request to our own internal pricing validator (SinaLite wrapper)
+    const batchPayload = {
+      items: lineRows.map((r) => ({
+        productId: Number(r.productId),
+        optionIds: Array.isArray(r.optionIds)
+          ? r.optionIds.map((n: unknown) => Number(n)).filter((n) => Number.isFinite(n))
+          : [],
+        quantity: Math.max(1, Number(r.quantity ?? 1)),
+        shipCountry: country,
+        shipState: state ?? "",
+        shipZip: zip ?? "",
+        storeCode: country === "CA" ? 6 : 9, // per Sinalite docs
+      })),
+    };
 
-      const asset = byProductId.get(Number(ln.productId));
-      const name = niceName(asset, ln.productId);
-      const image = cfUrl(asset?.cloudflare_id ?? asset?.cloudflare_image_id);
+    const batchRes = await fetch(`${origin}/api/sinalite/price/batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(batchPayload),
+      cache: "no-store",
+    });
+
+    // If the batch endpoint fails, we still fall back to existing DB prices
+    const batchJson = (await batchRes.json().catch(() => null)) as
+      | { ok: true; results: { productId: number; ok: boolean; unitPrice?: number; currency?: "USD" | "CAD" }[] }
+      | { ok: false; error: string }
+      | null;
+
+    // Map productId -> validated unitPrice (dollars)
+    const validatedMap = new Map<number, number>(); // dollars
+    if (batchRes.ok && batchJson && (batchJson as any).ok) {
+      for (const r of (batchJson as any).results ?? []) {
+        if (r && r.ok && typeof r.unitPrice === "number") {
+          validatedMap.set(Number(r.productId), Number(r.unitPrice));
+        }
+      }
+    }
+
+    // Build Stripe line_items with name, image, SKU; use validated price when available
+    const currency = (cartRow.currency === "CAD" ? "cad" : "usd") as "usd" | "cad";
+    const line_items: {
+      quantity: number;
+      price_data: {
+        currency: "usd" | "cad";
+        unit_amount: number;
+        product_data: { name: string; images?: string[]; metadata?: Record<string, string> };
+      };
+    }[] = [];
+
+    for (const r of lineRows) {
+      const pid = Number(r.productId);
+      const qty = Math.max(1, Number(r.quantity ?? 1));
+      const validatedDollars = validatedMap.get(pid);
+      const finalUnitCents =
+        Number.isFinite(validatedDollars) && validatedDollars! >= 0
+          ? Math.round(validatedDollars! * 100)
+          : Math.max(0, Number(r.unitPriceCents ?? 0));
+
+      const name = productName(pid);
+      const imageUrl = productImageUrl(pid);
+      const sku = productSku(pid);
 
       line_items.push({
         quantity: qty,
         price_data: {
-          currency: stripeCurrency,
-          unit_amount: unitCents, // cents snapshot from your Sinalite-priced line
+          currency,
+          unit_amount: finalUnitCents,
           product_data: {
             name,
-            ...(image ? { images: [image] } : {}),
-            metadata: {
-              productId: String(ln.productId),
-              optionIds: JSON.stringify((ln.optionIds ?? []) as number[]),
-              cartLineId: String(ln.id),
-            },
+            ...(imageUrl ? { images: [imageUrl] } : {}),
+            ...(sku ? { metadata: { sku } } : {}),
           },
         },
       });
     }
 
-    // Add shipping as its own line using your Sinalite-selected rate snapshot
-    const shipCents = selectedShipping ? Math.round(Number(selectedShipping.cost || 0) * 100) : 0;
-    if (shipCents > 0) {
-      const label = `Shipping — ${selectedShipping!.carrier} ${selectedShipping!.method}`.trim();
+    // Optional shipping line (to match Review page)
+    const shippingCents = Math.round(Number(ship?.cost ?? 0) * 100);
+    if (Number.isFinite(shippingCents) && shippingCents > 0) {
       line_items.push({
         quantity: 1,
         price_data: {
-          currency: stripeCurrency,
-          unit_amount: shipCents,
-          product_data: { name: label, metadata: { kind: "shipping" } },
+          currency,
+          unit_amount: shippingCents,
+          product_data: { name: ship?.method ?? "Shipping" },
         },
       });
     }
 
-    if (line_items.length === 0) {
-      return NextResponse.json({ ok: false, error: "no_billable_items" }, { status: 400 });
-    }
+    const success_url = `${origin}/cart/review#checkout_success=1`;
+    const cancel_url = `${origin}/cart/review#checkout_cancelled=1`;
 
-    // Create checkout session (cards + Link). No default export here!
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card", "link"], // Link + cards (SinaLite-agnostic)
-      allow_promotion_codes: true,
       line_items,
-      success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cart/review`,
-      metadata: {
-        sid,
-        cartId: String(cart.id),
-        store,
-        shipping: JSON.stringify(selectedShipping ?? null),
-      },
+      metadata: { sid, cartId: String(cartRow.id) },
+      success_url,
+      cancel_url,
     });
 
     return NextResponse.json({ ok: true, url: session.url });

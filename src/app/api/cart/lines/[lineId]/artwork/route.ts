@@ -7,12 +7,11 @@ import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { cartArtwork } from "@/db/schema/cartArtwork";
+import { r2PublicUrl } from "@/lib/r2-public"; // builds https://uploads.adapnow.com/<key>
 
-export const dynamic = "force-dynamic";
-
+/** Next 15: cookies() is async-ish; always await. */
 async function getSid(): Promise<string | null> {
-  const jar = await cookies(); // ✅ must await in Next 15
-  // prefer your custom cookie if present
+  const jar = await cookies();
   return jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 }
 
@@ -45,12 +44,19 @@ export async function POST(
 
     const side = Number.isFinite(Number(body.side)) && Number(body.side) > 0 ? Number(body.side) : 1;
 
+    // Normalize to your public R2 host (uploads.adapnow.com or r2.dev)
+    const publicUrl = r2PublicUrl(body.url);
+
     // simple upsert: delete any existing (lineId, side), then insert the new URL
-    await db.delete(cartArtwork).where(and(eq(cartArtwork.cartLineId, lineId), eq(cartArtwork.side, side)));
-    await db.insert(cartArtwork).values({ cartLineId: lineId, side, url: body.url });
+    await db
+      .delete(cartArtwork)
+      .where(and(eq(cartArtwork.cartLineId, lineId), eq(cartArtwork.side, side)));
+
+    await db.insert(cartArtwork).values({ cartLineId: lineId, side, url: publicUrl });
 
     return Response.json({ ok: true });
   } catch (err: any) {
+    console.error("[artwork:POST] failed:", err);
     return Response.json({ ok: false, error: err?.message ?? "artwork save error" }, { status: 500 });
   }
 }

@@ -1,82 +1,81 @@
+// src/components/CartArtworkThumb.tsx
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { isPdfUrl, thumbCandidatesFor } from "@/lib/artworkThumb";
 
 type Props = {
-  lineId: string;
-  productId: number;
-  side: number;        // 1, 2, ...
-  url: string;         // artwork URL
-  totalSides?: number; // optional, for deep-linking back
+  url: string;            // original artwork URL (PDF or image)
+  alt?: string;
+  size?: number;          // square size in px
+  className?: string;
+  // Optional CTA:
+  openLabel?: string;     // e.g. "View PDF"
 };
 
-export default function CartArtworkThumb({ lineId, productId, side, url, totalSides }: Props) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [err, setErr] = useState<string | null>(null);
+export default function CartArtworkThumb({
+  url,
+  alt = "Artwork",
+  size = 80,
+  className = "",
+  openLabel = "View",
+}: Props) {
+  const pdf = isPdfUrl(url);
 
-  const onRemove = () => {
-    setErr(null);
-    start(async () => {
-      try {
-        const res = await fetch(
-          `/api/cart/lines/${encodeURIComponent(lineId)}/artwork?side=${side}`,
-          { method: "DELETE" }
-        );
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j?.error || `Delete failed (${res.status})`);
-        }
-        // toast + refresh
-        window.dispatchEvent(
-          new CustomEvent("cart:toast", { detail: { message: `Removed artwork (side ${side})`, tone: "success" } })
-        );
-        router.refresh();
-      } catch (e: any) {
-        const msg = e?.message || "Failed to remove artwork";
-        setErr(msg);
-        window.dispatchEvent(new CustomEvent("cart:toast", { detail: { message: msg, tone: "error" } }));
-      }
-    });
-  };
+  const candidates = useMemo(
+    () => (pdf ? thumbCandidatesFor(url) : [url]),
+    [pdf, url]
+  );
 
-  const replaceHref = `/product/${productId}/upload-artwork?lineId=${encodeURIComponent(
-    lineId
-  )}&sides=${totalSides ?? 2}&focusSide=${side}#side-${side}`;
+  const [srcIndex, setSrcIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const currentSrc = candidates[srcIndex];
+
+  const onImgError = useCallback(() => {
+    const next = srcIndex + 1;
+    if (next < candidates.length) {
+      setSrcIndex(next);
+    } else {
+      setFailed(true);
+    }
+  }, [srcIndex, candidates.length]);
 
   return (
-    <div className="flex items-center gap-2">
-      <Image
-        src={url}
-        alt={`Artwork side ${side}`}
-        width={56}
-        height={56}
-        className="rounded border object-cover"
-        unoptimized
-      />
-      <div className="flex flex-col gap-1">
-        <div className="text-[11px] text-neutral-600">Side {side}</div>
-        <div className="flex gap-2">
-          <Link
-            href={replaceHref}
-            className="inline-flex items-center rounded border px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
-          >
-            Replace
-          </Link>
-          <button
-            onClick={onRemove}
-            disabled={pending}
-            className="inline-flex items-center rounded border px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
-            type="button"
-          >
-            {pending ? "Removing…" : "Remove"}
-          </button>
-        </div>
-        {err ? <div className="text-[11px] text-red-600">{err}</div> : null}
+    <div className={`relative inline-flex items-center gap-2 ${className}`}>
+      {/* Thumbnail box */}
+      <div className="relative overflow-hidden rounded border bg-white" style={{ width: size, height: size }}>
+        {!failed ? (
+          <Image
+            src={currentSrc}
+            alt={alt}
+            width={size}
+            height={size}
+            className="object-cover"
+            unoptimized
+            onError={onImgError}
+          />
+        ) : (
+          // Fallback for PDFs or missing thumbs
+          <div className="flex h-full w-full items-center justify-center bg-slate-100">
+            {pdf ? (
+              <span className="rounded bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">PDF</span>
+            ) : (
+              <span className="rounded bg-slate-500 px-2 py-0.5 text-xs font-semibold text-white">FILE</span>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Open original file */}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs font-medium text-blue-700 hover:underline"
+      >
+        {openLabel}
+      </a>
     </div>
   );
 }

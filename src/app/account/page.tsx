@@ -8,18 +8,34 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
-  // (Auth is enforced by middleware; keep this page simple/fast.)
   return (
-    <main className="account">
-      <header className="account__header">
-        <div>
-          <h1 className="account__title">Your Orders</h1>
-          <p className="account__subtitle">Track, reorder, and download your artwork.</p>
+    <main className="mx-auto max-w-6xl px-4 pb-16 pt-8">
+      {/* Hero */}
+      <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 p-[1px] shadow-lg">
+        <div className="rounded-2xl bg-white/95 p-6 sm:p-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                Your Orders
+              </h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Track, reorder, and download your artwork.
+              </p>
+            </div>
+            <div className="mt-4 sm:mt-0">
+              <a
+                href="/products"
+                className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              >
+                Shop products
+              </a>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Client renderer handles fetching, filters, pagination */}
-      <section className="account__content">
+      {/* Content */}
+      <section className="mt-8">
         <AccountClient />
       </section>
     </main>

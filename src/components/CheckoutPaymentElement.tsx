@@ -1,8 +1,11 @@
+// src/components/CheckoutPaymentElement.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { stripePromise } from "@/lib/stripe-public";
+
+type Props = { clientSecret: string };
 
 function InnerForm() {
   const stripe = useStripe();
@@ -48,15 +51,14 @@ function InnerForm() {
   );
 }
 
-export default function CheckoutPaymentElement() {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/create-payment-intent", { method: "POST" })
-      .then((r) => r.json())
-      .then((d) => setClientSecret(d.clientSecret || null))
-      .catch(() => setClientSecret(null));
-  }, []);
+export default function CheckoutPaymentElement({ clientSecret }: Props) {
+  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+    return (
+      <div className="w-full max-w-lg rounded-xl border bg-white p-6 text-sm text-red-600">
+        Missing <code className="font-mono">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code>.
+      </div>
+    );
+  }
 
   if (!clientSecret) {
     return <div className="text-sm text-gray-600">Preparing secure payment…</div>;

@@ -1,14 +1,21 @@
 // src/app/api/me/orders/route.ts
+import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { carts, orders } from "@/db/schema";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
+
+function toInt(v: unknown, d = 1, max = 50) {
+  const n = Number(v as any);
+  if (!Number.isFinite(n) || n <= 0) return d;
+  return Math.min(Math.floor(n), max);
+}
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
@@ -18,11 +25,11 @@ export async function GET(req: NextRequest) {
 
   // pagination
   const url = new URL(req.url);
-  const page = Math.max(1, Number(url.searchParams.get("page") || 1));
-  const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") || 20)));
+  const page = toInt(url.searchParams.get("page") ?? 1, 1, 9999);
+  const pageSize = toInt(url.searchParams.get("pageSize") ?? 20, 20, 50);
   const offset = (page - 1) * pageSize;
 
-  // Get user & primary email from Clerk without clerkClient()
+  // best-effort Clerk email for guest→user claim
   let primaryEmail: string | null = null;
   try {
     const me = await currentUser();
@@ -34,73 +41,61 @@ export async function GET(req: NextRequest) {
     /* ignore */
   }
 
-  // Claim guest orders by email (best-effort; uses "as any" to tolerate schema variance)
-  if (primaryEmail) {
+  // Column guards (reference only what exists on your schema)
+  const o: any = orders as any;
+  const hasUserId = o?.userId !== undefined;
+  const hasCustomerEmail = o?.customerEmail !== undefined;
+  const hasCartId = o?.cartId !== undefined;
+  const hasCreatedAt = o?.createdAt !== undefined;
+  const hasPlacedAt = o?.placedAt !== undefined;
+
+  // 1) claim by email
+  if (primaryEmail && hasUserId && hasCustomerEmail) {
     try {
-      await db
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update(orders as any)
-        .set({ userId })
-        .where(
-          and(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            isNull((orders as any).userId),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            eq((orders as any).customerEmail, primaryEmail)
-          )
-        );
-    } catch {
-      /* ok if your orders table doesn't have customerEmail */
-    }
+      await db.update(o).set({ userId }).where(and(isNull(o.userId), eq(o.customerEmail, primaryEmail)));
+    } catch {}
   }
 
-  // Also claim by cartId via sid cookie (guest → user)
+  // 2) claim by cartId via sid cookie
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
-
-  if (sid) {
+  if (sid && hasUserId && hasCartId) {
     try {
       const cartRows = await db
-        .select({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          id: (carts as any).id,
-        })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .select({ id: (carts as any).id })
         .from(carts as any)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .where(eq((carts as any).sid, sid));
-
       const cartIds = cartRows.map((r) => String(r.id));
-      if (cartIds.length) {
-        await db
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .update(orders as any)
-          .set({ userId })
-          .where(
-            and(
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              isNull((orders as any).userId),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              inArray((orders as any).cartId, cartIds)
-            )
-          );
+      if (cartIds.length > 0) {
+        await db.update(o).set({ userId }).where(and(isNull(o.userId), inArray(o.cartId, cartIds)));
       }
-    } catch {
-      /* ok if your orders table uses a different foreign key than cartId */
-    }
+    } catch {}
   }
 
-  // Return this user's orders
-  const rows = await db
-    .select()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .from(orders as any)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .where(eq((orders as any).userId, userId))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .orderBy(desc((orders as any).createdAt))
-    .limit(pageSize)
-    .offset(offset);
+  // 3) where
+  let whereExpr: any;
+  if (hasUserId) whereExpr = eq(o.userId, userId);
+  else if (hasCustomerEmail && primaryEmail) whereExpr = eq(o.customerEmail, primaryEmail);
+  else {
+    return NextResponse.json({ ok: true, page, pageSize, total: 0, orders: [] });
+  }
 
-  return NextResponse.json({ ok: true, page, pageSize, orders: rows });
+  // count
+  const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(o).where(whereExpr);
+
+  // build query WITHOUT ever passing undefined to orderBy
+  let q: any = db.select().from(o).where(whereExpr);
+  if (hasCreatedAt) q = q.orderBy(desc(o.createdAt));
+  else if (hasPlacedAt) q = q.orderBy(desc(o.placedAt));
+  q = q.limit(pageSize).offset(offset);
+
+  const rows = await q;
+
+  return NextResponse.json({
+    ok: true,
+    page,
+    pageSize,
+    total: Number(count) || 0,
+    orders: rows,
+  });
 }
