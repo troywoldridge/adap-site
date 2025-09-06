@@ -1,4 +1,3 @@
-// src/app/cart/review/page.tsx
 import "server-only";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,7 +17,13 @@ import ClientToastHub from "@/components/ClientToastHub";
 import HashToast from "@/components/HashToast";
 import AddAnotherSideButton from "@/components/AddAnotherSideButton";
 import CartShippingEstimator from "@/components/CartShippingEstimator";
+import CartCreditsRow from "@/components/CartCreditsRow";
 import ChangeShippingButton from "@/components/ChangeShippingButton";
+
+// ✅ NEW: show a nice negative row for credits
+import CartCreditsRow from "@/components/CartCreditsRow";
+// ✅ NEW: sum applied credits (in cents) for this cart
+import { getCartCreditsCents } from "@/lib/cartCredits";
 
 // Cloudflare Images URL builder (serves via Cloudflare CDN)
 import { cfImage } from "@/lib/cfImages";
@@ -50,14 +55,14 @@ type LineVM = {
   productId: number;
   quantity: number;
   name: string;
-  unit: number;   // unit price
-  total: number;  // line total
+  unit: number;   // unit price (dollars)
+  total: number;  // line total (dollars)
   artworkUrls: string[];
 };
 
 /* ----------------------- Cloudflare helpers ---------------------- */
 
-// Hard-code your cart thumbnail variant
+// Hard-code your cart thumbnail variant (Cloudflare Images)
 const CARD_VARIANT = "productThumb" as const;
 
 // Known good placeholder ID in CF Images
@@ -98,7 +103,7 @@ function cartLineImageUrl(productId?: number | string | null): string {
   // If a full URL sneaks in, passthrough
   if (ref.startsWith("http://") || ref.startsWith("https://")) return ref;
 
-  // Otherwise treat as Cloudflare image ID
+  // Otherwise treat as Cloudflare image ID (served from Cloudflare CDN)
   return (
     cfImage(ref, CARD_VARIANT) ||
     cfImage(ref, "public") ||
@@ -217,6 +222,7 @@ export default async function ReviewCartPage() {
     return (
       <main className="container mx-auto py-8">
         <h1 className="text-2xl font-semibold">Your cart</h1>
+
         <p className="mt-4 text-neutral-600">Your cart is empty.</p>
       </main>
     );
@@ -232,10 +238,17 @@ export default async function ReviewCartPage() {
   const initState = defaultAddr?.state ?? "";
   const initZip = defaultAddr?.postalCode ?? "";
 
+  // Dollars for UI math (your DB stores cents on lines; we converted above)
   const subtotal = lines.reduce((acc, l) => acc + l.total, 0);
   const shipping = Number(cart.selectedShipping?.cost ?? 0);
   const tax = 0;
-  const grandTotal = subtotal + shipping + tax;
+
+  // ✅ NEW: pull applied credits (in cents) and convert to dollars for display
+  const creditsCents = await getCartCreditsCents(cart.id);
+  const credits = Math.max(0, (creditsCents || 0) / 100);
+
+  // ✅ NEW: subtract credit from the total (never below $0)
+  const grandTotal = Math.max(0, subtotal + shipping + tax - credits);
 
   return (
     <main className="container mx-auto py-8">
@@ -255,7 +268,7 @@ export default async function ReviewCartPage() {
               className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-start md:justify-between"
             >
               <div className="flex items-start gap-4">
-                {/* Product image (Cloudflare Images) */}
+                {/* Product image (Cloudflare Images CDN) */}
                 <Image
                   src={productImg}
                   alt={line.name}
@@ -329,6 +342,22 @@ export default async function ReviewCartPage() {
           <span>Tax</span>
           <span>{moneyFmt(tax, currency)}</span>
         </div>
+        <div className="flex justify-between py-2">
+  <span>Tax</span>
+  <span>{moneyFmt(tax, currency)}</span>
+</div>
+
+<CartCreditsRow currency={currency} onChanged={() => { /* optional: force refresh */ }} />
+
+        <hr className="my-2" />
+        <div className="flex justify-between py-2 text-lg font-bold">
+          <span>Total</span>
+          <span>{moneyFmt(grandTotal, currency)}</span>
+        </div>
+
+        {/* ✅ NEW: show Loyalty credit as a negative row when present */}
+        <CartCreditsRow creditsCents={creditsCents} currency={currency} />
+
         <hr className="my-2" />
         <div className="flex justify-between py-2 text-lg font-bold">
           <span>Total</span>

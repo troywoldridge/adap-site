@@ -100,6 +100,21 @@ export async function POST(_req: NextRequest) {
     const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
     if (!sid) return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
 
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      // ... your existing line_items or amount/price logic ...
+      success_url: `${origin}/checkout?success=1`,
+      cancel_url: `${origin}/checkout?canceled=1`,
+
+      // So session.completed can find your cart
+      metadata: { sid, cartId: String(cart.id) },
+
+      // So the PaymentIntent also has it (for payment_intent.succeeded path)
+      payment_intent_data: {
+        metadata: { sid, cartId: String(cart.id) },
+      },
+    });
+
     // Load open cart
     const [cartRow] =
       (await db

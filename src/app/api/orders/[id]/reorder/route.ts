@@ -1,83 +1,108 @@
-// app/api/orders/[id]/reorder/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { eq, and } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { orderSessions } from "@/db/schema";
-import { enforceRateLimit } from "@/lib/rateLimit";
+import "server-only";
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
-import { createOrderSession, setOrderSessionCookie } from "@/lib/session";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
-export const runtime = "nodejs";
+import { db } from "@/lib/db";
+import { orders } from "@/db/schema/orders";
+import { carts } from "@/db/schema/cart";
+import { cartLines } from "@/db/schema/cartLines";
+import { cartArtwork } from "@/db/schema/cartArtwork";
+
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-const ParamsSchema = z.object({ id: z.string().uuid() });
+type LineOverride = { productId: number; quantity: number; unitPriceCents?: number | null };
 
-async function requireUserId() {
-  const { userId } = await auth();            // ✅ await auth()
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-  return userId;
-}
-
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const limited = await enforceRateLimit(req);
-  if (limited) {
-    return limited;
-  }
-
-  try {
-    const userId = await requireUserId();
-    const { id } = ParamsSchema.parse(params);
-
-    // 1) Fetch original order
-    const rows = await db
-      .select()
-      .from(orderSessions)
-      .where(and(eq(orderSessions.id, id), eq(orderSessions.userId, userId)))
-      .limit(1);
-
-    const original = rows[0];
-    if (!original) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    // 2) Create a new session cloning critical fields
-    const cloned = await createOrderSession({
-      userId,
-      productId: original.productId,
-      options: original.options ?? [],
-      files: original.files ?? [],
-      shippingInfo: undefined,            // ✅ use undefined (not null)
-      billingInfo: undefined,             // ✅ use undefined (not null)
-      currency: original.currency ?? "USD",
-      subtotal: 0,
-      tax: 0,
-      discount: 0,
-      total: 0,
-      selectedShippingRate: undefined,    // ✅ use undefined (not null)
-      notes: original.notes ?? null,      // null is fine if createOrderSession allows it
+async function ensureSid(): Promise<string> {
+  const jar = await cookies();
+  let sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? "";
+  if (!sid) {
+    sid = crypto.randomUUID();
+    jar.set({
+      name: "adap_sid",
+      value: sid,
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 90,
     });
-
-    // 3) Set cookie
-    await setOrderSessionCookie(cloned.id);
-
-    // 4) Redirect to product page
-    const url = new URL(`/products/${encodeURIComponent(cloned.productId)}`, req.url);
-    url.searchParams.set("from", "reorder");
-    return NextResponse.redirect(url.toString(), { status: 303 });
-  } catch (err: any) {
-    if (err?.issues) {
-      return NextResponse.json({ error: "Invalid request", details: err.issues }, { status: 422 });
-    }
-    const msg = err?.message || "Reorder failed";
-    const status = /Unauthorized/.test(msg) ? 401 : 400;
-    return NextResponse.json({ error: msg }, { status });
   }
+  return sid;
 }
 
-export async function GET() { return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 }); }
-export async function PUT() { return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 }); }
-export async function DELETE() { return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 }); }
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const { userId } = await auth();
+    const sid = await ensureSid();
+
+    const [o] = (await db.select().from(orders).where(eq(orders.id, params.id)).limit(1)) ?? [];
+    if (!o) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    if (userId && o.userId === sid) {
+      await db.update(orders).set({ userId }).where(eq(orders.id, params.id));
+      (o as any).userId = userId;
+    }
+    if (![userId, sid].filter(Boolean).includes(o.userId)) {
+      return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    }
+
+    const body = (await req.json()) as { lines: LineOverride[] };
+    const overrides = (body?.lines || []).filter((l) => Number(l.quantity) > 0);
+
+    // open or create cart
+    let [cart] =
+      (await db.select().from(carts).where(and(eq(carts.sid, sid), ne(carts.status, "closed"))).limit(1)) ?? [];
+    if (!cart) {
+      const [created] = await db.insert(carts).values({
+        sid, status: "open", currency: (o.currency as any) || "USD", selectedShipping: null,
+      } as any).returning();
+      cart = created;
+    }
+
+    // OR: If no overrides were passed, copy prior lines automatically
+    if (!overrides.length && o.cartId) {
+      const prior = await db.select().from(cartLines).where(eq(cartLines.cartId, o.cartId as string));
+      await db.transaction(async (tx) => {
+        for (const l of prior) {
+          const [nl] = await tx.insert(cartLines).values({
+            cartId: cart.id,
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPriceCents: l.unitPriceCents,
+            lineTotalCents: l.lineTotalCents,
+            optionIds: l.optionIds,
+          } as any).returning();
+
+          const arts = await tx
+            .select({ url: cartArtwork.url, side: cartArtwork.side })
+            .from(cartArtwork)
+            .where(eq(cartArtwork.cartLineId, l.id));
+          if (arts.length) {
+            await tx.insert(cartArtwork).values(
+              arts.map((a) => ({ cartLineId: nl.id, url: a.url, side: a.side ?? null })) as any,
+            );
+          }
+        }
+      });
+    } else {
+      // Insert overrides
+      await db.transaction(async (tx) => {
+        for (const l of overrides) {
+          await tx.insert(cartLines).values({
+            cartId: cart.id,
+            productId: l.productId,
+            quantity: l.quantity,
+            unitPriceCents: l.unitPriceCents ?? null,
+            lineTotalCents: null, // let pricing engine recompute
+          } as any);
+        }
+      });
+    }
+
+    return NextResponse.json({ ok: true, goto: "/cart/review" });
+  } catch (e: any) {
+    console.error("reorder POST failed", e);
+    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
+  }
+}

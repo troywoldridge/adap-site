@@ -1,24 +1,35 @@
-// src/app/api/me/loyalty/route.ts
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { customers, loyaltyTransactions, loyaltyWallets } from "@/db/schema/customer";
+import { db } from "@/lib/db";
+import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
 import { eq, desc } from "drizzle-orm";
+import { computeLoyalty, type LoyaltySnapshot } from "@/lib/loyalty";
+
+export type LoyaltyAPI = { wallet: LoyaltySnapshot; transactions: any[] };
 
 export async function GET() {
-  const { userId } = auth();
-  if (!userId) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  const { userId } = await auth(); // ✅ await
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [cust] = await db.select().from(customers).where(eq(customers.clerkUserId, userId)).limit(1);
-  if (!cust) return NextResponse.json({ ok: true, wallet: null, txns: [] });
+  // inside GET handler after auth()
+  let [wallet] = await db.select().from(loyaltyWallets).where(eq(loyaltyWallets.customerId, userId)).limit(1);
+  if (!wallet) {
+    [wallet] = await db.insert(loyaltyWallets).values({ customerId: userId } as any).onConflictDoNothing?.().returning();
+    if (!wallet) {
+      [wallet] = await db.select().from(loyaltyWallets).where(eq(loyaltyWallets.customerId, userId)).limit(1);
+    }
+  }
 
-  const [wallet] = await db.select().from(loyaltyWallets).where(eq(loyaltyWallets.customerId, cust.id)).limit(1);
-  const txns = await db
-    .select()
-    .from(loyaltyTransactions)
-    .where(eq(loyaltyTransactions.walletId, wallet.id))
+  const [walletRow] = await db.select().from(loyaltyWallets)
+    .where(eq(loyaltyWallets.customerId, userId)).limit(1);
+
+  const wallet = computeLoyalty(walletRow?.pointsBalance ?? 0);
+
+  const txns = await db.select().from(loyaltyTransactions)
+    .where(eq(loyaltyTransactions.customerId, userId))
     .orderBy(desc(loyaltyTransactions.createdAt))
     .limit(50);
 
-  return NextResponse.json({ ok: true, wallet, txns });
+  const body: LoyaltyAPI = { wallet, transactions: txns as any[] };
+  return NextResponse.json(body);
 }

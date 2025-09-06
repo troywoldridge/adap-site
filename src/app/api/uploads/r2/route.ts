@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getR2PublicBaseUrl } from "@/lib/r2Public";
 
 import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
@@ -31,6 +32,8 @@ const R2_PRESIGN_EXPIRES_SECONDS = Math.max(
 );
 
 function assertEnv() {
+  const base = getR2PublicBaseUrl(); // throws if invalid
+  return { base };
   const missing: string[] = [];
   if (!R2_ACCOUNT_ID) missing.push("R2_ACCOUNT_ID");
   if (!R2_ACCESS_KEY_ID) missing.push("R2_ACCESS_KEY_ID");

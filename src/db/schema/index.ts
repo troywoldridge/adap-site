@@ -20,7 +20,8 @@ export * from "./reviewHelpfulVotes";
 
 // ── Sessions / uploads
 export * from "./sessions";
-export * from "./uploads";            // owns `artworkUploads` in your current setup
+export * from "./uploads";            
+export * from "./cartCredit";
 
 // ── If/when you move orders into their own files, uncomment these
 // export * from "./orders";
@@ -32,4 +33,5 @@ export const relations = schemaRelations;
 
 // ── Carrers
 export * from "./careerEvents";
+
 
