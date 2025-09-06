@@ -22,7 +22,7 @@ export * from "./reviewHelpfulVotes";
 export * from "./sessions";
 export * from "./uploads";            
 export * from "./cartCredit";
-
+export * from "./addresses";
 // ── If/when you move orders into their own files, uncomment these
 // export * from "./orders";
 // export * from "./orderItems";
