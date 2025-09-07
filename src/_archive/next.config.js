@@ -1,6 +1,8 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
 
+const path = require("path");
+
 const isDev = process.env.NODE_ENV !== "production";
 
 // ------- Inputs you already use -------
@@ -88,7 +90,7 @@ const imgSrcList = sanitize([
   `'self'`,
   `data:`,
   `blob:`,
-  `https://imagedelivery.net`,              // Cloudflare Images
+  `https://imagedelivery.net`,              // Cloudflare Images (CDN)
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
   // R2 public reads (images/thumbs)
@@ -141,7 +143,7 @@ const directives = {
   "media-src": mediaSrcList.join(" "),
   "worker-src": `'self' blob:`,
   "connect-src": connectSrcList.join(" "),
-  "frame-src": frameSrcList.join(" "),   // ✅ no invalid "https://.clerk.accounts.dev"
+  "frame-src": frameSrcList.join(" "),
   "object-src": `'none'`,
   "base-uri": `'self'`,
   "form-action": `'self' https://api.stripe.com`,
@@ -162,9 +164,9 @@ const securityHeaders = [
 ];
 
 // ------- next/image remotePatterns -------
-// Note: wildcards like "**.domain" aren’t supported—list exact hosts.
+// Wildcards must be explicit patterns — no "**" hostwilds, but pathname globs are OK in Next 15.
 const imageRemotePatterns = [
-  { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },
+  { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },          // Cloudflare Images
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
@@ -197,14 +199,25 @@ if (isDev) {
 
 const nextConfig = {
   reactStrictMode: true,
+
+  // ✅ New Next 15 property replaces deprecated experimental.serverComponentsExternalPackages
+  serverExternalPackages: ["pg", "pg-connection-string", "pg-pool"],
+
+  // Silence monorepo root warning
+  outputFileTracingRoot: path.join(__dirname),
+
   images: {
     remotePatterns: imageRemotePatterns,
-    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER, // let Cloudflare handle if false
+    // If you want Cloudflare Images to deliver without Next’s optimizer,
+    // set USE_NEXT_IMAGE_OPTIMIZER="false" in your env and we’ll disable optimization.
+    unoptimized: !USE_NEXT_IMAGE_OPTIMIZER,
     formats: ["image/avif", "image/webp"],
   },
+
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+
   async redirects() {
     return [
       { source: "/category/promotional", destination: "/coming-soon/promotional", permanent: false },
@@ -221,9 +234,6 @@ const nextConfig = {
       { source: "/order/review", destination: "/cart/review", permanent: true },
     ];
   },
-  experimental: {
-    serverComponentsExternalPackages: ["pg", "pg-connection-string", "pg-pool"],
-  },
 };
 
-export default nextConfig;
+module.exports = nextConfig; // <-- use CommonJS for next.config.js

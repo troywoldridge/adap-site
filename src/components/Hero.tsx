@@ -119,6 +119,7 @@ export default function Hero() {
         sizes="(min-width:1280px) 1280px, 100vw"
         className="pointer-events-none object-cover scale-[1.02] blur-[2px] opacity-35 saturate-110"
         draggable={false}
+        unoptimized 
       />
 
       {/* real image — never exceeds box */}
@@ -132,6 +133,7 @@ export default function Hero() {
         className="object-contain object-center"
         style={{ objectPosition: focal }}
         draggable={false}
+        unoptimized 
       />
 
       {/* left contrast gradient */}

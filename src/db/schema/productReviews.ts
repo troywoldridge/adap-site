@@ -1,22 +1,23 @@
-import { pgTable, serial, varchar, text, integer, boolean, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable, uuid, integer, text, timestamp, index, uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 export const productReviews = pgTable(
   "product_reviews",
   {
-    id: serial("id").primaryKey(),                          // matches existing SERIAL PK
-    productId: varchar("product_id", { length: 48 }).notNull(),
-    name: varchar("name", { length: 60 }).notNull(),
-    email: varchar("email", { length: 80 }),                // optional
-    rating: integer("rating").notNull(),                    // 1..5 (enforce in API)
-    comment: text("comment").notNull(),
-    approved: boolean("approved").default(false),           // new reviews start unapproved
-    userIp: varchar("user_ip", { length: 45 }),             // IPv4/IPv6 safe
-    termsAgreed: boolean("terms_agreed").default(false),
-    createdAt: timestamp("created_at").defaultNow(),
+    id: uuid().defaultRandom().primaryKey().notNull(),
+    productId: integer("product_id").notNull(),
+    userId: text("user_id").notNull(),
+    rating: integer("rating").notNull().default(5),
+    title: text("title"),
+    body: text("body"),
+    createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
   },
-  (t) => ({
-    // keep names unique across your schema
-    byProduct: index("idx_reviews_product").on(t.productId),
-    byApproved: index("idx_reviews_approved").on(t.approved),
-  })
+  (t) => [
+    // ✅ unique names
+    index("product_reviews_product_id_idx").on(t.productId),
+    index("product_reviews_approved_idx").on(t.rating), // or your real "approved" column
+    uniqueIndex("product_reviews_product_id_user_id_uq").on(t.productId, t.userId),
+  ],
 );

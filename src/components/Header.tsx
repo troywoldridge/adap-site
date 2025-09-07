@@ -8,6 +8,7 @@ import { useState, useMemo, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import { useCart } from "@/hooks/useCart";
+import HeaderAuth from "@/components/HeaderAuth";
 
 // Brand / content
 const SITE_BRAND = "ADAP";
@@ -206,6 +207,7 @@ export default function Header({
             >
               👤
             </Link>
+             <HeaderAuth />
 
             {/* Mobile menu toggle */}
             <button

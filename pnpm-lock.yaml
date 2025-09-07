@@ -83,6 +83,9 @@ importers:
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
+      nprogress:
+        specifier: ^0.2.0
+        version: 0.2.0
       p-limit:
         specifier: ^7.1.0
         version: 7.1.0
@@ -138,6 +141,9 @@ importers:
       '@types/node':
         specifier: ^20.19.9
         version: 20.19.9
+      '@types/nprogress':
+        specifier: ^0.2.3
+        version: 0.2.3
       '@types/pdfkit':
         specifier: ^0.17.2
         version: 0.17.2
@@ -1531,6 +1537,9 @@ packages:
 
   '@types/node@20.19.9':
     resolution: {integrity: sha512-cuVNgarYWZqxRJDQHEB58GEONhOK79QVR/qYx4S7kcUObQvUwvFnYxJuuHUKm2aieN9X3yZB4LZsuYNU1Qphsw==}
+
+  '@types/nprogress@0.2.3':
+    resolution: {integrity: sha512-k7kRA033QNtC+gLc4VPlfnue58CM1iQLgn1IMAU8VPHGOj7oIHPp9UlhedEnD/Gl8evoCjwkZjlBORtZ3JByUA==}
 
   '@types/pdfkit@0.17.2':
     resolution: {integrity: sha512-a7mqP/l8lsLMVNhQ3N2blU5pA1KX0YFE8FxWp0OTqZQKEZoPk7ndAlW+kdFBAWpFmLpy6fFbMRm4a6ZELWNgOQ==}
@@ -3005,6 +3014,9 @@ packages:
   normalize-range@0.1.2:
     resolution: {integrity: sha512-bdok/XvKII3nUpklnV6P2hxtMNrCboOjAcyBuQnWEhO665FwrSNRxU+AqpsyvO6LgGYPspN+lu5CLtw4jPRKNA==}
     engines: {node: '>=0.10.0'}
+
+  nprogress@0.2.0:
+    resolution: {integrity: sha512-I19aIingLgR1fmhftnbWWO3dXc0hSxqHQHQb3H8m+K3TnEn/iSeTZZOyvKXWqQESMwuUVnatlCnZdLBZZt2VSA==}
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -5272,6 +5284,8 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/nprogress@0.2.3': {}
+
   '@types/pdfkit@0.17.2':
     dependencies:
       '@types/node': 20.19.9
@@ -6856,6 +6870,8 @@ snapshots:
       abbrev: 1.1.1
 
   normalize-range@0.1.2: {}
+
+  nprogress@0.2.0: {}
 
   object-assign@4.1.1: {}
 

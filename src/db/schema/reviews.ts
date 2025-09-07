@@ -21,4 +21,9 @@ export const reviewHelpfulVotes = pgTable("review_helpful_votes", {
   ip: varchar("ip", { length: 48 }),
   isHelpful: boolean("is_helpful").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+},
+ (t) => [
+    index("reviews_product_id_idx").on(t.productId),
+    index("reviews_approved_idx").on(t.approved),
+  ],
+);

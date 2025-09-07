@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cfUrl } from "@/lib/data";
+import RouteProgress from "@/components/RouteProgress";
+
 
 // If you want to use your client Navigation, keep these lines and the <Navigation /> below.
 // If not, you can remove both import + NAV_ITEMS.
@@ -130,6 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </head>
 
         <body>
+          <RouteProgress />
           <NotificationBar />
           <Header />
           <SupportBanner />

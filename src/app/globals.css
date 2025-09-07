@@ -13,3 +13,10 @@
     width: auto;  
     }
 }
+
+/* NProgress bar style */
+#nprogress .bar {
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #22d3ee) !important; /* indigo → cyan */
+}
+#nprogress .peg { box-shadow: none !important; }

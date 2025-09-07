@@ -1,59 +1,44 @@
+// src/app/account/page.tsx
 import "server-only";
 import type { Metadata } from "next";
-
-/**
- * Account page (server component)
- * - Purely renders the frame & defers all dynamic bits to AccountClient.
- * - Keep server-only to avoid client bundling; no hooks here.
- */
+import Link from "next/link";
+import AccountClient from "./AccountClient";
+import { CATEGORIES_PATH } from "@/lib/paths"; // ← add
 
 export const metadata: Metadata = {
-  title: "Your Account • ADAP",
-  description:
-    "Manage orders, track shipments, view loyalty rewards, and maintain your addresses.",
+  title: "Your Account • Orders",
 };
 
 export default async function AccountPage() {
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-24 pt-10">
-      {/* HERO */}
-      <header className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 p-[1px] shadow-2xl">
-        <div className="rounded-3xl bg-white/95 p-6 sm:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-                Your Account
+    <main className="mx-auto max-w-6xl px-4 pb-16 pt-8">
+      <header className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 p-[1px] shadow-lg">
+        <div className="rounded-2xl bg-white/95 p-6 sm:p-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                Your Orders
               </h1>
-              <p className="max-w-2xl text-sm text-gray-600">
-                Track orders and shipments, manage addresses, redeem rewards, and
-                update your profile—all in one place.
+              <p className="mt-1 text-sm text-gray-600">
+                Track, reorder, and download your artwork.
               </p>
             </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href="/products"
-                className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+            <div className="mt-4 sm:mt-0">
+              <Link
+                href={CATEGORIES_PATH}            // ← points to your *working* categories page
+                className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
               >
-                Shop products
-              </a>
-              <a
-                href="/support"
-                className="inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 transition hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-600"
-              >
-                Create a support ticket
-              </a>
+                Continue shopping
+              </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* CONTENT (Client-rendered) */}
-      <section className="mt-10">
-        {/* We import as a dynamic client file to keep this server component clean */}
-        {/* @ts-expect-error - next will inline the client file */}
-        {await import("./AccountClient").then((m) => <m.default />)}
+      <section className="mt-8">
+        <AccountClient />
       </section>
     </main>
   );
 }
+
