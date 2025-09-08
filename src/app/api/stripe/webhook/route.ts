@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
-import { cartCredits } from "@/db/schema/cartCredit";
+import { cartCredits } from "@/db/schema/cartCredits";
 import { orders } from "@/db/schema/orders";
 import { getCartCreditsCents } from "@/lib/cartCredits";
 
@@ -123,105 +123,105 @@ export async function POST(req: NextRequest) {
   try {
     // 🚩 We primarily care about Payment Element flow
     // src/app/api/stripe/webhook/route.ts
-// (Only showing the inside of POST; keep the signature verification you already have)
+    // (Only showing the inside of POST; keep the signature verification you already have)
 
-if (event.type === "payment_intent.succeeded") {
-  const pi = event.data.object as Stripe.PaymentIntent;
-  const sid = pi.metadata?.sid ?? null;
-  const cartId = pi.metadata?.cartId ?? null;
-  await finalizePaidOrderFromCartRef({ piId: pi.id, sid, cartId });
-  return NextResponse.json({ ok: true });
-}
-
-if (event.type === "checkout.session.completed") {
-  const session = event.data.object as Stripe.Checkout.Session;
-  const sid = (session.metadata?.sid as string) ?? null;
-  const cartId = (session.metadata?.cartId as string) ?? null;
-
-  // Get the PI id (could be string or null)
-  const piId =
-    typeof session.payment_intent === "string"
-      ? session.payment_intent
-      : (session.payment_intent as any)?.id ?? null;
-
-  await finalizePaidOrderFromCartRef({ piId: piId ?? undefined, sid, cartId });
-  return NextResponse.json({ ok: true });
-}
-
-
-      // Idempotency: if we already recorded an order for this PI, exit early
-      const existing = await db
-        .select({ id: orders.id })
-        .from(orders)
-        .where(eq(orders.providerId, pi.id))
-        .limit(1);
-
-      if (existing.length > 0) {
-        return NextResponse.json({ ok: true, idempotent: true });
-      }
-
-      const cart = await loadOpenCartByRef({ cartId, sid });
-      if (!cart) {
-        // Cart already closed or missing—treat as idempotent success
-        return NextResponse.json({ ok: true, note: "cart_not_found_or_closed" });
-      }
-
-      // Recompute server totals (authoritative)
-      const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
-        await computeCartTotalsCents(cart);
-
-      // Optional safety: warn if mismatch with Stripe amount
-      if (typeof pi.amount === "number" && pi.amount !== totalCents) {
-        console.warn(
-          `Amount mismatch: PI=${pi.amount}, server=${totalCents}, cart=${cart.id}`
-        );
-      }
-
-      // Create order, close cart, clear credits (atomic)
-      const result = await db.transaction(async (tx) => {
-        const safeUserId = cart.sid; // fallback; if you store userId on cart, use it here
-
-        const [order] = await tx
-          .insert(orders)
-          .values({
-            id: undefined,
-            userId: safeUserId,
-            cartId: cart.id,
-            status: "placed",
-            paymentStatus: "paid",
-            provider: "stripe",
-            providerId: pi.id,
-
-            currency: ordersCurrency,
-            subtotalCents,
-            shippingCents: shipCents,
-            taxCents,
-            discountCents: creditsCents, // roll-up discount
-            creditsCents,                // loyalty bucket
-            totalCents,
-
-            placedAt: new Date().toISOString(),
-          } as any)
-          .returning();
-
-        await tx.update(carts).set({ status: "closed" }).where(eq(carts.id, cart.id));
-        await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
-
-        return { orderId: order.id };
-      });
-
-      return NextResponse.json({ ok: true, orderId: result.orderId });
+    if (event.type === "payment_intent.succeeded") {
+      const pi = event.data.object as Stripe.PaymentIntent;
+      const sid = pi.metadata?.sid ?? null;
+      const cartId = pi.metadata?.cartId ?? null;
+      await finalizePaidOrderFromCartRef({ piId: pi.id, sid, cartId });
+      return NextResponse.json({ ok: true });
     }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const sid = (session.metadata?.sid as string) ?? null;
+      const cartId = (session.metadata?.cartId as string) ?? null;
+
+      // Get the PI id (could be string or null)
+      const piId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent as any)?.id ?? null;
+
+      await finalizePaidOrderFromCartRef({ piId: piId ?? undefined, sid, cartId });
+      return NextResponse.json({ ok: true });
+    }
+
+
+    // Idempotency: if we already recorded an order for this PI, exit early
+    const existing = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.providerId, pi.id))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return NextResponse.json({ ok: true, idempotent: true });
+    }
+
+    const cart = await loadOpenCartByRef({ cartId, sid });
+    if (!cart) {
+      // Cart already closed or missing—treat as idempotent success
+      return NextResponse.json({ ok: true, note: "cart_not_found_or_closed" });
+    }
+
+    // Recompute server totals (authoritative)
+    const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
+      await computeCartTotalsCents(cart);
+
+    // Optional safety: warn if mismatch with Stripe amount
+    if (typeof pi.amount === "number" && pi.amount !== totalCents) {
+      console.warn(
+        `Amount mismatch: PI=${pi.amount}, server=${totalCents}, cart=${cart.id}`
+      );
+    }
+
+    // Create order, close cart, clear credits (atomic)
+    const result = await db.transaction(async (tx) => {
+      const safeUserId = cart.sid; // fallback; if you store userId on cart, use it here
+
+      const [order] = await tx
+        .insert(orders)
+        .values({
+          id: undefined,
+          userId: safeUserId,
+          cartId: cart.id,
+          status: "placed",
+          paymentStatus: "paid",
+          provider: "stripe",
+          providerId: pi.id,
+
+          currency: ordersCurrency,
+          subtotalCents,
+          shippingCents: shipCents,
+          taxCents,
+          discountCents: creditsCents, // roll-up discount
+          creditsCents,                // loyalty bucket
+          totalCents,
+
+          placedAt: new Date().toISOString(),
+        } as any)
+        .returning();
+
+      await tx.update(carts).set({ status: "closed" }).where(eq(carts.id, cart.id));
+      await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
+
+      return { orderId: order.id };
+    });
+
+    return NextResponse.json({ ok: true, orderId: result.orderId });
+  }
 
     // Legacy/no-op for Checkout Sessions (you’re not using Checkout now)
     if (event.type === "checkout.session.completed") {
-      // You can keep this for backward compatibility, or safely ignore:
-      // const session = event.data.object as Stripe.Checkout.Session;
-      // console.log("Checkout session completed (unused in Payment Element flow)", session.id);
-    }
-  } catch (e) {
-    console.error("webhook handler failed:", e);
+    // You can keep this for backward compatibility, or safely ignore:
+    // const session = event.data.object as Stripe.Checkout.Session;
+    // console.log("Checkout session completed (unused in Payment Element flow)", session.id);
   }
+} catch (e) {
+  console.error("webhook handler failed:", e);
+}
 
-  return NextResponse.json({ received: true });
+return NextResponse.json({ received: true });
 }

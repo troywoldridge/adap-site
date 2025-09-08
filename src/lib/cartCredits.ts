@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { cartCredits } from "@/db/schema/cartCredit";
+import { cartCredits } from "@/db/schema/cartCredits";
 import { eq } from "drizzle-orm";
 
 /** Sum of all credits (cents) currently applied to a cart */

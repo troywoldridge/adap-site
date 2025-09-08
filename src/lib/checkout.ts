@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
-import { cartCredits } from "@/db/schema/cartCredit"; // <- your existing singular file
+import { cartCredits } from "@/db/schema/cartCredits"; // <- your existing singular file
 import { orders } from "@/db/schema/orders";
 import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty"; // <- add this
 

@@ -1,316 +1,287 @@
-// src/app/product/[productId]/page.tsx
-import Image from "next/image";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+// src/app/page.tsx
 import type { Metadata } from "next";
+import Hero from "@/components/Hero";
+import FeaturedCategories from "@/components/FeaturedCategories";
+import { getLocalCategories } from "@/lib/catalogLocal";
+import SignupPromoCard from "@/components/SignupPromoCard";
+import SalesCards, { type SaleCard } from "@/components/SalesCards";
 
-import {
-  getSinaliteProductMeta,
-  getSinaliteProductArrays,
-  normalizeOptionGroups,
-  getDefaultPriceSnapshot,
-} from "@/lib/sinalite.client";
-import { productImagesForProductId } from "@/lib/product-images";
-import ProductBuyBox from "@/components/product/ProductBuyBox";
-import ProductInfoTabs from "@/components/product/ProductInfoTabs";
-import ProductReviews from "@/components/product/ProductReviews";
-import ProductGallery from "@/components/product/ProductGallery";
-import MobileAddToCartBar from "@/components/product/MobileAddToCartBar";
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
 
-import productAssetsRaw from "@/data/productAssets.json";
-import imagesAssetsRaw from "@/data/images.json";
-import { cfImage } from "@/lib/cfImages";
+type LocalCategory = {
+  slug: string;
+  name: string;
+  image?: string | null; // Cloudflare Images URL from your lib
+  description?: string | null;
+};
 
-export const dynamic = "force-dynamic";
+// (Optional) If you want a home-specific title/desc that override layout defaults:
+export const metadata: Metadata = {
+  title: "American Design And Printing | Custom Print Experts",
+  description:
+    "Grow your print business with trade-only pricing, fast turnaround, 24/7 tracking, and pro support. Powered by SinaLite.",
+  alternates: { canonical: "/" },
+};
 
-/* ---------------------- helpers ---------------------- */
-type BuyBoxOption = { id: number; name: string };
-type BuyBoxOptionGroup = { name: string; options: BuyBoxOption[] };
+export default function HomePage() {
+  const categories = getLocalCategories() as LocalCategory[];
 
-function toBuyBoxGroups(groups: unknown): BuyBoxOptionGroup[] {
-  const src = Array.isArray(groups) ? groups : [];
-  const out: BuyBoxOptionGroup[] = [];
+  const featuredSlugs = ["business-cards", "large-format", "print-products"];
+  const featured = featuredSlugs
+    .map((slug) => categories.find((c) => c.slug === slug) || null)
+    .filter((c): c is LocalCategory => !!c)
+    .map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      imageUrl: c.image ?? "",
+      href: `/categories/${c.slug}`,
+      description: c.description ?? undefined,
+    }));
 
-  for (const g of src) {
-    const gg = g as any;
+  const promos: SaleCard[] = [
+    {
+      id: "foam-board",
+      name: "Foam Board",
+      href: "/products/foam-board",
+      imageUrl:
+        "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/e02bbfd1-7096-4c3b-9c50-61b5a7d26100/saleCard",
+      discountLabel: "10% OFF",
+    },
+    {
+      id: "door-hangers",
+      name: "Door Hangers",
+      href: "/products/door-hangers",
+      imageUrl:
+        "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/49701951-43d8-4abc-5dcc-2101ef4cdd00/saleCard",
+      discountLabel: "10% OFF",
+    },
+    {
+      id: "soft-touch-bc",
+      name: "Soft Touch Business Cards",
+      href: "/products/soft-touch-business-cards",
+      imageUrl:
+        "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/0053681e-2792-4571-ef75-b844fd438400/saleCard",
+      discountLabel: "10% OFF",
+    },
+  ];
 
-    const groupName = String(
-      gg?.name ?? gg?.groupName ?? gg?.label ?? gg?.title ?? ""
-    ).trim();
-    if (!groupName) continue;
+  /* ---------------- JSON-LD: ItemList (Featured Categories) ---------------- */
+  const categoriesLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: featured.map((c, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: c.name,
+      url: `${SITE}${c.href}`,
+      image: c.imageUrl || undefined,
+    })),
+  };
 
-    const rawItems: unknown[] =
-      Array.isArray(gg?.options) ? gg.options :
-      Array.isArray(gg?.values)  ? gg.values  :
-      Array.isArray(gg?.items)   ? gg.items   :
-      Array.isArray(gg?.choices) ? gg.choices : [];
+  /* ---------------- JSON-LD: ItemList (Promoted Products) ------------------ */
+  const promosLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: promos.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Product",
+        name: p.name,
+        url: `${SITE}${p.href}`,
+        image: p.imageUrl,
+        // price/offers come from live SinaLite flows on the product page
+      },
+    })),
+  };
 
-    const options = rawItems
-      .map((o) => {
-        const oo = o as any;
-        const idCandidate =
-          oo?.id ?? oo?.valueId ?? oo?.optionId ?? oo?.value ?? oo?.code ?? oo?.key;
-        const idNum = Number(idCandidate);
-        if (!Number.isFinite(idNum) || idNum <= 0) return null;
-
-        const name = String(
-          oo?.name ?? oo?.label ?? oo?.valueName ?? oo?.title ?? oo?.text ?? idCandidate ?? ""
-        ).trim();
-        if (!name) return null;
-
-        return { id: idNum, name };
-      })
-      .filter(Boolean) as BuyBoxOption[];
-
-    if (options.length === 0) continue;
-    out.push({ name: groupName, options });
-  }
-
-  return out;
-}
-
-function parseCfId(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    const parts = u.pathname.split("/").filter(Boolean);
-    // https://imagedelivery.net/<hash>/<id>/<variant>
-    return parts.length >= 3 ? parts[2] : parts[1] || null;
-  } catch {
-    return null;
-  }
-}
-
-function titleCase(s?: string | null) {
-  if (!s) return "";
-  return s
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-function assetNameFallback(id: number): string | null {
-  const all = [...(productAssetsRaw as any[]), ...(imagesAssetsRaw as any[])];
-  const a = all.find((x) => Number(x?.product_id) === id);
-  return a ? titleCase(a.name || a.matched_sku) : null;
-}
-
-/* ---------------------- SEO ---------------------- */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ productId: string }>;
-}): Promise<Metadata> {
-  const { productId: id } = await params;
-  let meta: any = null;
-  try {
-    meta = await getSinaliteProductMeta(id);
-  } catch {}
-  const idNum = Number(id);
-  const name =
-    meta?.name || meta?.title || assetNameFallback(idNum) || `Product ${id}`;
-  const desc =
-    meta?.description || `Order ${name} online — trade pricing via SinaLite.`;
-
-  return { title: name, description: desc };
-}
-
-/* ---------------------- Page ---------------------- */
-export default async function ProductPage({
-  params,
-}: {
-  params: Promise<{ productId: string }>;
-}) {
-  const { productId: id } = await params;
-  const idNum = Number(id);
-  if (!Number.isFinite(idNum) || idNum <= 0) return notFound();
-
-  // meta
-  let meta: any = null;
-  try {
-    meta = await getSinaliteProductMeta(id);
-  } catch {
-    return notFound();
-  }
-  if (!meta) return notFound();
-
-  // option groups -> BuyBox format
-  const { optionsArray } = await getSinaliteProductArrays(id);
-  const normalized = normalizeOptionGroups(optionsArray || []);
-  const optionGroups: BuyBoxOptionGroup[] = toBuyBoxGroups(normalized);
-
-  // gallery
-  const rawGallery = productImagesForProductId(id);
-  const gallery = rawGallery.length
-    ? rawGallery
-    : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", "productHero")];
-  const productName =
-    meta?.name || meta?.title || assetNameFallback(idNum) || `Product ${id}`;
-  const heroCfId = parseCfId(gallery[0]);
-
-  // starting price (best effort)
-  let startingPriceDisplay: string | undefined;
-  try {
-    const snap = await getDefaultPriceSnapshot(idNum); // { price, currency }
-    if (snap && typeof snap.price === "number") {
-      startingPriceDisplay = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: snap.currency || "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(snap.price);
-    }
-  } catch {
-    // non-fatal
-  }
-
-  // tabs content
-  const details = (
-    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-      {meta?.description ? (
-        <li className="col-span-full">{meta.description}</li>
-      ) : null}
-      {meta?.paperType ? (
-        <li>
-          <strong>Paper Type:</strong> {meta.paperType}
-        </li>
-      ) : null}
-      {meta?.coating ? (
-        <li>
-          <strong>Coating:</strong> {meta.coating}
-        </li>
-      ) : null}
-      {meta?.color ? (
-        <li>
-          <strong>Color:</strong> {meta.color}
-        </li>
-      ) : null}
-      {meta?.quantities ? (
-        <li>
-          <strong>Quantities:</strong> {meta.quantities}
-        </li>
-      ) : null}
-      {meta?.sizes ? (
-        <li>
-          <strong>Sizes:</strong> {meta.sizes}
-        </li>
-      ) : null}
-      {meta?.finishing ? (
-        <li>
-          <strong>Finishing:</strong> {meta.finishing}
-        </li>
-      ) : null}
-      {meta?.fileType ? (
-        <li>
-          <strong>File Type:</strong> {meta.fileType}
-        </li>
-      ) : null}
-    </ul>
-  );
-
-  const filePrep = (
-    <div className="text-sm leading-6">
-      {meta?.filePrep ? (
-        <div dangerouslySetInnerHTML={{ __html: meta.filePrep }} />
-      ) : (
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Use CMYK color, 300 DPI (minimum).</li>
-          <li>Keep text 1/8″ inside safe margins.</li>
-          <li>Include 1/8″ bleed on all sides.</li>
-          <li>Accepted files: PDF (preferred), AI, PSD, TIFF.</li>
-        </ul>
-      )}
-    </div>
-  );
-
-  const reviewsSlot = (
-    <ProductReviews productId={id} productName={productName} />
-  );
+  /* ---------------- JSON-LD: FAQPage (Home) --------------------------------
+     Built from your “Why choose ADAP?” + “Our promise” copy so it matches on-page content.
+  --------------------------------------------------------------------------- */
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "How does ADAP help me make more money?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "We offer low trade-only pricing powered by SinaLite so you keep more margin while delivering premium quality.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Can ADAP cover all my clients’ printing needs?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "Yes — become a one-stop shop with a wide range of print, large format, and more, all fulfilled to spec.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How fast is turnaround?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "Fast! Live ETAs show during pricing and checkout. Turnaround depends on options and quantity.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Do you deliver across the USA?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "Yes. Our promise is on-time delivery anywhere in the USA with reliable carriers.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is there real-time order tracking?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "Absolutely — you get 24/7 live tracking from production through delivery.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Are there any hidden costs?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "No hidden costs, no delays, and no paperwork — transparent pricing at checkout.",
+        },
+      },
+    ],
+  };
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 pb-28 md:pb-8">
-      {/* breadcrumbs */}
-      <nav className="mb-5 text-sm text-gray-600" aria-label="Breadcrumb">
-        <ol className="flex flex-wrap items-center gap-1">
-          <li>
-            <Link className="hover:underline" href="/">
-              Home
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link className="hover:underline" href="/products">
-              Products
-            </Link>
-          </li>
-          <li>/</li>
-          <li aria-current="page" className="text-gray-900 font-medium">
-            {productName}
-          </li>
-        </ol>
-      </nav>
+    <main>
+      {/* JSON-LD for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(categoriesLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(promosLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+      />
 
-      {/* title */}
-      <header className="mb-3">
-        <h1 className="text-2xl md:text-3xl font-semibold">{productName}</h1>
-        {meta?.description ? (
-          <p className="mt-2 max-w-2xl text-gray-600">{meta.description}</p>
-        ) : null}
-      </header>
+      {/* Floating “sign up & save” card for signed-out users */}
+      <SignupPromoCard />
 
-      {/* content */}
-      <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,720px)_minmax(0,460px)]">
-        {/* LEFT */}
-        <div>
-          <ProductGallery images={gallery} productName={productName} />
-          <ProductInfoTabs
-            details={details}
-            filePrep={filePrep}
-            reviewsSlot={reviewsSlot}
-          />
+      {/* Hero */}
+      <Hero />
+
+      {/* Sales Card */}
+      <SalesCards items={promos} />
+
+      {/* Featured Category Cards */}
+      <section className="pt-10">
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
+            Shop by Category
+          </h2>
+          <FeaturedCategories categories={featured} limit={3} />
         </div>
-
-        {/* RIGHT: Buy Box */}
-        <aside className="lg:sticky lg:top-24 h-fit" id="buy-box">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h3 className="mb-4 text-lg font-semibold">Price this item</h3>
-            <div className="mb-4 flex items-center gap-3 text-xs text-gray-600">
-              <span className="inline-flex items-center gap-1">
-                ✅ <span>Trade-only pricing</span>
-              </span>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1">
-                🚚 <span>Fast turnaround</span>
-              </span>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1">
-                🇺🇸 <span>Prints in USA</span>
-              </span>
-            </div>
-
-            <ProductBuyBox
-              productId={idNum}
-              productName={productName}
-              optionGroups={optionGroups}   
-              store={"US"}
-              cloudflareImageId={heroCfId || undefined}
-            />
-          </div>
-
-          <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-gray-600">
-            <div className="rounded-lg border p-3">🔒 Secure Checkout</div>
-            <div className="rounded-lg border p-3">📦 Real-time Tracking</div>
-            <div className="rounded-lg border p-3">💬 Live Support</div>
-          </div>
-        </aside>
       </section>
 
-      {/* mobile sticky add-to-cart */}
-      <MobileAddToCartBar
-        productName={productName}
-        startingPrice={startingPriceDisplay}
-        targetId="buy-box"
-      />
+      {/* Why Choose Us */}
+      <section className="pt-14">
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
+            Why choose ADAP?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-800">
+            <div className="flex items-center">
+              <span aria-hidden className="shrink-0 text-blue-700">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M3 13a6 6 0 016-6h4a5 5 0 015 5v2h-2l-1.5 3H7l-1-2H3v-2z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <circle cx="9.5" cy="8" r="1" fill="currentColor" />
+                </svg>
+              </span>
+              <p className="ml-3">Make more money with low trade pricing</p>
+            </div>
+
+            <div className="flex items-center">
+              <span aria-hidden className="shrink-0 text-blue-700">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="8"
+                    r="4"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M9 13l-3 8 6-3 6 3-3-8"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    fill="none"
+                  />
+                </svg>
+              </span>
+              <p className="ml-3">
+                Become a one-stop shop for your clients’ printing needs
+              </p>
+            </div>
+
+            <div className="flex items-center">
+              <span aria-hidden className="shrink-0 text-blue-700">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="8"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              </span>
+              <p className="ml-3">
+                Get repeat orders by delivering high-quality products on time
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Our Promise */}
+      <section className="pt-12 pb-16">
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
+            Our promise to you:
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
+            <div className="flex items-center">
+              <span aria-hidden className="text-green-700 mr-2">✔</span>
+              <p>On time delivery anywhere in USA</p>
+            </div>
+            <div className="flex items-center">
+              <span aria-hidden className="text-green-700 mr-2">✔</span>
+              <p>No hidden costs, no delays, &amp; no paperwork</p>
+            </div>
+            <div className="flex items-center">
+              <span aria-hidden className="text-green-700 mr-2">✔</span>
+              <p>24/7 live order tracking</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

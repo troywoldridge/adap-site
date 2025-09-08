@@ -1,5 +1,4 @@
 // src/app/category/[categorySlug]/[subcategorySlug]/[productSlug]/page.tsx
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -9,7 +8,7 @@ import {
   getSinaliteProductArrays,
   normalizeOptionGroups,
   getDefaultPriceSnapshot,
-} from "@/lib/sinalite.client"; // ✅ keep using your existing SinaLite helpers (per SinaLite API docs)
+} from "@/lib/sinalite.client"; // per SinaLite API docs
 
 import ProductBuyBox from "@/components/product/ProductBuyBox";
 import ProductInfoTabs from "@/components/product/ProductInfoTabs";
@@ -17,27 +16,34 @@ import ProductReviews from "@/components/product/ProductReviews";
 import ProductGallery from "@/components/product/ProductGallery";
 import MobileAddToCartBar from "@/components/product/MobileAddToCartBar";
 
+import categoryAssets from "@/data/categoryAssets.json";
 import subcategoryAssets from "@/data/subcategoryAssets.json";
 import productAssets from "@/data/productAssets.json";
-import { cfImage } from "@/lib/cfImages"; // Cloudflare Images → CDN URLs
+import { cfImage, type Variant as CfVariant } from "@/lib/cfImages";
 
-/* ---------------------- types (loose to match JSON) ---------------------- */
+/* ---------------- types shaped to your JSON ---------------- */
+type Category = { id?: number | string | null; slug: string; name?: string | null };
 type Subcategory = {
   id?: number | string | null;
   subcategory_id?: number | string | null;
+  category_id?: number | string | null;
+  category_slug?: string | null;
   slug?: string | null;
   name: string;
+  cf_image_id?: string | null;
 };
-
 type ProductRow = {
-  id?: number | string | null;          // local numeric id (often equals Sinalite product id)
-  sinalite_id?: number | string | null; // preferred for API calls
+  id?: number | string | null;
+  sinalite_id?: number | string | null;
+  category_id?: number | string | null;
+  category_slug?: string | null;
   subcategory_id?: number | string | null;
+  subcategory_slug?: string | null; // lives on PRODUCT rows
   sku?: string | null;
   name?: string | null;
   slug?: string | null;
-  ["slugs (products)"]?: string | null;
   product_slug?: string | null;
+  ["slugs (products)"]?: string | null;
   cf_image_1_id?: string | null;
   cf_image_2_id?: string | null;
   cf_image_3_id?: string | null;
@@ -45,7 +51,11 @@ type ProductRow = {
   [k: string]: any;
 };
 
-/* ---------------------- tiny utils ---------------------- */
+/* ---------------- utils ---------------- */
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
+const V = (v: string) => v as unknown as CfVariant;
+
 function toNum(n: unknown): number | null {
   const s = n == null ? "" : String(n).trim();
   if (!s) return null;
@@ -55,6 +65,10 @@ function toNum(n: unknown): number | null {
 function toSlug(s?: string | null): string {
   if (!s) return "";
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+function titleCase(s?: string | null) {
+  if (!s) return "";
+  return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 function pickSubId(s: Subcategory): number | null {
   for (const k of ["id", "subcategory_id"] as const) {
@@ -85,59 +99,32 @@ function allImageIds(p: ProductRow): string[] {
   ].filter((x): x is string => !!x);
   return Array.from(new Set(ids));
 }
-function titleCase(s?: string | null) {
-  if (!s) return "";
-  return s
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-/** Extract Cloudflare image ID from a full imagedelivery URL if needed */
-function parseCfId(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    const parts = u.pathname.split("/").filter(Boolean);
-    return parts.length >= 3 ? parts[2] : parts[1] || null;
-  } catch {
-    return null;
-  }
-}
 
-/* ---------------------- BuyBox mapping ---------------------- */
+/* ---------------- BuyBox mapping ---------------- */
 type BuyBoxOption = { id: number; name: string };
 type BuyBoxOptionGroup = { name: string; options: BuyBoxOption[] };
 
-function toBuyBoxGroups(groups: unknown): BuyBoxOptionGroup[] {
+function toBuyBoxGroups(groups: any[]): BuyBoxOptionGroup[] {
   const src = Array.isArray(groups) ? groups : [];
   const out: BuyBoxOptionGroup[] = [];
 
   for (const g of src) {
-    const gg = g as any;
-
-    const groupName = String(
-      gg?.name ?? gg?.groupName ?? gg?.label ?? gg?.title ?? ""
-    ).trim();
+    const groupName = String(g?.name ?? g?.groupName ?? g?.label ?? g?.title ?? "").trim();
     if (!groupName) continue;
 
     const rawItems: unknown[] =
-      Array.isArray(gg?.options) ? gg.options :
-      Array.isArray(gg?.values)  ? gg.values  :
-      Array.isArray(gg?.items)   ? gg.items   :
-      Array.isArray(gg?.choices) ? gg.choices : [];
+      Array.isArray(g?.options) ? g.options :
+      Array.isArray(g?.values)  ? g.values  :
+      Array.isArray(g?.items)   ? g.items   :
+      Array.isArray(g?.choices) ? g.choices : [];
 
     const options = rawItems
-      .map((o) => {
-        const oo = o as any;
-        const idCandidate =
-          oo?.id ?? oo?.valueId ?? oo?.optionId ?? oo?.value ?? oo?.code ?? oo?.key;
+      .map((o: any) => {
+        const idCandidate = o?.id ?? o?.valueId ?? o?.optionId ?? o?.value ?? o?.code ?? o?.key;
         const idNum = Number(idCandidate);
         if (!Number.isFinite(idNum) || idNum <= 0) return null;
 
-        const name = String(
-          oo?.name ?? oo?.label ?? oo?.valueName ?? oo?.title ?? oo?.text ?? idCandidate ?? ""
-        ).trim();
+        const name = String(o?.name ?? o?.label ?? o?.valueName ?? o?.title ?? o?.text ?? idCandidate ?? "").trim();
         if (!name) return null;
 
         return { id: idNum, name };
@@ -151,19 +138,82 @@ function toBuyBoxGroups(groups: unknown): BuyBoxOptionGroup[] {
   return out;
 }
 
-/* ---------------------- SEO (optional) ---------------------- */
+/* --------- SEO with resolved product name when possible --------- */
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ categorySlug: string; subcategorySlug: string; productSlug: string }>;
 }): Promise<Metadata> {
-  const { productSlug } = await params;
+  const { categorySlug, subcategorySlug, productSlug } = await params;
 
-  // We don’t have the id here yet, so render a generic title; the page will
-  // render the precise title once we resolve the product from assets + SinaLite.
+  const cats = categoryAssets as Category[];
+  const subs = subcategoryAssets as Subcategory[];
+  const prods = productAssets as ProductRow[];
+
+  const cat = cats.find((c) => c.slug === categorySlug);
+  if (!cat) return { title: "Product Not Found" };
+
+  // scope sub to category (slug or id)
+  const subPool = subs.filter(
+    (s) =>
+      (s.category_slug || "").trim() === cat.slug ||
+      (toNum(s.category_id) !== null && toNum(s.category_id) === toNum(cat.id))
+  );
+  const sub = subPool.find((s) => ensureSubSlug(s) === subcategorySlug) || subPool.find((s) => toSlug(s.name) === subcategorySlug);
+  if (!sub) return { title: "Product Not Found" };
+
+  // scope products to category (+ sub if available)
+  const prodPool = prods.filter(
+    (p) =>
+      (p.category_slug || "").trim() === cat.slug ||
+      (toNum(p.category_id) !== null && toNum(p.category_id) === toNum(cat.id))
+  );
+  const subId = pickSubId(sub);
+  const prodScoped =
+    subId != null
+      ? prodPool.filter(
+          (p) =>
+            toNum(p.subcategory_id) === subId ||
+            (p.subcategory_slug || "") === ensureSubSlug(sub)
+        )
+      : prodPool;
+
+  const row =
+    prodScoped.find((p) => productSlugFromRow(p) === productSlug) ||
+    prodPool.find((p) => productSlugFromRow(p) === productSlug);
+  if (!row) return { title: "Product Not Found" };
+
+  const idStr = row.sinalite_id != null ? String(row.sinalite_id) : row.id != null ? String(row.id) : null;
+
+  let metaTitle = titleCase(row.name || productSlug);
+  let metaDesc = `Order ${metaTitle} online — live specs & pricing via SinaLite; images via Cloudflare CDN.`;
+  try {
+    if (idStr) {
+      const m = await getSinaliteProductMeta(idStr);
+      if (m?.name) metaTitle = m.name; // no `.title`
+      if (m?.description) metaDesc = m.description;
+    }
+  } catch {}
+
+  const firstImg = allImageIds(row)[0];
+  const ogImg = firstImg ? cfImage(firstImg, V("productHero")) : undefined;
+
   return {
-    title: titleCase(productSlug),
-    description: `Order ${titleCase(productSlug)} online — live specs & pricing via SinaLite; images via Cloudflare CDN.`,
+    title: `${metaTitle} | American Design And Printing`,
+    description: metaDesc,
+    alternates: { canonical: `/category/${categorySlug}/${subcategorySlug}/${productSlug}` },
+    openGraph: {
+      title: metaTitle,
+      description: metaDesc,
+      url: `${SITE}/category/${categorySlug}/${subcategorySlug}/${productSlug}`,
+      images: ogImg ? [{ url: ogImg, width: 1200, height: 630 }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: metaTitle,
+      description: metaDesc,
+      images: ogImg ? [ogImg] : undefined,
+    },
   };
 }
 
@@ -175,102 +225,113 @@ export default async function ProductPage({
 }) {
   const { categorySlug, subcategorySlug, productSlug } = await params;
 
-  const subs = subcategoryAssets as unknown as Subcategory[];
-  const prods = productAssets as unknown as ProductRow[];
+  const cats = categoryAssets as Category[];
+  const subs = subcategoryAssets as Subcategory[];
+  const prods = productAssets as ProductRow[];
 
-  // Ensure subcategory exists from route (tolerant)
+  const cat = cats.find((c) => c.slug === categorySlug);
+  if (!cat) return notFound();
+
+  // scope sub to category
+  const subPool = subs.filter(
+    (s) =>
+      (s.category_slug || "").trim() === cat.slug ||
+      (toNum(s.category_id) !== null && toNum(s.category_id) === toNum(cat.id))
+  );
   const sub =
-    subs.find((s) => ensureSubSlug(s) === subcategorySlug) ||
-    subs.find((s) => toSlug(s.name) === subcategorySlug);
+    subPool.find((s) => ensureSubSlug(s) === subcategorySlug) ||
+    subPool.find((s) => toSlug(s.name) === subcategorySlug);
   if (!sub) return notFound();
-
   const subId = pickSubId(sub);
 
-  // Find product row by slug (scoped to subcategory if possible)
-  let prodRow =
-    prods.find(
-      (p) => productSlugFromRow(p) === productSlug && (subId === null || toNum(p.subcategory_id) === subId)
-    ) || prods.find((p) => productSlugFromRow(p) === productSlug);
+  // scope products to category (+ sub if available)
+  const prodPool = prods.filter(
+    (p) =>
+      (p.category_slug || "").trim() === cat.slug ||
+      (toNum(p.category_id) !== null && toNum(p.category_id) === toNum(cat.id))
+  );
+  const prodScoped =
+    subId != null
+      ? prodPool.filter(
+          (p) =>
+            toNum(p.subcategory_id) === subId ||
+            (p.subcategory_slug || "") === ensureSubSlug(sub)
+        )
+      : prodPool;
+
+  const prodRow =
+    prodScoped.find((p) => productSlugFromRow(p) === productSlug) ||
+    prodPool.find((p) => productSlugFromRow(p) === productSlug);
 
   if (!prodRow) return notFound();
 
-  // Sinalite product id (preferred: sinalite_id, else id)
+  /* ---------- Sinalite product id (ONE place) ---------- */
   const sinaliteIdStr =
     prodRow.sinalite_id != null ? String(prodRow.sinalite_id) :
     prodRow.id != null         ? String(prodRow.id) : null;
 
-  const sinaliteIdNum = sinaliteIdStr ? Number(sinaliteIdStr) : NaN;
-  if (!sinaliteIdStr || !Number.isFinite(sinaliteIdNum) || sinaliteIdNum <= 0) {
+  if (!sinaliteIdStr) {
     if (process.env.NODE_ENV !== "production") {
-      // eslint-disable-next-line no-console
-      console.warn("[ProductPage] Missing/invalid Sinalite product id for route", { productSlug, prodRow });
+      console.warn("[PDP] Missing Sinalite id", { productSlug, prodRow });
     }
     return notFound();
   }
 
-  // --- Fetch live data from SinaLite (per docs) ---
+  const sinaliteIdNum = Number(sinaliteIdStr);
+  if (!Number.isFinite(sinaliteIdNum) || sinaliteIdNum <= 0) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[PDP] Invalid Sinalite id", { sinaliteIdStr });
+    }
+    return notFound();
+  }
+
+  /* ---------- Live meta + options via SinaLite (per docs) ---------- */
   let meta: any = null;
   try {
     meta = await getSinaliteProductMeta(sinaliteIdStr);
-  } catch {
-    // still render with local name/images; buy box may fail without meta
-  }
+  } catch {}
 
-  const { optionsArray } = (await getSinaliteProductArrays(sinaliteIdStr).catch(() => ({ optionsArray: [] }))) as any;
-  const normalized = normalizeOptionGroups(optionsArray || []);
-  const optionGroups: BuyBoxOptionGroup[] = toBuyBoxGroups(normalized);
+  const arrays = await getSinaliteProductArrays(sinaliteIdStr).catch(() => null);
+  const optionsArray: any[] = (arrays?.optionsArray ?? []) as any[];
+  const normalized: any[] = normalizeOptionGroups(optionsArray) as any[];
+  const buyBoxGroups: BuyBoxOptionGroup[] = toBuyBoxGroups(normalized);
 
-  // --- Build gallery from Cloudflare image IDs in productAssets.json ---
+  /* ---------- Cloudflare gallery via productAssets ---------- */
   const ids = allImageIds(prodRow);
   const gallery: string[] =
-    ids.length > 0 ? ids.map((id, i) => cfImage(id, i === 0 ? "productHero" : "productCard") || "")
-                   : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", "productHero")!]; // placeholder
+    ids.length > 0
+      ? ids.map((id, i) => cfImage(id, V(i === 0 ? "productHero" : "productCard")) || "")
+      : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", V("productHero"))!];
 
   const productName =
-    meta?.name || meta?.title || (prodRow.name ? String(prodRow.name) : titleCase(productSlug));
-  const heroCfId = ids[0] ?? parseCfId(gallery[0]);
+    meta?.name || (prodRow.name ? String(prodRow.name) : titleCase(productSlug));
+  const heroCfId = ids[0] || null;
 
-  // --- Best-effort starting price ---
+  /* ---------- Price snapshot (best effort) ---------- */
   let startingPriceDisplay: string | undefined;
   try {
     const snap = await getDefaultPriceSnapshot(sinaliteIdNum); // { price, currency }
-    if (snap && typeof snap.price === "number") {
+    if (snap && typeof (snap as any).price === "number") {
       startingPriceDisplay = new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: (snap as any).currency || "USD",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(snap.price);
+      }).format((snap as any).price);
     }
-  } catch { /* non-fatal */ }
+  } catch {}
 
-  // --- Tabs content (driven by SinaLite meta when available) ---
+  /* ---------- Tabs ---------- */
   const details = (
     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-      {meta?.description ? (
-        <li className="col-span-full">{meta.description}</li>
-      ) : null}
-      {meta?.paperType ? (
-        <li><strong>Paper Type:</strong> {meta.paperType}</li>
-      ) : null}
-      {meta?.coating ? (
-        <li><strong>Coating:</strong> {meta.coating}</li>
-      ) : null}
-      {meta?.color ? (
-        <li><strong>Color:</strong> {meta.color}</li>
-      ) : null}
-      {meta?.quantities ? (
-        <li><strong>Quantities:</strong> {meta.quantities}</li>
-      ) : null}
-      {meta?.sizes ? (
-        <li><strong>Sizes:</strong> {meta.sizes}</li>
-      ) : null}
-      {meta?.finishing ? (
-        <li><strong>Finishing:</strong> {meta.finishing}</li>
-      ) : null}
-      {meta?.fileType ? (
-        <li><strong>File Type:</strong> {meta.fileType}</li>
-      ) : null}
+      {meta?.description ? <li className="col-span-full">{meta.description}</li> : null}
+      {meta?.paperType ? <li><strong>Paper Type:</strong> {meta.paperType}</li> : null}
+      {meta?.coating ? <li><strong>Coating:</strong> {meta.coating}</li> : null}
+      {meta?.color ? <li><strong>Color:</strong> {meta.color}</li> : null}
+      {meta?.quantities ? <li><strong>Quantities:</strong> {meta.quantities}</li> : null}
+      {meta?.sizes ? <li><strong>Sizes:</strong> {meta.sizes}</li> : null}
+      {meta?.finishing ? <li><strong>Finishing:</strong> {meta.finishing}</li> : null}
+      {meta?.fileType ? <li><strong>File Type:</strong> {meta.fileType}</li> : null}
     </ul>
   );
 
@@ -293,39 +354,24 @@ export default async function ProductPage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 pb-28 md:pb-8">
-      {/* breadcrumbs aligned to route */}
+      {/* breadcrumbs aligned to /category path */}
       <nav className="mb-5 text-sm text-gray-600" aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1">
           <li><Link className="hover:underline" href="/">Home</Link></li>
           <li>/</li>
-          <li>
-            <Link className="hover:underline" href={`/category/${categorySlug}`}>
-              {titleCase(categorySlug)}
-            </Link>
-          </li>
+          <li><Link className="hover:underline" href={`/category/${categorySlug}`}>{titleCase(categorySlug)}</Link></li>
           <li>/</li>
-          <li>
-            <Link
-              className="hover:underline"
-              href={`/category/${categorySlug}/${subcategorySlug}`}
-            >
-              {titleCase(subcategorySlug)}
-            </Link>
-          </li>
+          <li><Link className="hover:underline" href={`/category/${categorySlug}/${subcategorySlug}`}>{titleCase(subcategorySlug)}</Link></li>
           <li>/</li>
           <li aria-current="page" className="text-gray-900 font-medium">{productName}</li>
         </ol>
       </nav>
 
-      {/* title */}
       <header className="mb-3">
         <h1 className="text-2xl md:text-3xl font-semibold">{productName}</h1>
-        {meta?.description ? (
-          <p className="mt-2 max-w-2xl text-gray-600">{meta.description}</p>
-        ) : null}
+        {meta?.description ? <p className="mt-2 max-w-2xl text-gray-600">{meta.description}</p> : null}
       </header>
 
-      {/* content */}
       <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,720px)_minmax(0,460px)]">
         {/* LEFT */}
         <div>
@@ -348,9 +394,9 @@ export default async function ProductPage({
             <ProductBuyBox
               productId={sinaliteIdNum}
               productName={productName}
-              optionGroups={optionGroups}
-              store={"US"}
-              cloudflareImageId={heroCfId || undefined} // ✅ pass CF image ID (not URL) to BuyBox
+              optionGroups={buyBoxGroups}
+              store="US"
+              cloudflareImageId={heroCfId || undefined}
             />
           </div>
 
@@ -362,12 +408,7 @@ export default async function ProductPage({
         </aside>
       </section>
 
-      {/* mobile sticky add-to-cart */}
-      <MobileAddToCartBar
-        productName={productName}
-        startingPrice={startingPriceDisplay}
-        targetId="buy-box"
-      />
+      <MobileAddToCartBar productName={productName} startingPrice={startingPriceDisplay} targetId="buy-box" />
     </main>
   );
 }

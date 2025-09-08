@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
-import { cartCredits } from "@/db/schema/cartCredit";
+import { cartCredits } from "@/db/schema/cartCredits";
 import { and, eq } from "drizzle-orm";
 
 const SID_COOKIE = "sid";

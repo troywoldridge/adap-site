@@ -4,15 +4,15 @@ import path from "node:path";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-// ------- Inputs you already use -------
+// ------- Inputs -------
 const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || process.env.R2_PUBLIC_BASE || "";
-const R2_DIRECT_HOST    = process.env.R2_DIRECT_HOST || ""; // e.g. uploads.adapnow.com (optional)
+const R2_DIRECT_HOST    = process.env.R2_DIRECT_HOST || "";
 const R2_ACCOUNT_ID     = process.env.R2_ACCOUNT_ID || "";
 const R2_BUCKET         = process.env.R2_BUCKET || "";
 const R2_CDN_HOST       = process.env.R2_CDN_HOST || "cdn.adap.com";
 const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false";
 
-// ------- Compute CDN / public origin -------
+// ------- Compute CDN -------
 const PUBLIC_CDN = R2_PUBLIC_BASEURL || `https://${R2_CDN_HOST}`;
 
 let PUBLIC_CDN_ORIGIN = "";
@@ -22,22 +22,27 @@ let PUBLIC_CDN_PORT = "";
 
 try {
   const u = new URL(PUBLIC_CDN);
-  PUBLIC_CDN_ORIGIN   = u.origin;         // e.g. "https://cdn.adap.com"
-  PUBLIC_CDN_HOST     = u.hostname;       // e.g. "cdn.adap.com"
+  PUBLIC_CDN_ORIGIN   = u.origin;
+  PUBLIC_CDN_HOST     = u.hostname;
   PUBLIC_CDN_PROTOCOL = u.protocol.replace(":", "");
   PUBLIC_CDN_PORT     = u.port || "";
 } catch {}
 
-// ------- R2 bucket/direct helpers -------
+// R2 helpers
 const R2_BUCKET_HOST =
   R2_BUCKET && R2_ACCOUNT_ID ? `${R2_BUCKET}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : "";
 
 const R2_DIRECT_HTTPS = R2_DIRECT_HOST ? `https://${R2_DIRECT_HOST}` : "";
 const R2_DIRECT_HTTP  = R2_DIRECT_HOST ? `http://${R2_DIRECT_HOST}` : "";
 
-// small helper: dedupe, drop falsy, and remove accidental "https://." entries
+// helpers
 const sanitize = (arr) =>
   Array.from(new Set(arr.filter(Boolean))).filter((s) => !/^https:\/\/\./.test(s));
+
+// Strip non-ASCII + control chars from header values (HTTP/1.1)
+function asciiSafe(s) {
+  return String(s).replace(/[^\x20-\x7E]+/g, ""); // keep visible ASCII only
+}
 
 // ------- CSP lists -------
 const scriptSrcList = [
@@ -72,7 +77,7 @@ const connectSrcList = sanitize([
   `https://clerk.accounts.dev`,
   `https://*.clerk.accounts.dev`,
   `https://cdn.jsdelivr.net`,
-  // R2 endpoints you might call directly
+  // R2 endpoints
   `https://r2.cloudflarestorage.com`,
   `https://*.r2.cloudflarestorage.com`,
   R2_BUCKET_HOST ? `https://${R2_BUCKET_HOST}` : "",
@@ -89,21 +94,21 @@ const imgSrcList = sanitize([
   `'self'`,
   `data:`,
   `blob:`,
-  `https://imagedelivery.net`,              // Cloudflare Images (CDN)
+  `https://imagedelivery.net`, // Cloudflare Images (CDN)
+  `https://img.clerk.com`,      // Clerk provider icons
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
-  // R2 public reads (images/thumbs)
+  // R2 public reads
   `https://r2.cloudflarestorage.com`,
   `https://*.r2.cloudflarestorage.com`,
   `https://*.r2.dev`,
-  `https://${R2_CDN_HOST}`,                 // explicit CDN host (e.g. https://cdn.adap.com)
-  PUBLIC_CDN_ORIGIN,                        // computed from R2_PUBLIC_BASEURL or R2_CDN_HOST
+  `https://${R2_CDN_HOST}`,
+  PUBLIC_CDN_ORIGIN,
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
   isDev ? `http://localhost:3000` : ``,
 ]);
 
-// PDFs shown via <object>/<embed>
 const mediaSrcList = sanitize([
   `'self'`,
   `https:`,
@@ -119,6 +124,8 @@ const frameSrcList = sanitize([
   `https://js.stripe.com`,
   `https://hooks.stripe.com`,
   `https://pay.google.com`,
+  `https://accounts.google.com`,
+  `https://*.google.com`,
   `https://clerk.com`,
   `https://clerk.dev`,
   `https://clerk.accounts.dev`,
@@ -149,12 +156,30 @@ const directives = {
   "frame-ancestors": `'none'`,
 };
 
+// Build strings
 const ContentSecurityPolicy = Object.entries(directives)
   .map(([k, v]) => `${k} ${v}`)
   .join("; ");
 
+// ---------- DEV LOGGING ----------
+if (isDev) {
+  const logRows = Object.entries(directives).map(([k, v]) => ({ directive: k, value: v }));
+  console.log("\n🔐 CSP (dev) — effective directives");
+  console.table(logRows);
+  console.log("CSP (dev) — full string:\n", ContentSecurityPolicy, "\n");
+}
+
+// Build headers array (adds Report-Only + ASCII-safe preview in dev)
+const preview = asciiSafe(
+  ContentSecurityPolicy.length > 256
+    ? ContentSecurityPolicy.slice(0, 256) + "..."
+    : ContentSecurityPolicy
+);
+
 const securityHeaders = [
   { key: "Content-Security-Policy", value: ContentSecurityPolicy },
+  ...(isDev ? [{ key: "Content-Security-Policy-Report-Only", value: ContentSecurityPolicy }] : []),
+  ...(isDev ? [{ key: "X-CSP-Preview", value: preview }] : []),
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -164,13 +189,12 @@ const securityHeaders = [
 
 // ------- next/image remotePatterns -------
 const imageRemotePatterns = [
-  { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" },          // Cloudflare Images
+  { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" }, // Cloudflare Images
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
 ];
 
-// Add the public CDN
 if (PUBLIC_CDN_HOST) {
   imageRemotePatterns.push(
     PUBLIC_CDN_PORT
@@ -179,34 +203,27 @@ if (PUBLIC_CDN_HOST) {
   );
 }
 
-// Add the bucket subdomain (bucket.account.r2.cloudflarestorage.com)
 if (R2_BUCKET_HOST) {
   imageRemotePatterns.push({ protocol: "https", hostname: R2_BUCKET_HOST, pathname: "/**" });
 }
 
-// Add optional direct/custom host (http+https for local proxies, etc.)
 if (R2_DIRECT_HOST) {
   imageRemotePatterns.push({ protocol: "https", hostname: R2_DIRECT_HOST, pathname: "/**" });
   imageRemotePatterns.push({ protocol: "http",  hostname: R2_DIRECT_HOST, pathname: "/**" });
 }
 
-// Local dev
 if (isDev) {
   imageRemotePatterns.push({ protocol: "http", hostname: "localhost", port: "3000", pathname: "/**" });
 }
 
 const nextConfig = {
   reactStrictMode: true,
-
-  // ✅ New Next 15 property
   serverExternalPackages: ["pg", "pg-connection-string", "pg-pool"],
-
-  // Silence monorepo root warning
   outputFileTracingRoot: path.join(process.cwd()),
 
   images: {
     remotePatterns: imageRemotePatterns,
-    // Let Cloudflare Images deliver raw variants if you set USE_NEXT_IMAGE_OPTIMIZER="false"
+    // Cloudflare Images is our CDN—skip Next optimizer if you want pure variant delivery
     unoptimized: !USE_NEXT_IMAGE_OPTIMIZER,
     formats: ["image/avif", "image/webp"],
   },

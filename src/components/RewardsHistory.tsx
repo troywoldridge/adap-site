@@ -71,6 +71,7 @@ export default function RewardsHistory() {
         <div className="mt-2">
             <RewardsHistory />
         </div>
+        </div>
        </table>
     </div>
   );
