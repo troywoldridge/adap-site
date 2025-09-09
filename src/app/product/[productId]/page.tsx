@@ -1,287 +1,432 @@
-// src/app/page.tsx
+// src/app/category/[categorySlug]/[subcategorySlug]/[productSlug]/page.tsx
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Hero from "@/components/Hero";
-import FeaturedCategories from "@/components/FeaturedCategories";
-import { getLocalCategories } from "@/lib/catalogLocal";
-import SignupPromoCard from "@/components/SignupPromoCard";
-import SalesCards, { type SaleCard } from "@/components/SalesCards";
 
+import {
+  getSinaliteProductMeta,
+  getSinaliteProductArrays,
+  normalizeOptionGroups,
+  getDefaultPriceSnapshot,
+} from "@/lib/sinalite.client"; // Per SinaLite API docs; ensure this file is SERVER-safe (no "use client")
+
+import ProductBuyBox from "@/components/product/ProductBuyBox";
+import ProductInfoTabs from "@/components/product/ProductInfoTabs";
+import ProductReviews from "@/components/product/ProductReviews";
+import ProductGallery from "@/components/product/ProductGallery";
+import MobileAddToCartBar from "@/components/product/MobileAddToCartBar";
+
+import categoryAssets from "@/data/categoryAssets.json";
+import subcategoryAssets from "@/data/subcategoryAssets.json";
+import productAssets from "@/data/productAssets.json";
+import { cfImage, type Variant as CfVariant } from "@/lib/cfImages";
+
+/* ---------------- types shaped to your JSON ---------------- */
+type Category = { id?: number | string | null; slug: string; name?: string | null };
+type Subcategory = {
+  id?: number | string | null;
+  subcategory_id?: number | string | null;
+  category_id?: number | string | null;
+  category_slug?: string | null;
+  slug?: string | null;
+  name: string;
+  cf_image_id?: string | null;
+};
+type ProductRow = {
+  id?: number | string | null;
+  sinalite_id?: number | string | null;
+  category_id?: number | string | null;
+  category_slug?: string | null;
+  subcategory_id?: number | string | null;
+  subcategory_slug?: string | null; // lives on PRODUCT rows
+  sku?: string | null;
+  name?: string | null;
+  slug?: string | null;
+  product_slug?: string | null;
+  ["slugs (products)"]?: string | null;
+  cf_image_1_id?: string | null;
+  cf_image_2_id?: string | null;
+  cf_image_3_id?: string | null;
+  cf_image_4_id?: string | null;
+  [k: string]: any;
+};
+
+/* ---------------- utils ---------------- */
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
+const V = (v: string) => v as unknown as CfVariant;
 
-type LocalCategory = {
-  slug: string;
-  name: string;
-  image?: string | null; // Cloudflare Images URL from your lib
-  description?: string | null;
-};
+function toNum(n: unknown): number | null {
+  const s = n == null ? "" : String(n).trim();
+  if (!s) return null;
+  const v = Number(s);
+  return Number.isFinite(v) ? v : null;
+}
+function toSlug(s?: string | null): string {
+  if (!s) return "";
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+function titleCase(s?: string | null) {
+  if (!s) return "";
+  return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function pickSubId(s: Subcategory): number | null {
+  for (const k of ["id", "subcategory_id"] as const) {
+    const n = toNum((s as any)[k]);
+    if (n !== null) return n;
+  }
+  return null;
+}
+function ensureSubSlug(s: Subcategory): string {
+  return (s.slug && s.slug.trim()) || toSlug(s.name) || (pickSubId(s) ? `sub-${pickSubId(s)}` : "sub");
+}
+function productSlugFromRow(p: ProductRow): string {
+  const cands = [
+    p.slug,
+    p.product_slug,
+    p["slugs (products)"],
+    p.name ? toSlug(p.name) : "",
+    p.sku ? toSlug(p.sku) : "",
+  ].map((x) => (x ?? "").toString().trim());
+  return cands.find(Boolean) || "";
+}
+function allImageIds(p: ProductRow): string[] {
+  const ids = [
+    p.cf_image_1_id?.trim(),
+    p.cf_image_2_id?.trim(),
+    p.cf_image_3_id?.trim(),
+    p.cf_image_4_id?.trim(),
+  ].filter((x): x is string => !!x);
+  return Array.from(new Set(ids));
+}
 
-// (Optional) If you want a home-specific title/desc that override layout defaults:
-export const metadata: Metadata = {
-  title: "American Design And Printing | Custom Print Experts",
-  description:
-    "Grow your print business with trade-only pricing, fast turnaround, 24/7 tracking, and pro support. Powered by SinaLite.",
-  alternates: { canonical: "/" },
-};
+/* ---------------- BuyBox mapping ---------------- */
+type BuyBoxOption = { id: number; name: string };
+type BuyBoxOptionGroup = { name: string; options: BuyBoxOption[] };
 
-export default function HomePage() {
-  const categories = getLocalCategories() as LocalCategory[];
+function toBuyBoxGroups(groups: any[]): BuyBoxOptionGroup[] {
+  const src = Array.isArray(groups) ? groups : [];
+  const out: BuyBoxOptionGroup[] = [];
 
-  const featuredSlugs = ["business-cards", "large-format", "print-products"];
-  const featured = featuredSlugs
-    .map((slug) => categories.find((c) => c.slug === slug) || null)
-    .filter((c): c is LocalCategory => !!c)
-    .map((c) => ({
-      slug: c.slug,
-      name: c.name,
-      imageUrl: c.image ?? "",
-      href: `/categories/${c.slug}`,
-      description: c.description ?? undefined,
-    }));
+  for (const g of src) {
+    const groupName = String(g?.name ?? g?.groupName ?? g?.label ?? g?.title ?? "").trim();
+    if (!groupName) continue;
 
-  const promos: SaleCard[] = [
-    {
-      id: "foam-board",
-      name: "Foam Board",
-      href: "/products/foam-board",
-      imageUrl:
-        "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/e02bbfd1-7096-4c3b-9c50-61b5a7d26100/saleCard",
-      discountLabel: "10% OFF",
+    const rawItems: unknown[] =
+      Array.isArray(g?.options) ? g.options :
+      Array.isArray(g?.values)  ? g.values  :
+      Array.isArray(g?.items)   ? g.items   :
+      Array.isArray(g?.choices) ? g.choices : [];
+
+    const options = rawItems
+      .map((o: any) => {
+        const idCandidate = o?.id ?? o?.valueId ?? o?.optionId ?? o?.value ?? o?.code ?? o?.key;
+        const idNum = Number(idCandidate);
+        if (!Number.isFinite(idNum) || idNum <= 0) return null;
+
+        const name = String(o?.name ?? o?.label ?? o?.valueName ?? o?.title ?? o?.text ?? idCandidate ?? "").trim();
+        if (!name) return null;
+
+        return { id: idNum, name };
+      })
+      .filter(Boolean) as BuyBoxOption[];
+
+    if (options.length === 0) continue;
+    out.push({ name: groupName, options });
+  }
+
+  return out;
+}
+
+/* --------- SEO with resolved product name when possible --------- */
+export async function generateMetadata({
+  params,
+}: {
+  params: { categorySlug: string; subcategorySlug: string; productSlug: string };
+}): Promise<Metadata> {
+  const { categorySlug, subcategorySlug, productSlug } = params;
+
+  const cats = categoryAssets as Category[];
+  const subs = subcategoryAssets as Subcategory[];
+  const prods = productAssets as ProductRow[];
+
+  const cat = cats.find((c) => c.slug === categorySlug);
+  if (!cat) return { title: "Product Not Found" };
+
+  // scope sub to category (slug or id)
+  const subPool = subs.filter(
+    (s) =>
+      (s.category_slug || "").trim() === cat.slug ||
+      (toNum(s.category_id) !== null && toNum(s.category_id) === toNum(cat.id))
+  );
+  const sub =
+    subPool.find((s) => ensureSubSlug(s) === subcategorySlug) ||
+    subPool.find((s) => toSlug(s.name) === subcategorySlug);
+  if (!sub) return { title: "Product Not Found" };
+
+  // scope products to category (+ sub if available)
+  const prodPool = prods.filter(
+    (p) =>
+      (p.category_slug || "").trim() === cat.slug ||
+      (toNum(p.category_id) !== null && toNum(p.category_id) === toNum(cat.id))
+  );
+  const subId = pickSubId(sub);
+  const prodScoped =
+    subId != null
+      ? prodPool.filter(
+          (p) =>
+            toNum(p.subcategory_id) === subId ||
+            (p.subcategory_slug || "") === ensureSubSlug(sub)
+        )
+      : prodPool;
+
+  const row =
+    prodScoped.find((p) => productSlugFromRow(p) === productSlug) ||
+    prodPool.find((p) => productSlugFromRow(p) === productSlug);
+  if (!row) return { title: "Product Not Found" };
+
+  const idStr = row.sinalite_id != null ? String(row.sinalite_id) : row.id != null ? String(row.id) : null;
+
+  let metaTitle = titleCase(row.name || productSlug);
+  let metaDesc = `Order ${metaTitle} online — live specs & pricing via SinaLite; images delivered fast via Cloudflare CDN.`;
+  try {
+    if (idStr) {
+      const m = await getSinaliteProductMeta(idStr);
+      if (m?.name) metaTitle = m.name;
+      if (m?.description) metaDesc = m.description;
+    }
+  } catch {
+    // keep defaults
+  }
+
+  const firstImg = allImageIds(row)[0];
+  const ogImg = firstImg ? cfImage(firstImg, V("productHero")) : undefined;
+
+  return {
+    title: `${metaTitle} | American Design And Printing`,
+    description: metaDesc,
+    alternates: { canonical: `/category/${categorySlug}/${subcategorySlug}/${productSlug}` },
+    openGraph: {
+      title: metaTitle,
+      description: metaDesc,
+      url: `${SITE}/category/${categorySlug}/${subcategorySlug}/${productSlug}`,
+      images: ogImg ? [{ url: ogImg, width: 1200, height: 630 }] : undefined,
     },
-    {
-      id: "door-hangers",
-      name: "Door Hangers",
-      href: "/products/door-hangers",
-      imageUrl:
-        "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/49701951-43d8-4abc-5dcc-2101ef4cdd00/saleCard",
-      discountLabel: "10% OFF",
+    twitter: {
+      card: "summary_large_image",
+      title: metaTitle,
+      description: metaDesc,
+      images: ogImg ? [ogImg] : undefined,
     },
-    {
-      id: "soft-touch-bc",
-      name: "Soft Touch Business Cards",
-      href: "/products/soft-touch-business-cards",
-      imageUrl:
-        "https://imagedelivery.net/pJ0fKvjCAbyoF8aD0BGu8Q/0053681e-2792-4571-ef75-b844fd438400/saleCard",
-      discountLabel: "10% OFF",
-    },
-  ];
-
-  /* ---------------- JSON-LD: ItemList (Featured Categories) ---------------- */
-  const categoriesLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    itemListElement: featured.map((c, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: c.name,
-      url: `${SITE}${c.href}`,
-      image: c.imageUrl || undefined,
-    })),
   };
+}
 
-  /* ---------------- JSON-LD: ItemList (Promoted Products) ------------------ */
-  const promosLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    itemListElement: promos.map((p, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      item: {
-        "@type": "Product",
-        name: p.name,
-        url: `${SITE}${p.href}`,
-        image: p.imageUrl,
-        // price/offers come from live SinaLite flows on the product page
-      },
-    })),
-  };
+/* ---------------------- Page ---------------------- */
+export default async function ProductPage({
+  params,
+}: {
+  params: { categorySlug: string; subcategorySlug: string; productSlug: string };
+}) {
+  const { categorySlug, subcategorySlug, productSlug } = params;
 
-  /* ---------------- JSON-LD: FAQPage (Home) --------------------------------
-     Built from your “Why choose ADAP?” + “Our promise” copy so it matches on-page content.
-  --------------------------------------------------------------------------- */
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "How does ADAP help me make more money?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "We offer low trade-only pricing powered by SinaLite so you keep more margin while delivering premium quality.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Can ADAP cover all my clients’ printing needs?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "Yes — become a one-stop shop with a wide range of print, large format, and more, all fulfilled to spec.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "How fast is turnaround?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "Fast! Live ETAs show during pricing and checkout. Turnaround depends on options and quantity.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Do you deliver across the USA?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "Yes. Our promise is on-time delivery anywhere in the USA with reliable carriers.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is there real-time order tracking?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "Absolutely — you get 24/7 live tracking from production through delivery.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Are there any hidden costs?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "No hidden costs, no delays, and no paperwork — transparent pricing at checkout.",
-        },
-      },
-    ],
-  };
+  const cats = categoryAssets as Category[];
+  const subs = subcategoryAssets as Subcategory[];
+  const prods = productAssets as ProductRow[];
+
+  const cat = cats.find((c) => c.slug === categorySlug);
+  if (!cat) return notFound();
+
+  // scope sub to category
+  const subPool = subs.filter(
+    (s) =>
+      (s.category_slug || "").trim() === cat.slug ||
+      (toNum(s.category_id) !== null && toNum(s.category_id) === toNum(cat.id))
+  );
+  const sub =
+    subPool.find((s) => ensureSubSlug(s) === subcategorySlug) ||
+    subPool.find((s) => toSlug(s.name) === subcategorySlug);
+  if (!sub) return notFound();
+  const subId = pickSubId(sub);
+
+  // scope products to category (+ sub if available)
+  const prodPool = prods.filter(
+    (p) =>
+      (p.category_slug || "").trim() === cat.slug ||
+      (toNum(p.category_id) !== null && toNum(p.category_id) === toNum(cat.id))
+  );
+  const prodScoped =
+    subId != null
+      ? prodPool.filter(
+          (p) =>
+            toNum(p.subcategory_id) === subId ||
+            (p.subcategory_slug || "") === ensureSubSlug(sub)
+        )
+      : prodPool;
+
+  const prodRow =
+    prodScoped.find((p) => productSlugFromRow(p) === productSlug) ||
+    prodPool.find((p) => productSlugFromRow(p) === productSlug);
+
+  if (!prodRow) return notFound();
+
+  /* ---------- Sinalite product id (ONE place) ---------- */
+  const sinaliteIdStr =
+    prodRow.sinalite_id != null ? String(prodRow.sinalite_id) :
+    prodRow.id != null         ? String(prodRow.id) : null;
+
+  if (!sinaliteIdStr) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[PDP] Missing Sinalite id", { productSlug, prodRow });
+    }
+    return notFound();
+  }
+
+  const sinaliteIdNum = Number(sinaliteIdStr);
+  if (!Number.isFinite(sinaliteIdNum) || sinaliteIdNum <= 0) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[PDP] Invalid Sinalite id", { sinaliteIdStr });
+    }
+    return notFound();
+  }
+
+  /* ---------- Live meta + options via SinaLite (per docs) ---------- */
+  let meta: any = null;
+  try {
+    meta = await getSinaliteProductMeta(sinaliteIdStr);
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PDP] getSinaliteProductMeta failed:", e);
+    }
+  }
+
+  const arrays = await getSinaliteProductArrays(sinaliteIdStr).catch((e) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PDP] getSinaliteProductArrays failed:", e);
+    }
+    return null;
+  });
+
+  const optionsArray: any[] = (arrays?.optionsArray ?? []) as any[];
+  const normalized: any[] = Array.isArray(optionsArray) ? (normalizeOptionGroups(optionsArray) as any[]) : [];
+  const buyBoxGroups: BuyBoxOptionGroup[] = toBuyBoxGroups(normalized);
+
+  /* ---------- Cloudflare gallery via productAssets ---------- */
+  const ids = allImageIds(prodRow);
+  const gallery: string[] =
+    ids.length > 0
+      ? ids.map((id, i) => cfImage(id, V(i === 0 ? "productHero" : "productCard")) || "")
+      : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", V("productHero"))!]; // safe fallback
+
+  const productName =
+    meta?.name || (prodRow.name ? String(prodRow.name) : titleCase(productSlug));
+  const heroCfId = ids[0] || null;
+
+  /* ---------- Price snapshot (best effort) ---------- */
+  let startingPriceDisplay: string | undefined;
+  try {
+    const snap = await getDefaultPriceSnapshot(sinaliteIdNum); // { price, currency }
+    if (snap && typeof (snap as any).price === "number") {
+      startingPriceDisplay = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: (snap as any).currency || "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format((snap as any).price);
+    }
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PDP] getDefaultPriceSnapshot failed:", e);
+    }
+  }
+
+  /* ---------- Tabs ---------- */
+  const details = (
+    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+      {meta?.description ? <li className="col-span-full">{meta.description}</li> : null}
+      {meta?.paperType ? <li><strong>Paper Type:</strong> {meta.paperType}</li> : null}
+      {meta?.coating ? <li><strong>Coating:</strong> {meta.coating}</li> : null}
+      {meta?.color ? <li><strong>Color:</strong> {meta.color}</li> : null}
+      {meta?.quantities ? <li><strong>Quantities:</strong> {meta.quantities}</li> : null}
+      {meta?.sizes ? <li><strong>Sizes:</strong> {meta.sizes}</li> : null}
+      {meta?.finishing ? <li><strong>Finishing:</strong> {meta.finishing}</li> : null}
+      {meta?.fileType ? <li><strong>File Type:</strong> {meta.fileType}</li> : null}
+    </ul>
+  );
+
+  const filePrep = (
+    <div className="text-sm leading-6">
+      {meta?.filePrep ? (
+        <div dangerouslySetInnerHTML={{ __html: meta.filePrep }} />
+      ) : (
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Use CMYK color, 300 DPI (minimum).</li>
+          <li>Keep text 1/8″ inside safe margins.</li>
+          <li>Include 1/8″ bleed on all sides.</li>
+          <li>Accepted files: PDF (preferred), AI, PSD, TIFF.</li>
+        </ul>
+      )}
+    </div>
+  );
+
+  const reviewsSlot = <ProductReviews productId={sinaliteIdStr} productName={productName} />;
 
   return (
-    <main>
-      {/* JSON-LD for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(categoriesLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(promosLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
-      />
+    <main className="mx-auto max-w-7xl px-4 py-8 pb-28 md:pb-8">
+      {/* breadcrumbs aligned to /category path */}
+      <nav className="mb-5 text-sm text-gray-600" aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-1">
+          <li><Link className="hover:underline" href="/">Home</Link></li>
+          <li>/</li>
+          <li><Link className="hover:underline" href={`/category/${categorySlug}`}>{titleCase(categorySlug)}</Link></li>
+          <li>/</li>
+          <li><Link className="hover:underline" href={`/category/${categorySlug}/${subcategorySlug}`}>{titleCase(subcategorySlug)}</Link></li>
+          <li>/</li>
+          <li aria-current="page" className="text-gray-900 font-medium">{productName}</li>
+        </ol>
+      </nav>
 
-      {/* Floating “sign up & save” card for signed-out users */}
-      <SignupPromoCard />
+      <header className="mb-3">
+        <h1 className="text-2xl md:text-3xl font-semibold">{productName}</h1>
+        {meta?.description ? <p className="mt-2 max-w-2xl text-gray-600">{meta.description}</p> : null}
+      </header>
 
-      {/* Hero */}
-      <Hero />
-
-      {/* Sales Card */}
-      <SalesCards items={promos} />
-
-      {/* Featured Category Cards */}
-      <section className="pt-10">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
-            Shop by Category
-          </h2>
-          <FeaturedCategories categories={featured} limit={3} />
+      <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,720px)_minmax(0,460px)]">
+        {/* LEFT */}
+        <div>
+          <ProductGallery images={gallery} productName={productName} />
+          <ProductInfoTabs details={details} filePrep={filePrep} reviewsSlot={reviewsSlot} />
         </div>
-      </section>
 
-      {/* Why Choose Us */}
-      <section className="pt-14">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
-            Why choose ADAP?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-800">
-            <div className="flex items-center">
-              <span aria-hidden className="shrink-0 text-blue-700">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M3 13a6 6 0 016-6h4a5 5 0 015 5v2h-2l-1.5 3H7l-1-2H3v-2z"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <circle cx="9.5" cy="8" r="1" fill="currentColor" />
-                </svg>
-              </span>
-              <p className="ml-3">Make more money with low trade pricing</p>
+        {/* RIGHT: Buy Box (SinaLite options + Cloudflare hero) */}
+        <aside className="lg:sticky lg:top-24 h-fit" id="buy-box">
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold">Price this item</h3>
+            <div className="mb-4 flex items-center gap-3 text-xs text-gray-600">
+              <span className="inline-flex items-center gap-1">✅ <span>Trade-only pricing</span></span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1">🚚 <span>Fast turnaround</span></span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1">🇺🇸 <span>Prints in USA</span></span>
             </div>
 
-            <div className="flex items-center">
-              <span aria-hidden className="shrink-0 text-blue-700">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <circle
-                    cx="12"
-                    cy="8"
-                    r="4"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path
-                    d="M9 13l-3 8 6-3 6 3-3-8"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    fill="none"
-                  />
-                </svg>
-              </span>
-              <p className="ml-3">
-                Become a one-stop shop for your clients’ printing needs
-              </p>
-            </div>
-
-            <div className="flex items-center">
-              <span aria-hidden className="shrink-0 text-blue-700">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="8"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                  <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.6" />
-                </svg>
-              </span>
-              <p className="ml-3">
-                Get repeat orders by delivering high-quality products on time
-              </p>
-            </div>
+            <ProductBuyBox
+              productId={sinaliteIdNum}
+              productName={productName}
+              optionGroups={buyBoxGroups}
+              store="US"
+              cloudflareImageId={heroCfId || undefined}
+            />
           </div>
-        </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-gray-600">
+            <div className="rounded-lg border p-3">🔒 Secure Checkout</div>
+            <div className="rounded-lg border p-3">📦 Real-time Tracking</div>
+            <div className="rounded-lg border p-3">💬 Live Support</div>
+          </div>
+        </aside>
       </section>
 
-      {/* Our Promise */}
-      <section className="pt-12 pb-16">
-        <div className="mx-auto max-w-7xl px-4">
-          <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
-            Our promise to you:
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
-            <div className="flex items-center">
-              <span aria-hidden className="text-green-700 mr-2">✔</span>
-              <p>On time delivery anywhere in USA</p>
-            </div>
-            <div className="flex items-center">
-              <span aria-hidden className="text-green-700 mr-2">✔</span>
-              <p>No hidden costs, no delays, &amp; no paperwork</p>
-            </div>
-            <div className="flex items-center">
-              <span aria-hidden className="text-green-700 mr-2">✔</span>
-              <p>24/7 live order tracking</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <MobileAddToCartBar productName={productName} startingPrice={startingPriceDisplay} targetId="buy-box" />
     </main>
   );
 }

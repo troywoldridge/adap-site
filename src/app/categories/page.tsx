@@ -2,13 +2,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import categoryAssets from "@/data/categoryAssets.json";
-import { cfImage, type Variant as CfVariant } from "@/lib/cfImages";
+import { cfFirst } from "@/lib/cfImages"; // ✅ we only need cfFirst here
 
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
-
-// tiny helper to satisfy the Variant type
-const V = (v: string) => v as unknown as CfVariant;
 
 type Category = {
   id: number;
@@ -24,22 +21,34 @@ export const metadata: Metadata = {
   description:
     "Explore top print categories—business cards, large format, labels & packaging, apparel and more. Fast turnaround & trade pricing.",
   alternates: { canonical: "/categories" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default function CategoriesIndexPage() {
-  const categories = (categoryAssets as Category[])
+  const categories: Category[] = (categoryAssets as Category[])
     .slice()
     .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
 
+  // Build JSON-LD *inside* the component so categories & SITE are in scope
   const itemListLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    itemListElement: categories.map((c, i) => ({
+    itemListElement: categories.map((c: Category, i: number) => ({
       "@type": "ListItem",
       position: i + 1,
       name: c.name,
       url: `${SITE}/category/${c.slug}`, // ✅ canonical
-      image: c.cf_image_id ? cfImage(c.cf_image_id, V("categoryHero")) : undefined,
+      image: c.cf_image_id
+        ? cfFirst(c.cf_image_id, ["categoryThumb", "category", "hero", "public"])
+        : undefined,
     })),
   };
 
@@ -49,6 +58,7 @@ export default function CategoriesIndexPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
       />
+
       <header className="mb-8">
         <h1 className="text-2xl md:text-3xl font-semibold">Shop by Category</h1>
         <p className="mt-2 max-w-2xl text-gray-600">
@@ -57,12 +67,15 @@ export default function CategoriesIndexPage() {
       </header>
 
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((c) => {
-          const img = c.cf_image_id ? cfImage(c.cf_image_id, V("categoryHero")) : undefined;
+        {categories.map((c: Category) => {
+          const img = c.cf_image_id
+            ? cfFirst(c.cf_image_id, ["categoryThumb", "category", "hero", "public"])
+            : "";
+
           return (
             <li key={c.slug}>
               <Link
-                href={`/category/${c.slug}`}  // ✅ canonical
+                href={`/category/${c.slug}`} // ✅ canonical
                 className="block rounded-xl overflow-hidden bg-white border shadow-sm hover:shadow-md transition"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,6 +85,7 @@ export default function CategoriesIndexPage() {
                     alt={c.name}
                     className="w-full aspect-[4/3] object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="w-full aspect-[4/3] bg-gray-100" />

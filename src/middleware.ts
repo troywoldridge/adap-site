@@ -9,7 +9,7 @@ const isPublic = createRouteMatcher([
   "/product(.*)",
   "/cart(.*)",
   "/checkout(.*)",
-  "/api/(.*)",          // public JSON APIs (Stripe webhook is still bypassed explicitly)
+  "/api/(.*)",
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
@@ -20,19 +20,26 @@ const isPublic = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  const { pathname } = req.nextUrl;
+  const url = req.nextUrl;
+
+  // ✅ Redirect singular → plural
+  if (url.pathname.startsWith("/category/")) {
+    const to = url.clone();
+    to.pathname = url.pathname.replace(/^\/category\//, "/categories/");
+    return NextResponse.redirect(to, 301);
+  }
 
   // Never intercept Stripe webhooks
-  if (pathname.startsWith("/api/webhooks/stripe")) {
+  if (url.pathname.startsWith("/api/webhooks/stripe")) {
     return NextResponse.next();
   }
 
   // Pretty product URLs: /product/123-some-slug → internally render /product/123
-  const m = pathname.match(/^\/product\/(\d+)-/);
+  const m = url.pathname.match(/^\/product\/(\d+)-/);
   if (m) {
-    const url = req.nextUrl.clone();
-    url.pathname = `/product/${m[1]}`;
-    return NextResponse.rewrite(url);
+    const to = url.clone();
+    to.pathname = `/product/${m[1]}`;
+    return NextResponse.rewrite(to);
   }
 
   // Public routes go straight through; everything else requires auth
@@ -40,15 +47,11 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  await auth.protect(); // ✅ correct for your Clerk version
+  await auth.protect();
   return NextResponse.next();
 });
 
 // Run on everything except Next internals & static assets
 export const config = {
-  matcher: [
-    "/((?!.+\\.[\\w]+$|_next).*)",
-    "/",
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };

@@ -8,7 +8,7 @@ import {
   getSinaliteProductArrays,
   normalizeOptionGroups,
   getDefaultPriceSnapshot,
-} from "@/lib/sinalite.client"; // per SinaLite API docs
+} from "@/lib/sinalite.client"; // Per SinaLite API docs; ensure this file is SERVER-safe (no "use client")
 
 import ProductBuyBox from "@/components/product/ProductBuyBox";
 import ProductInfoTabs from "@/components/product/ProductInfoTabs";
@@ -142,9 +142,9 @@ function toBuyBoxGroups(groups: any[]): BuyBoxOptionGroup[] {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ categorySlug: string; subcategorySlug: string; productSlug: string }>;
+  params: { categorySlug: string; subcategorySlug: string; productSlug: string };
 }): Promise<Metadata> {
-  const { categorySlug, subcategorySlug, productSlug } = await params;
+  const { categorySlug, subcategorySlug, productSlug } = params;
 
   const cats = categoryAssets as Category[];
   const subs = subcategoryAssets as Subcategory[];
@@ -159,7 +159,9 @@ export async function generateMetadata({
       (s.category_slug || "").trim() === cat.slug ||
       (toNum(s.category_id) !== null && toNum(s.category_id) === toNum(cat.id))
   );
-  const sub = subPool.find((s) => ensureSubSlug(s) === subcategorySlug) || subPool.find((s) => toSlug(s.name) === subcategorySlug);
+  const sub =
+    subPool.find((s) => ensureSubSlug(s) === subcategorySlug) ||
+    subPool.find((s) => toSlug(s.name) === subcategorySlug);
   if (!sub) return { title: "Product Not Found" };
 
   // scope products to category (+ sub if available)
@@ -186,14 +188,16 @@ export async function generateMetadata({
   const idStr = row.sinalite_id != null ? String(row.sinalite_id) : row.id != null ? String(row.id) : null;
 
   let metaTitle = titleCase(row.name || productSlug);
-  let metaDesc = `Order ${metaTitle} online — live specs & pricing via SinaLite; images via Cloudflare CDN.`;
+  let metaDesc = `Order ${metaTitle} online — live specs & pricing via SinaLite; images delivered fast via Cloudflare CDN.`;
   try {
     if (idStr) {
       const m = await getSinaliteProductMeta(idStr);
-      if (m?.name) metaTitle = m.name; // no `.title`
+      if (m?.name) metaTitle = m.name;
       if (m?.description) metaDesc = m.description;
     }
-  } catch {}
+  } catch {
+    // keep defaults
+  }
 
   const firstImg = allImageIds(row)[0];
   const ogImg = firstImg ? cfImage(firstImg, V("productHero")) : undefined;
@@ -221,9 +225,9 @@ export async function generateMetadata({
 export default async function ProductPage({
   params,
 }: {
-  params: Promise<{ categorySlug: string; subcategorySlug: string; productSlug: string }>;
+  params: { categorySlug: string; subcategorySlug: string; productSlug: string };
 }) {
-  const { categorySlug, subcategorySlug, productSlug } = await params;
+  const { categorySlug, subcategorySlug, productSlug } = params;
 
   const cats = categoryAssets as Category[];
   const subs = subcategoryAssets as Subcategory[];
@@ -289,11 +293,21 @@ export default async function ProductPage({
   let meta: any = null;
   try {
     meta = await getSinaliteProductMeta(sinaliteIdStr);
-  } catch {}
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PDP] getSinaliteProductMeta failed:", e);
+    }
+  }
 
-  const arrays = await getSinaliteProductArrays(sinaliteIdStr).catch(() => null);
+  const arrays = await getSinaliteProductArrays(sinaliteIdStr).catch((e) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PDP] getSinaliteProductArrays failed:", e);
+    }
+    return null;
+  });
+
   const optionsArray: any[] = (arrays?.optionsArray ?? []) as any[];
-  const normalized: any[] = normalizeOptionGroups(optionsArray) as any[];
+  const normalized: any[] = Array.isArray(optionsArray) ? (normalizeOptionGroups(optionsArray) as any[]) : [];
   const buyBoxGroups: BuyBoxOptionGroup[] = toBuyBoxGroups(normalized);
 
   /* ---------- Cloudflare gallery via productAssets ---------- */
@@ -301,7 +315,7 @@ export default async function ProductPage({
   const gallery: string[] =
     ids.length > 0
       ? ids.map((id, i) => cfImage(id, V(i === 0 ? "productHero" : "productCard")) || "")
-      : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", V("productHero"))!];
+      : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", V("productHero"))!]; // safe fallback
 
   const productName =
     meta?.name || (prodRow.name ? String(prodRow.name) : titleCase(productSlug));
@@ -319,7 +333,11 @@ export default async function ProductPage({
         maximumFractionDigits: 2,
       }).format((snap as any).price);
     }
-  } catch {}
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PDP] getDefaultPriceSnapshot failed:", e);
+    }
+  }
 
   /* ---------- Tabs ---------- */
   const details = (

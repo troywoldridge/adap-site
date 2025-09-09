@@ -16,8 +16,14 @@ export type Variant =
   | "subcategoryThumb"
   | "productHero"
   | "productThumb"
-  | "productCard"       // ✅ now supported everywhere
+  | "productCard"       // alias -> productThumb
   | "public";
+
+/** Alias map: normalize outgoing variant names to real CF variants */
+const OUT_VARIANT_MAP: Partial<Record<Variant, Variant>> = {
+  // Your real variant is productThumb; map old/productCard calls to it:
+  productCard: "productThumb",
+};
 
 /** Registry used for runtime checks */
 const VALID_VARIANTS: ReadonlySet<Variant> = new Set<Variant>([
@@ -29,7 +35,7 @@ const VALID_VARIANTS: ReadonlySet<Variant> = new Set<Variant>([
   "subcategoryThumb",
   "productHero",
   "productThumb",
-  "productCard",
+  "productCard", // allowed as an input (gets normalized)
   "public",
 ]);
 
@@ -89,6 +95,19 @@ function maybeWarnIncomingVariant(url: string) {
 }
 
 /** Build Cloudflare Images URL from ID or full imagedelivery URL. */
+export function cfFirst(
+  idOrUrl: string | null | undefined,
+  variants: Variant[] = ["public"],
+  params?: Record<string, string | number>
+): string {
+  if (!idOrUrl) return "";
+  for (const v of variants) {
+    const url = cfImage(idOrUrl, v, params);
+    if (url) return url;
+  }
+  return "";
+}
+
 export function cfImage(
   idOrUrl: string,
   variant: Variant = "public",
@@ -96,14 +115,17 @@ export function cfImage(
 ): string {
   if (!idOrUrl) return "";
 
-  // Runtime assert (warn-only) for the outgoing variant
-  assertVariant(variant);
+  // Normalize to a real CF variant (alias support)
+  const outVariant = (OUT_VARIANT_MAP[variant] ?? variant) as Variant;
 
-  // Case 1: already a full Cloudflare URL -> swap last segment to our variant
+  // Warn if outgoing variant isn't declared
+  assertVariant(outVariant);
+
+  // Case 1: already a full Cloudflare URL -> swap last segment to our output variant
   if (idOrUrl.startsWith("http") && isCFUrl(idOrUrl)) {
     maybeWarnIncomingVariant(idOrUrl);
     const u = new URL(idOrUrl);
-    u.pathname = u.pathname.replace(/\/([^/]+)$/, `/${variant}`);
+    u.pathname = u.pathname.replace(/\/([^/]+)$/, `/${outVariant}`);
     if (params) for (const [k, v] of Object.entries(params)) u.searchParams.set(k, String(v));
     return u.toString();
   }
@@ -124,7 +146,7 @@ export function cfImage(
     );
     return "";
   }
-  const base = `https://imagedelivery.net/${CF_HASH}/${idOrUrl}/${variant}`;
+  const base = `https://imagedelivery.net/${CF_HASH}/${idOrUrl}/${outVariant}`;
   if (!params) return base;
   const q = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) q.set(k, String(v));

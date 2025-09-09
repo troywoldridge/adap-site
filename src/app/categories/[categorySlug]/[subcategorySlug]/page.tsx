@@ -1,256 +1,330 @@
-// src/app/category/[categorySlug]/[subcategorySlug]/page.tsx
-import { notFound } from "next/navigation";
+import "server-only";
 import Link from "next/link";
-import Image from "next/image";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import categoryAssets from "@/data/categoryAssets.json";
 import subcategoryAssets from "@/data/subcategoryAssets.json";
 import productAssets from "@/data/productAssets.json";
-import { cfImage } from "@/lib/cfImages"; // Cloudflare CDN URL builder
 
-/* ───────────────── Types (loose to match JSON) ───────────────── */
-type Category = {
-  slug?: string | null;
-  id?: number | string | null;
-  category_id?: number | string | null;
-  name?: string | null;
-};
+import SubcategoryTileImage from "@/components/SubcategoryTileImage";
+import { getDefaultPriceSnapshot } from "@/lib/sinalite.client";
 
+/* ---------------- Types ---------------- */
+type Category = { id?: number | string | null; slug: string; name?: string | null; description?: string | null };
 type Subcategory = {
   id?: number | string | null;
   subcategory_id?: number | string | null;
   category_id?: number | string | null;
+  category_slug?: string | null;
   slug?: string | null;
   name: string;
   description?: string | null;
   cf_image_id?: string | null;
-  cloudflare_id?: string | null;
-  cloudflare_image_id?: string | null;
+  sort_order?: number | string | null;
 };
-
-type Product = {
+type ProductRow = {
   id?: number | string | null;
+  sinalite_id?: number | string | null;
   category_id?: number | string | null;
+  category_slug?: string | null;
   subcategory_id?: number | string | null;
+  subcategory_slug?: string | null;
   sku?: string | null;
   name?: string | null;
   slug?: string | null;
-  ["slugs (products)"]?: string | null;
   product_slug?: string | null;
-
-  // product-level image fields
-  cf_image_id?: string | null;
   cf_image_1_id?: string | null;
   cf_image_2_id?: string | null;
   cf_image_3_id?: string | null;
   cf_image_4_id?: string | null;
-  cloudflare_id?: string | null;
-  cloudflare_image_id?: string | null;
+  sort_order?: number | string | null;
+  [k: string]: any;
 };
 
-/* ───────────────── Helpers ───────────────── */
-function toNum(n: unknown): number | null {
+/* ---------------- Utils ---------------- */
+const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
+const toNum = (n: unknown): number | null => {
   const s = n == null ? "" : String(n).trim();
   if (!s) return null;
   const v = Number(s);
   return Number.isFinite(v) ? v : null;
+};
+
+
+function tryLabelFromAssets(
+  subs: Subcategory[],
+  product: ProductRow
+): string | null {
+  const sid = toNum(product.subcategory_id);
+  if (sid == null) return null;
+
+  // Try id match OR subcategory_id match (your JSON sometimes uses one or the other)
+  const hit =
+    subs.find((s) => toNum(s.id) === sid) ||
+    subs.find((s) => toNum(s.subcategory_id) === sid);
+
+  if (!hit?.name) return null;
+  return titleCase(hit.name.replace(/[_-]+/g, " "));
 }
-function toSlug(s?: string | null): string {
-  if (!s) return "";
-  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
-function pickSubId(s: Subcategory): number | null {
-  return toNum(s.id ?? s.subcategory_id);
-}
+
+const toSlug = (s?: string | null) =>
+  (s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const titleCase = (s?: string | null) =>
+  (s || "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
+
 function ensureSubSlug(s: Subcategory): string {
-  const byField = (s.slug ?? "").toString().trim();
-  if (byField) return byField;
-  const byName = toSlug(s.name);
-  if (byName) return byName;
-  const id = pickSubId(s);
-  return id !== null ? `sub-${id}` : "sub";
+  return (s.slug && s.slug.trim())
+    || toSlug(s.name)
+    || (toNum(s.subcategory_id) ?? toNum(s.id))?.toString()
+    || "subcategory";
 }
-function pickProductSlug(p: Product): string {
-  const cands = [
-    p.slug,
-    p.product_slug,
-    p["slugs (products)"],
-    p.name ? toSlug(p.name) : "",
-    p.sku ? toSlug(p.sku) : "",
-  ].map((x) => (x ?? "").toString().trim());
+
+function productSlugFromRow(p: ProductRow): string {
+  const cands = [p.slug, p.product_slug, p.name ? toSlug(p.name) : "", p.sku ? toSlug(p.sku) : ""]
+    .map((x) => (x ?? "").toString().trim());
   return cands.find(Boolean) || "";
 }
-function titleCaseFromSlug(slug: string) {
-  return slug.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
-}
-function findSubByRouteSlug(subs: Subcategory[], routeSlug: string): Subcategory | undefined {
-  const exact = subs.find((s) => ensureSubSlug(s) === routeSlug);
-  if (exact) return exact;
-  const m = routeSlug.match(/^sub-(\d+)$/);
-  if (m) {
-    const id = Number(m[1]);
-    const byId = subs.find((s) => toNum(s.id ?? s.subcategory_id) === id);
-    if (byId) return byId;
-  }
-  return subs.find((s) => toSlug(s.name) === routeSlug);
+
+function displayNameFromProduct(p: ProductRow): string {
+  const nm = (p.name ?? "").trim();
+  if (nm) return nm;
+  const sku = (p.sku ?? "").trim().replace(/[_-]+/g, " ");
+  if (sku) return titleCase(sku);
+  const sl = (p.slug ?? p.product_slug ?? "").trim().replace(/[_-]+/g, " ");
+  if (sl) return titleCase(sl);
+  return "Product";
 }
 
-/* ───────── Image selection (use your CF variant: productThumb) ───────── */
-const CF_PLACEHOLDER_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
+function typeLabelForCard(
+  realSub: Subcategory | null,
+  categorySlug: string,
+  product: ProductRow,
+  derivedSubSlugFromRoute: string,
+  subs: Subcategory[]
+): string {
+  // 1) Real subcategory wins
+  if (realSub?.name) return titleCase(realSub.name);
 
-// default to your real variant; you can override via env
-const CARD_VARIANT = "productThumb" as const;
+  // 2) Try to resolve via subcategoryAssets using product.subcategory_id
+  const byAssets = tryLabelFromAssets(subs, product);
+  if (byAssets) return byAssets;
 
-function isProtocolRelative(s: string) { return s.startsWith("//"); }
-function isHttpUrl(s: string) { return s.startsWith("http://") || s.startsWith("https://"); }
-function isImagedeliveryUrl(s: string) {
-  try { return new URL(s).hostname === "imagedelivery.net"; } catch { return false; }
-}
-function swapToVariant(url: string, variant: string): string {
-  try {
-    const u = new URL(url);
-    if (u.hostname !== "imagedelivery.net") return url;
-    u.pathname = u.pathname.replace(/\/([^/]+)$/, `/${variant}`);
-    return u.toString();
-  } catch { return url; }
-}
+  // 3) Try explicit product subcategory fields
+  const scSlug = (product.subcategory_slug ?? "").trim();
+  if (scSlug) return titleCase(scSlug.replace(/[_-]+/g, " "));
 
-function pickProductImageRef(p: Product): string | null {
-  const refs = [
-    p.cf_image_1_id, p.cf_image_2_id, p.cf_image_3_id, p.cf_image_4_id,
-    p.cf_image_id, p.cloudflare_id, p.cloudflare_image_id,
-  ].map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
-  return refs[0] || null;
-}
-function pickSubImageRef(sub: Subcategory): string | null {
-  const refs = [sub.cf_image_id, sub.cloudflare_id, sub.cloudflare_image_id]
-    .map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
-  return refs[0] || null;
+  // 4) Fall back to the derived key from routing
+  return titleCase(derivedSubSlugFromRoute.replace(/[_-]+/g, " "));
 }
 
-function buildProductCardUrl(prodRef: string | null, subRef: string | null): string {
-  // 1) Prefer product image
-  if (prodRef) {
-    if (isProtocolRelative(prodRef)) return "https:" + prodRef;
-    if (isHttpUrl(prodRef)) return isImagedeliveryUrl(prodRef) ? swapToVariant(prodRef, CARD_VARIANT) : prodRef;
+/** must mirror the key logic from category page */
+function productDerivedSubKey(p: ProductRow, categorySlug: string): string {
+  if (p.subcategory_slug && p.subcategory_slug.trim()) return toSlug(p.subcategory_slug);
+  if (toNum(p.subcategory_id) != null) return `sub-${toNum(p.subcategory_id)}`;
+  const base = (p.slug || p.product_slug || "").toLowerCase();
+  const prefix = `${categorySlug}-`;
+  let rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
+  const parts = rest.split("-").filter(Boolean);
+  const key = parts.slice(0, Math.min(2, parts.length)).join("-") || "general";
+  return key;
+}
 
-    // Treat as Cloudflare ID → try your variant, then fallbacks
-    const built =
-      cfImage(prodRef, CARD_VARIANT) ||
-      cfImage(prodRef, "category") ||
-      cfImage(prodRef, "public");
-    if (built) return built;
-  }
+/* ---------------- SEO ---------------- */
+export async function generateMetadata({ params }: { params: { categorySlug: string; subcategorySlug: string } }): Promise<Metadata> {
+  const { categorySlug, subcategorySlug } = params;
 
-  // 2) Fallback: subcategory image
-  if (subRef) {
-    if (isProtocolRelative(subRef)) return "https:" + subRef;
-    if (isHttpUrl(subRef)) return isImagedeliveryUrl(subRef) ? swapToVariant(subRef, "subcategoryThumb") : subRef;
+  const cats = categoryAssets as Category[];
+  const subs = subcategoryAssets as Subcategory[];
 
-    const built =
-      cfImage(subRef, "subcategoryThumb") ||
-      cfImage(subRef, "category") ||
-      cfImage(subRef, "public");
-    if (built) return built;
-  }
+  const cat = cats.find((c) => c.slug === categorySlug);
+  if (!cat) return { title: "Category Not Found" };
 
-  // 3) Last resort: Cloudflare placeholder (exists)
-  return (
-    cfImage(CF_PLACEHOLDER_ID, CARD_VARIANT) ||
-    cfImage(CF_PLACEHOLDER_ID, "public") ||
-    "/placeholder.png"
+  const sub = subs.find(
+    (s) =>
+      ensureSubSlug(s) === subcategorySlug &&
+      ((s.category_slug || "").trim() === cat.slug || (toNum(s.category_id) ?? NaN) === toNum(cat.id))
   );
+
+  const readableCat = titleCase(cat.name ?? categorySlug);
+  const readableSub = titleCase(sub?.name ?? subcategorySlug);
+
+  const desc =
+    (sub?.description) ||
+    `Explore ${readableSub} in ${readableCat}. Live pricing via SinaLite API; images via Cloudflare CDN.`;
+
+  return {
+    title: `${readableSub} • ${readableCat} | American Design And Printing`,
+    description: desc,
+    alternates: { canonical: `/categories/${categorySlug}/${subcategorySlug}` },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { "max-snippet": -1, "max-image-preview": "large", "max-video-preview": -1 },
+    },
+    openGraph: {
+      type: "website",
+      title: `${readableSub} • ${readableCat}`,
+      description: desc,
+      url: `${SITE}/categories/${categorySlug}/${subcategorySlug}`,
+    },
+    twitter: { card: "summary_large_image", title: `${readableSub} • ${readableCat}`, description: desc },
+  };
 }
 
-/* ───────────────── Page (Next 15: params is async) ───────────────── */
+/* ---------------- PAGE ---------------- */
 export default async function SubcategoryPage({
   params,
 }: {
-  params: Promise<{ categorySlug: string; subcategorySlug: string }>;
+  params: { categorySlug: string; subcategorySlug: string };
 }) {
-  const { categorySlug, subcategorySlug } = await params;
+  const { categorySlug, subcategorySlug } = params;
 
-  const cats = categoryAssets as unknown as Category[];
-  const subs = subcategoryAssets as unknown as Subcategory[];
-  const prods = productAssets as unknown as Product[];
+  const cats = categoryAssets as Category[];
+  const subs = subcategoryAssets as Subcategory[];
+  const prods = productAssets as ProductRow[];
 
-  const cat = cats.find((c) => (c.slug ?? "") === categorySlug);
+  const cat = cats.find((c) => c.slug === categorySlug);
   if (!cat) return notFound();
+  const catId = toNum(cat.id);
 
-  const sub = findSubByRouteSlug(subs, subcategorySlug);
-  if (!sub) return notFound();
+  // Real subcategory if present
+  const realSub = subs.find(
+    (s) =>
+      ensureSubSlug(s) === subcategorySlug &&
+      ((s.category_slug || "").trim() === cat.slug || (toNum(s.category_id) ?? NaN) === toNum(cat.id))
+  );
 
-  const subId = pickSubId(sub);
-  const productsInSub = subId !== null ? prods.filter((p) => toNum(p.subcategory_id) === subId) : [];
+  // Filter products in category
+  const inCat = prods.filter(
+    (p) =>
+      (p.category_slug || "").trim() === cat.slug ||
+      (toNum(p.category_id) !== null && toNum(p.category_id) === catId)
+  );
 
-  const seen = new Set<string>();
-  const items = productsInSub
-    .map((p) => {
-      const slug = pickProductSlug(p);
-      if (!slug) return null;
-      const pid = toNum(p.id);
-      const key = pid != null ? `id:${pid}` : `slug:${slug}`;
-      if (seen.has(key)) return null;
-      seen.add(key);
+  // If real subcategory: match by subcategory_id/slug; else: derived grouping key (matches category page)
+  const products: ProductRow[] = realSub
+    ? inCat.filter((p) => {
+        const matchId =
+          (toNum(p.subcategory_id) != null &&
+            (toNum(realSub.subcategory_id) === toNum(p.subcategory_id) ||
+             toNum(realSub.id) === toNum(p.subcategory_id)));
+        const matchSlug = (p.subcategory_slug || "").trim() === ensureSubSlug(realSub);
+        return matchId || matchSlug;
+      })
+    : inCat.filter((p) => productDerivedSubKey(p, categorySlug) === subcategorySlug);
 
-      const prodRef = pickProductImageRef(p);
-      const subRef = pickSubImageRef(sub);
-      const url = buildProductCardUrl(prodRef, subRef);
-
-      if (process.env.NODE_ENV !== "production") {
-        console.debug("[subcategory grid] image src", { key, url, prodRef, subRef });
-      }
-
-      return { slug, name: p.name || slug.replace(/-/g, " "), url };
+  // Optional: “From $” via SinaLite API (best-effort)
+  const priceSnapshots: Record<string, string | undefined> = {};
+  await Promise.all(
+    products.slice(0, 60).map(async (p) => {
+      const idStr = p.sinalite_id != null ? String(p.sinalite_id) : p.id != null ? String(p.id) : null;
+      const idNum = idStr ? Number(idStr) : NaN;
+      if (!Number.isFinite(idNum) || idNum <= 0) return;
+      try {
+        const snap = await getDefaultPriceSnapshot(idNum);
+        if (snap && typeof (snap as any).price === "number") {
+          priceSnapshots[productSlugFromRow(p)] = new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: (snap as any).currency || "USD",
+          }).format((snap as any).price);
+        }
+      } catch {}
     })
-    .filter(Boolean) as { slug: string; name: string; url: string }[];
+  );
 
-  const title = `${titleCaseFromSlug(categorySlug)} — ${titleCaseFromSlug(ensureSubSlug(sub))}`;
+  // ✅ Human-friendly labels for the page render
+  const readableCat = titleCase(cat.name ?? categorySlug);
+  const readableSub = titleCase(realSub?.name ?? subcategorySlug);
 
   return (
-    <main className="container mx-auto max-w-7xl px-4 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-8">
+      {/* Breadcrumbs */}
+      <nav className="mb-6 text-sm text-gray-600" aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-1">
+          <li><Link className="hover:underline" href="/">Home</Link></li>
+          <li>/</li>
+          <li><Link className="hover:underline" href={`/categories/${categorySlug}`}>{readableCat}</Link></li>
+          <li>/</li>
+          <li aria-current="page" className="text-gray-900 font-medium">{readableSub}</li>
+        </ol>
+      </nav>
+
       <header className="mb-8">
-        <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
-        {sub.description ? <p className="mt-2 text-slate-600">{sub.description}</p> : null}
+        <h1 className="text-2xl md:text-3xl font-semibold">{readableSub}</h1>
+        {realSub?.description ? (
+          <p className="mt-2 max-w-3xl text-gray-600">{realSub.description}</p>
+        ) : (
+          <p className="mt-2 max-w-3xl text-gray-600">
+            Choose a product to configure options and see live pricing (per SinaLite API docs). Images are served via the Cloudflare CDN. 🚀
+          </p>
+        )}
       </header>
 
-      {items.length === 0 ? (
-        <p className="text-slate-600">No products found in this subcategory.</p>
+      {products.length === 0 ? (
+        <div className="rounded-lg border p-6 text-gray-600">No products found in this subcategory yet.</div>
       ) : (
-        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((p) => (
-            <li key={p.slug} className="group">
+        <section
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          aria-label={`${readableSub} products`}
+        >
+          {products.map((p) => {
+            const slug = productSlugFromRow(p);
+            const href = `/categories/${categorySlug}/${subcategorySlug}/${slug}`;
+            const price = priceSnapshots[slug];
+            const displayName = displayNameFromProduct(p);
+            const typeLabel = typeLabelForCard(realSub ?? null, categorySlug, p, subcategorySlug);
+
+            return (
               <Link
-                href={`/category/${categorySlug}/${subcategorySlug}/${p.slug}`}
-                className={[
-                  "block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm",
-                  "transition-[transform,box-shadow] duration-200 ease-out transform-gpu",
-                  "hover:-translate-y-1 hover:shadow-md hover:shadow-black/5",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40",
-                ].join(" ")}
+                key={slug || String(p.id) || String(p.sku)}
+                href={href}
+                className="group relative rounded-2xl border bg-white shadow-sm overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <div className="relative aspect-[4/3] w-full overflow-hidden">
-                  <Image
-                    src={p.url}
-                    alt={p.name}
-                    fill
-                    sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-                    className="object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out motion-safe:group-hover:scale-[1.03]"
-                    unoptimized // Cloudflare CDN handles optimization
-                  />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+                {/* Image tile — SubcategoryTileImage uses Next <Image> + Cloudflare loader */}
+                <div className="relative w-full aspect-[4/3] bg-gray-50">
+                  {p.cf_image_1_id ? (
+                    <SubcategoryTileImage src={p.cf_image_1_id} kind="id" alt={displayName} />
+                  ) : (
+                    <div className="absolute inset-0 grid place-items-center text-gray-400 text-sm">
+                      No image
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-4">
-                  <h2 className="text-base font-semibold">{p.name}</h2>
-                  <div className="mt-2 text-blue-700 group-hover:underline text-sm font-medium">
-                    View details
+                  {/* ✅ Always a human name, never an ID */}
+                  <h2 className="text-base font-semibold leading-6 text-gray-900 line-clamp-2">
+                    {displayName}
+                  </h2>
+
+                  {p["description"] ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-gray-600">{p["description"]}</p>
+                  ) : null}
+
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="inline-flex items-center font-medium text-blue-700">
+                      Configure
+                      <svg className="ml-1 h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l5 5a1 1 0 01-.027 1.38l-4.999 5a1 1 0 01-1.415-1.414L13.586 10H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+
+                    {/* ✅ Small type/badge: “Standard”, “Specialty”, etc. */}
+                    <span className="inline-flex items-center rounded-md border px-2 py-1 text-xs text-gray-700 bg-gray-50">
+                      {typeLabel}
+                    </span>
+                  </div>
+
+                  {/* Optional: price hint line */}
+                  <div className="mt-2 text-xs text-gray-600">
+                    {price ? <>From <strong>{price}</strong></> : <>Live pricing</>}
                   </div>
                 </div>
               </Link>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </section>
       )}
     </main>
   );
