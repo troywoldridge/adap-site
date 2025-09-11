@@ -44,30 +44,13 @@ type ProductRow = {
 
 /* ---------------- Utils ---------------- */
 const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
+
 const toNum = (n: unknown): number | null => {
   const s = n == null ? "" : String(n).trim();
   if (!s) return null;
   const v = Number(s);
   return Number.isFinite(v) ? v : null;
 };
-
-
-function tryLabelFromAssets(
-  subs: Subcategory[],
-  product: ProductRow
-): string | null {
-  const sid = toNum(product.subcategory_id);
-  if (sid == null) return null;
-
-  // Try id match OR subcategory_id match (your JSON sometimes uses one or the other)
-  const hit =
-    subs.find((s) => toNum(s.id) === sid) ||
-    subs.find((s) => toNum(s.subcategory_id) === sid);
-
-  if (!hit?.name) return null;
-  return titleCase(hit.name.replace(/[_-]+/g, " "));
-}
-
 const toSlug = (s?: string | null) =>
   (s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 const titleCase = (s?: string | null) =>
@@ -86,6 +69,7 @@ function productSlugFromRow(p: ProductRow): string {
   return cands.find(Boolean) || "";
 }
 
+/** Human display name for the card title (never an ID). */
 function displayNameFromProduct(p: ProductRow): string {
   const nm = (p.name ?? "").trim();
   if (nm) return nm;
@@ -96,6 +80,53 @@ function displayNameFromProduct(p: ProductRow): string {
   return "Product";
 }
 
+/** Normalize the small badge text (Standard, Specialty, etc.) */
+function normalizeBadgeLabel(label: string, categorySlug: string): string {
+  let s = (label || "").trim();
+  if (!s) return "Standard";
+
+  // Strip category name prefix like "Business Cards - Standard"
+  const catName = titleCase(categorySlug.replace(/[_-]+/g, " "));
+  s = s.replace(new RegExp(`^${catName}\\s*[-–—:]\\s*`, "i"), "");
+
+  const map: Record<string, string> = {
+    std: "Standard",
+    standard: "Standard",
+    specialty: "Specialty",
+    specialties: "Specialty",
+    premium: "Premium",
+    classic: "Standard",
+    general: "Standard",
+  };
+  const key = s.toLowerCase();
+  if (map[key]) return map[key];
+
+  s = s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return titleCase(s);
+}
+
+function tryLabelFromAssets(subs: Subcategory[], product: ProductRow): string | null {
+  const sid = toNum(product.subcategory_id);
+  if (sid == null) return null;
+  const hit =
+    subs.find((s) => toNum(s.id) === sid) ||
+    subs.find((s) => toNum(s.subcategory_id) === sid);
+  if (!hit?.name) return null;
+  return titleCase(hit.name.replace(/[_-]+/g, " "));
+}
+
+/** Fallback grouping key used on category page; we mirror it here. */
+function productDerivedSubKey(p: ProductRow, categorySlug: string): string {
+  if (p.subcategory_slug && p.subcategory_slug.trim()) return toSlug(p.subcategory_slug);
+  if (toNum(p.subcategory_id) != null) return `sub-${toNum(p.subcategory_id)}`;
+  const base = (p.slug || p.product_slug || "").toLowerCase();
+  const prefix = `${categorySlug}-`;
+  const rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
+  const parts = rest.split("-").filter(Boolean);
+  return parts.slice(0, Math.min(2, parts.length)).join("-") || "general";
+}
+
+/** Decide the badge label for a product card */
 function typeLabelForCard(
   realSub: Subcategory | null,
   categorySlug: string,
@@ -103,35 +134,21 @@ function typeLabelForCard(
   derivedSubSlugFromRoute: string,
   subs: Subcategory[]
 ): string {
-  // 1) Real subcategory wins
-  if (realSub?.name) return titleCase(realSub.name);
+  if (realSub?.name) return normalizeBadgeLabel(titleCase(realSub.name), categorySlug);
 
-  // 2) Try to resolve via subcategoryAssets using product.subcategory_id
   const byAssets = tryLabelFromAssets(subs, product);
-  if (byAssets) return byAssets;
+  if (byAssets) return normalizeBadgeLabel(byAssets, categorySlug);
 
-  // 3) Try explicit product subcategory fields
   const scSlug = (product.subcategory_slug ?? "").trim();
-  if (scSlug) return titleCase(scSlug.replace(/[_-]+/g, " "));
+  if (scSlug) return normalizeBadgeLabel(titleCase(scSlug.replace(/[_-]+/g, " ")), categorySlug);
 
-  // 4) Fall back to the derived key from routing
-  return titleCase(derivedSubSlugFromRoute.replace(/[_-]+/g, " "));
-}
-
-/** must mirror the key logic from category page */
-function productDerivedSubKey(p: ProductRow, categorySlug: string): string {
-  if (p.subcategory_slug && p.subcategory_slug.trim()) return toSlug(p.subcategory_slug);
-  if (toNum(p.subcategory_id) != null) return `sub-${toNum(p.subcategory_id)}`;
-  const base = (p.slug || p.product_slug || "").toLowerCase();
-  const prefix = `${categorySlug}-`;
-  let rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
-  const parts = rest.split("-").filter(Boolean);
-  const key = parts.slice(0, Math.min(2, parts.length)).join("-") || "general";
-  return key;
+  return normalizeBadgeLabel(titleCase(derivedSubSlugFromRoute.replace(/[_-]+/g, " ")), categorySlug);
 }
 
 /* ---------------- SEO ---------------- */
-export async function generateMetadata({ params }: { params: { categorySlug: string; subcategorySlug: string } }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: { params: { categorySlug: string; subcategorySlug: string } }): Promise<Metadata> {
   const { categorySlug, subcategorySlug } = params;
 
   const cats = categoryAssets as Category[];
@@ -150,7 +167,7 @@ export async function generateMetadata({ params }: { params: { categorySlug: str
   const readableSub = titleCase(sub?.name ?? subcategorySlug);
 
   const desc =
-    (sub?.description) ||
+    sub?.description ||
     `Explore ${readableSub} in ${readableCat}. Live pricing via SinaLite API; images via Cloudflare CDN.`;
 
   return {
@@ -175,9 +192,7 @@ export async function generateMetadata({ params }: { params: { categorySlug: str
 /* ---------------- PAGE ---------------- */
 export default async function SubcategoryPage({
   params,
-}: {
-  params: { categorySlug: string; subcategorySlug: string };
-}) {
+}: { params: { categorySlug: string; subcategorySlug: string } }) {
   const { categorySlug, subcategorySlug } = params;
 
   const cats = categoryAssets as Category[];
@@ -188,33 +203,33 @@ export default async function SubcategoryPage({
   if (!cat) return notFound();
   const catId = toNum(cat.id);
 
-  // Real subcategory if present
+  // Resolve real subcategory (if it exists)
   const realSub = subs.find(
     (s) =>
       ensureSubSlug(s) === subcategorySlug &&
       ((s.category_slug || "").trim() === cat.slug || (toNum(s.category_id) ?? NaN) === toNum(cat.id))
   );
 
-  // Filter products in category
+  // Products in this category
   const inCat = prods.filter(
     (p) =>
       (p.category_slug || "").trim() === cat.slug ||
       (toNum(p.category_id) !== null && toNum(p.category_id) === catId)
   );
 
-  // If real subcategory: match by subcategory_id/slug; else: derived grouping key (matches category page)
+  // If real subcategory: filter by subcategory id/slug; else: by derived key
   const products: ProductRow[] = realSub
     ? inCat.filter((p) => {
         const matchId =
-          (toNum(p.subcategory_id) != null &&
-            (toNum(realSub.subcategory_id) === toNum(p.subcategory_id) ||
-             toNum(realSub.id) === toNum(p.subcategory_id)));
+          toNum(p.subcategory_id) != null &&
+          (toNum(realSub.subcategory_id) === toNum(p.subcategory_id) ||
+           toNum(realSub.id) === toNum(p.subcategory_id));
         const matchSlug = (p.subcategory_slug || "").trim() === ensureSubSlug(realSub);
         return matchId || matchSlug;
       })
     : inCat.filter((p) => productDerivedSubKey(p, categorySlug) === subcategorySlug);
 
-  // Optional: “From $” via SinaLite API (best-effort)
+  // Optional “From $” via SinaLite
   const priceSnapshots: Record<string, string | undefined> = {};
   await Promise.all(
     products.slice(0, 60).map(async (p) => {
@@ -233,7 +248,6 @@ export default async function SubcategoryPage({
     })
   );
 
-  // ✅ Human-friendly labels for the page render
   const readableCat = titleCase(cat.name ?? categorySlug);
   const readableSub = titleCase(realSub?.name ?? subcategorySlug);
 
@@ -273,7 +287,7 @@ export default async function SubcategoryPage({
             const href = `/categories/${categorySlug}/${subcategorySlug}/${slug}`;
             const price = priceSnapshots[slug];
             const displayName = displayNameFromProduct(p);
-            const typeLabel = typeLabelForCard(realSub ?? null, categorySlug, p, subcategorySlug);
+            const typeLabel = typeLabelForCard(realSub ?? null, categorySlug, p, subcategorySlug, subs);
 
             return (
               <Link
@@ -281,7 +295,6 @@ export default async function SubcategoryPage({
                 href={href}
                 className="group relative rounded-2xl border bg-white shadow-sm overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                {/* Image tile — SubcategoryTileImage uses Next <Image> + Cloudflare loader */}
                 <div className="relative w-full aspect-[4/3] bg-gray-50">
                   {p.cf_image_1_id ? (
                     <SubcategoryTileImage src={p.cf_image_1_id} kind="id" alt={displayName} />
@@ -293,7 +306,6 @@ export default async function SubcategoryPage({
                 </div>
 
                 <div className="p-4">
-                  {/* ✅ Always a human name, never an ID */}
                   <h2 className="text-base font-semibold leading-6 text-gray-900 line-clamp-2">
                     {displayName}
                   </h2>
@@ -310,13 +322,11 @@ export default async function SubcategoryPage({
                       </svg>
                     </span>
 
-                    {/* ✅ Small type/badge: “Standard”, “Specialty”, etc. */}
                     <span className="inline-flex items-center rounded-md border px-2 py-1 text-xs text-gray-700 bg-gray-50">
                       {typeLabel}
                     </span>
                   </div>
 
-                  {/* Optional: price hint line */}
                   <div className="mt-2 text-xs text-gray-600">
                     {price ? <>From <strong>{price}</strong></> : <>Live pricing</>}
                   </div>

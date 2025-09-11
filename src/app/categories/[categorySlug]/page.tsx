@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import categoryAssets from "@/data/categoryAssets.json";
 import subcategoryAssets from "@/data/subcategoryAssets.json";
 import productAssets from "@/data/productAssets.json";
-import { cfImage } from "@/lib/cfImages"; // Cloudflare CDN
+import { cfImage } from "@/lib/cfImages";
 
 /* ---------------- Types ---------------- */
 type Category = { id?: number | string | null; slug: string; name?: string | null; description?: string | null };
@@ -48,9 +48,15 @@ const toSlug = (s?: string | null) =>
 const titleCase = (s?: string | null) =>
   (s || "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 
-/** stable key for a product's "subcat" when assets are missing */
+function ensureSubSlug(s: Subcategory): string {
+  return (s.slug && s.slug.trim())
+    || toSlug(s.name)
+    || (toNum(s.subcategory_id) ?? toNum(s.id))?.toString()
+    || "subcategory";
+}
+
+/** Fallback: derive subcategory key/label from a product when assets don't map. */
 function productDerivedSubKey(p: ProductRow, categorySlug: string): { key: string; label: string } {
-  // 1) explicit fields first:
   if (p.subcategory_slug && p.subcategory_slug.trim()) {
     const key = toSlug(p.subcategory_slug);
     return { key, label: titleCase(p.subcategory_slug) };
@@ -59,24 +65,13 @@ function productDerivedSubKey(p: ProductRow, categorySlug: string): { key: strin
     const key = `sub-${toNum(p.subcategory_id)}`;
     return { key, label: titleCase(key.replace(/^sub-/, "")) };
   }
-
-  // 2) derive from product slug after removing the category prefix
   const base = (p.slug || p.product_slug || "").toLowerCase();
   const prefix = `${categorySlug}-`;
-  let rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
-  // take 1-2 tokens to avoid exploding the number of "subcats"
+  const rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
   const parts = rest.split("-").filter(Boolean);
   const picked = parts.slice(0, Math.min(2, parts.length)).join("-");
   const key = picked || "general";
-  const label = titleCase(key);
-  return { key, label };
-}
-
-function ensureSubSlug(s: Subcategory): string {
-  return (s.slug && s.slug.trim())
-    || toSlug(s.name)
-    || (toNum(s.subcategory_id) ?? toNum(s.id))?.toString()
-    || "subcategory";
+  return { key, label: titleCase(key) };
 }
 
 /* ---------------- SEO ---------------- */
@@ -88,7 +83,7 @@ export async function generateMetadata({ params }: { params: { categorySlug: str
 
   const readableCat = titleCase(cat.name ?? categorySlug);
   const desc =
-    cat.description || `Browse ${readableCat} subcategories. Images via Cloudflare CDN; live pricing on PDPs per SinaLite API.`;
+    cat.description || `Browse ${readableCat} subcategories. Images via Cloudflare CDN; live pricing on product pages.`;
 
   return {
     title: `${readableCat} | American Design And Printing`,
@@ -116,61 +111,56 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
   if (!cat) return notFound();
   const catId = toNum(cat.id);
 
-  // A) try real subcategory assets (if you later patch JSON to include category mapping)
+  // A) Real subcategory assets (if mapped to this category)
   let subPool: Subcategory[] = subs
-  .filter(
-    (s) =>
-      (s.category_slug || "").trim() === cat.slug ||
-      (toNum(s.category_id) !== null && toNum(s.category_id) === catId)
-  )
-  .sort((a, b) => {
-    const ao = Number(a.sort_order ?? 9999);
-    const bo = Number(b.sort_order ?? 9999);
-    if (ao !== bo) return ao - bo;
-    return a.name.localeCompare(b.name);
-  });
+    .filter(
+      (s) =>
+        (s.category_slug || "").trim() === cat.slug ||
+        (toNum(s.category_id) !== null && toNum(s.category_id) === catId)
+    )
+    .sort((a, b) => {
+      const ao = Number(a.sort_order ?? 9999);
+      const bo = Number(b.sort_order ?? 9999);
+      if (ao !== bo) return ao - bo;
+      return a.name.localeCompare(b.name);
+    });
 
-  // B) fallback: derive subcategories from products in this category
+  // B) Fallback: derive subcategories from products in this category
   if (subPool.length === 0) {
-  const inCat = prods.filter(
-    (p) =>
-      (p.category_slug || "").trim() === cat.slug ||
-      (toNum(p.category_id) !== null && toNum(p.category_id) === catId)
-  );
+    const inCat = prods.filter(
+      (p) =>
+        (p.category_slug || "").trim() === cat.slug ||
+        (toNum(p.category_id) !== null && toNum(p.category_id) === catId)
+    );
 
-  const groups = new Map<
-    string,
-    { slug: string; name: string; cf_image_id?: string | null; count: number }
-  >();
+    const groups = new Map<string, { slug: string; name: string; cf_image_id?: string | null; count: number }>();
 
-  for (const p of inCat) {
-    const { key, label } = productDerivedSubKey(p, categorySlug);
-    const g = groups.get(key);
-    const img = (p.cf_image_1_id || "").trim() || undefined;
-    if (g) {
-      g.count += 1;
-      if (!g.cf_image_id && img) g.cf_image_id = img;
-    } else {
-      groups.set(key, { slug: key, name: label, cf_image_id: img ?? null, count: 1 });
+    for (const p of inCat) {
+      const { key, label } = productDerivedSubKey(p, categorySlug);
+      const img = (p.cf_image_1_id || "").trim() || undefined;
+      const g = groups.get(key);
+      if (g) {
+        g.count += 1;
+        if (!g.cf_image_id && img) g.cf_image_id = img;
+      } else {
+        groups.set(key, { slug: key, name: label, cf_image_id: img ?? null, count: 1 });
+      }
     }
+
+    subPool = Array.from(groups.values())
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .map((g) => ({
+        id: null,
+        subcategory_id: null,
+        category_id: cat.id ?? null,
+        category_slug: cat.slug,
+        slug: g.slug,
+        name: g.name,
+        description: null,
+        cf_image_id: g.cf_image_id ?? null,
+        sort_order: null,
+      }));
   }
-
-  // Return plain Subcategory objects (no _order field)
-  subPool = Array.from(groups.values())
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .map((g) => ({
-      id: null,
-      subcategory_id: null,
-      category_id: cat.id ?? null,
-      category_slug: cat.slug,
-      slug: g.slug,
-      name: g.name,
-      description: null,
-      cf_image_id: g.cf_image_id ?? null,
-      sort_order: null,
-    }));
-}
-
 
   const readableCat = titleCase(cat.name ?? categorySlug);
 
@@ -182,9 +172,7 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
       position: i + 1,
       name: s.name,
       url: `${SITE}/categories/${categorySlug}/${ensureSubSlug(s)}`,
-      image: s.cf_image_id
-        ? cfImage(s.cf_image_id, "subcategoryThumb")
-        : undefined,
+      image: s.cf_image_id ? cfImage(s.cf_image_id, "subcategoryThumb") : undefined,
     })),
   };
 
@@ -205,7 +193,7 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
           <p className="mt-2 max-w-3xl text-gray-600">{cat.description}</p>
         ) : (
           <p className="mt-2 max-w-3xl text-gray-600">
-            Choose a subcategory to continue. Images are delivered via Cloudflare CDN; pricing is live on product pages (per SinaLite API docs).
+            Choose a subcategory to continue. Images are delivered via Cloudflare CDN; pricing is live on product pages.
           </p>
         )}
       </header>
@@ -237,7 +225,6 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
                   )}
                   <div className="p-4">
                     <div className="font-medium text-gray-900">{titleCase(s.name)}</div>
-
                     {s.description ? <p className="text-gray-600 text-sm mt-1">{s.description}</p> : null}
                   </div>
                 </Link>
