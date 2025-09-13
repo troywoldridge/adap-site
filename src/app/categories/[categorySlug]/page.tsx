@@ -36,7 +36,9 @@ type ProductRow = {
 };
 
 /* ---------------- Utils ---------------- */
-const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
+
 const toNum = (n: unknown): number | null => {
   const s = n == null ? "" : String(n).trim();
   if (!s) return null;
@@ -44,46 +46,91 @@ const toNum = (n: unknown): number | null => {
   return Number.isFinite(v) ? v : null;
 };
 const toSlug = (s?: string | null) =>
-  (s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  (s || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 const titleCase = (s?: string | null) =>
-  (s || "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
+  (s || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
-function ensureSubSlug(s: Subcategory): string {
-  return (s.slug && s.slug.trim())
-    || toSlug(s.name)
-    || (toNum(s.subcategory_id) ?? toNum(s.id))?.toString()
-    || "subcategory";
+/** Try to make a nice label from a product's slug/name, removing the category prefix. */
+function labelFromProduct(
+  p: ProductRow,
+  categorySlug: string,
+  fallback: string
+): string {
+  // Prefer explicit subcategory slug when present
+  const sc = (p.subcategory_slug || "").trim();
+  if (sc) return titleCase(sc);
+
+  // Otherwise try product slug/name minus the category prefix
+  const base = (p.slug || p.product_slug || p.name || "").toString().toLowerCase().trim();
+  if (base) {
+    const prefix = `${categorySlug.toLowerCase().trim()}-`;
+    const rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
+    const parts = rest.split(/[-\s]+/).filter(Boolean);
+    if (parts.length) {
+      // Take first 2–3 words for a clean label
+      const take = parts.slice(0, Math.min(3, parts.length)).join(" ");
+      return titleCase(take);
+    }
+  }
+
+  // As a last resort, use whatever we were given
+  return titleCase(fallback);
 }
 
-/** Fallback: derive subcategory key/label from a product when assets don't map. */
-function productDerivedSubKey(p: ProductRow, categorySlug: string): { key: string; label: string } {
-  if (p.subcategory_slug && p.subcategory_slug.trim()) {
-    const key = toSlug(p.subcategory_slug);
+/** Build a stable key AND a friendly label. */
+function productDerivedSubKey(
+  p: ProductRow,
+  categorySlug: string
+): { key: string; label: string } {
+  // 1) If subcategory_slug exists, use it for both key/label
+  if ((p.subcategory_slug || "").trim()) {
+    const key = toSlug(p.subcategory_slug!);
     return { key, label: titleCase(p.subcategory_slug) };
   }
-  if (toNum(p.subcategory_id) != null) {
-    const key = `sub-${toNum(p.subcategory_id)}`;
-    return { key, label: titleCase(key.replace(/^sub-/, "")) };
+
+  // 2) If only numeric subcategory_id exists, keep stable key but derive a HUMAN label
+  const sid = toNum(p.subcategory_id);
+  if (sid != null) {
+    const key = `sub-${sid}`;
+    const label = labelFromProduct(p, categorySlug, String(sid));
+    return { key, label };
   }
+
+  // 3) Fallback: derive from product slug/name after removing category prefix
   const base = (p.slug || p.product_slug || "").toLowerCase();
   const prefix = `${categorySlug}-`;
   const rest = base.startsWith(prefix) ? base.slice(prefix.length) : base;
   const parts = rest.split("-").filter(Boolean);
   const picked = parts.slice(0, Math.min(2, parts.length)).join("-");
   const key = picked || "general";
-  return { key, label: titleCase(key) };
+  const label = titleCase(picked || "General");
+  return { key, label };
 }
 
 /* ---------------- SEO ---------------- */
-export async function generateMetadata({ params }: { params: { categorySlug: string } }): Promise<Metadata> {
-  const { categorySlug } = params;
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ categorySlug: string }>;
+}): Promise<Metadata> {
+  const { categorySlug } = await params;
+
   const cats = categoryAssets as Category[];
   const cat = cats.find((c) => c.slug === categorySlug);
   if (!cat) return { title: "Category Not Found" };
 
   const readableCat = titleCase(cat.name ?? categorySlug);
   const desc =
-    cat.description || `Browse ${readableCat} subcategories. Images via Cloudflare CDN; live pricing on product pages.`;
+    cat.description ||
+    `Browse ${readableCat} subcategories. Images via Cloudflare CDN; live pricing on product pages.`;
 
   return {
     title: `${readableCat} | American Design And Printing`,
@@ -92,16 +139,29 @@ export async function generateMetadata({ params }: { params: { categorySlug: str
     robots: {
       index: true,
       follow: true,
-      googleBot: { "max-snippet": -1, "max-image-preview": "large", "max-video-preview": -1 },
+      googleBot: {
+        "max-snippet": -1,
+        "max-image-preview": "large",
+        "max-video-preview": -1,
+      },
     },
-    openGraph: { type: "website", title: readableCat, description: desc, url: `${SITE}/categories/${categorySlug}` },
+    openGraph: {
+      type: "website",
+      title: readableCat,
+      description: desc,
+      url: `${SITE}/categories/${categorySlug}`,
+    },
     twitter: { card: "summary_large_image", title: readableCat, description: desc },
   };
 }
 
 /* ---------------- PAGE ---------------- */
-export default async function CategoryPage({ params }: { params: { categorySlug: string } }) {
-  const { categorySlug } = params;
+export default async function CategoryPage({
+  params,
+}: {
+  params: Promise<{ categorySlug: string }>;
+}) {
+  const { categorySlug } = await params;
 
   const cats = categoryAssets as Category[];
   const subs = subcategoryAssets as Subcategory[];
@@ -111,7 +171,7 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
   if (!cat) return notFound();
   const catId = toNum(cat.id);
 
-  // A) Real subcategory assets (if mapped to this category)
+  // A) Use real subcategory assets when present
   let subPool: Subcategory[] = subs
     .filter(
       (s) =>
@@ -125,7 +185,7 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
       return a.name.localeCompare(b.name);
     });
 
-  // B) Fallback: derive subcategories from products in this category
+  // B) Fallback: derive subcategories from products with HUMAN labels
   if (subPool.length === 0) {
     const inCat = prods.filter(
       (p) =>
@@ -133,17 +193,28 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
         (toNum(p.category_id) !== null && toNum(p.category_id) === catId)
     );
 
-    const groups = new Map<string, { slug: string; name: string; cf_image_id?: string | null; count: number }>();
+    const groups = new Map<
+      string,
+      { slug: string; name: string; cf_image_id?: string | null; count: number }
+    >();
 
     for (const p of inCat) {
       const { key, label } = productDerivedSubKey(p, categorySlug);
       const img = (p.cf_image_1_id || "").trim() || undefined;
+
       const g = groups.get(key);
       if (g) {
         g.count += 1;
+        // If we had a numeric placeholder, upgrade it to a better label when we see one
+        if (/^\d+$/.test(g.name) && !/^\d+$/.test(label)) g.name = label;
         if (!g.cf_image_id && img) g.cf_image_id = img;
       } else {
-        groups.set(key, { slug: key, name: label, cf_image_id: img ?? null, count: 1 });
+        groups.set(key, {
+          slug: key,
+          name: label, // <- human label, not the id
+          cf_image_id: img ?? null,
+          count: 1,
+        });
       }
     }
 
@@ -155,7 +226,7 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
         category_id: cat.id ?? null,
         category_slug: cat.slug,
         slug: g.slug,
-        name: g.name,
+        name: g.name, // <- human name here
         description: null,
         cf_image_id: g.cf_image_id ?? null,
         sort_order: null,
@@ -171,19 +242,30 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
       "@type": "ListItem",
       position: i + 1,
       name: s.name,
-      url: `${SITE}/categories/${categorySlug}/${ensureSubSlug(s)}`,
+      url: `${SITE}/categories/${categorySlug}/${
+        (s.slug && s.slug.trim()) || toSlug(s.name)
+      }`,
       image: s.cf_image_id ? cfImage(s.cf_image_id, "subcategoryThumb") : undefined,
     })),
   };
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }}
+      />
       <nav className="mb-6 text-sm text-gray-600" aria-label="Breadcrumb">
         <ol className="flex flex-wrap items-center gap-1">
-          <li><Link className="hover:underline" href="/">Home</Link></li>
+          <li>
+            <Link className="hover:underline" href="/">
+              Home
+            </Link>
+          </li>
           <li>/</li>
-          <li aria-current="page" className="text-gray-900 font-medium">{readableCat}</li>
+          <li aria-current="page" className="text-gray-900 font-medium">
+            {readableCat}
+          </li>
         </ol>
       </nav>
 
@@ -193,18 +275,23 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
           <p className="mt-2 max-w-3xl text-gray-600">{cat.description}</p>
         ) : (
           <p className="mt-2 max-w-3xl text-gray-600">
-            Choose a subcategory to continue. Images are delivered via Cloudflare CDN; pricing is live on product pages.
+            Choose a subcategory to continue. Images are delivered via the Cloudflare CDN; pricing is live on product
+            pages (per SinaLite API docs).
           </p>
         )}
       </header>
 
       {subPool.length === 0 ? (
-        <div className="rounded-lg border p-6 text-gray-600">No subcategories found.</div>
+        <div className="rounded-lg border p-6 text-gray-600">
+          No subcategories found.
+        </div>
       ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 list-none">
           {subPool.map((s) => {
-            const slug = ensureSubSlug(s);
+            const slug =
+              (s.slug && s.slug.trim()) || toSlug(s.name) || "subcategory";
             const img = s.cf_image_id ? cfImage(s.cf_image_id, "subcategoryThumb") : "";
+
             return (
               <li key={slug}>
                 <Link
@@ -215,7 +302,7 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
                   {img ? (
                     <img
                       src={img}
-                      alt={s.name}
+                      alt={titleCase(s.name)}
                       className="w-full aspect-[4/3] object-cover"
                       loading="lazy"
                       decoding="async"
@@ -224,8 +311,12 @@ export default async function CategoryPage({ params }: { params: { categorySlug:
                     <div className="w-full aspect-[4/3] bg-gray-100" />
                   )}
                   <div className="p-4">
-                    <div className="font-medium text-gray-900">{titleCase(s.name)}</div>
-                    {s.description ? <p className="text-gray-600 text-sm mt-1">{s.description}</p> : null}
+                    <div className="font-medium text-gray-900">
+                      {titleCase(s.name)}       {/* ✅ card title is human */}
+                    </div>
+                    {s.description ? (
+                      <p className="text-gray-600 text-sm mt-1">{s.description}</p>
+                    ) : null}
                   </div>
                 </Link>
               </li>

@@ -1,3 +1,4 @@
+// src/components/product/ProductReviews.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -10,10 +11,11 @@ type Stats = {
 
 type Review = {
   id: number | string;
-  name: string;
+  userId?: string | null;
   rating: number;
-  comment: string;
-  createdAt: string;
+  title?: string | null;
+  body?: string | null;
+  createdAt?: string | null;
 };
 
 export default function ProductReviews({
@@ -32,7 +34,7 @@ export default function ProductReviews({
   const [error, setError] = useState<string | null>(null);
 
   // form
-  const [name, setName] = useState("");
+  const [name, setName] = useState("");   // still used for POST fingerprinting
   const [email, setEmail] = useState("");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -53,19 +55,37 @@ export default function ProductReviews({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/reviews?productId=${encodeURIComponent(pid)}`, {
-          cache: "no-store",
-        });
-        const json = await res.json();
-        if (!res.ok || json?.ok === false) {
+        const res = await fetch(`/api/reviews?productId=${encodeURIComponent(pid)}`, { cache: "no-store" });
+        const json = await res.json().catch(() => null);
+
+        // API is hardened to return ok:true + empty data on DB errors
+        if (!json || json.ok === false) {
           throw new Error(json?.error || `Failed (${res.status})`);
         }
+
         if (!abort) {
-          setStats(json.stats as Stats);
-          setReviews(json.reviews as Review[]);
+          const s: Stats = {
+            count: Number(json.stats?.count ?? 0),
+            average: Number(json.stats?.average ?? 0),
+            breakdown: (json.stats?.breakdown ?? {}) as Stats["breakdown"],
+          };
+          const list: Review[] = Array.isArray(json.reviews) ? json.reviews.map((r: any) => ({
+            id: r.id,
+            userId: r.userId ?? null,
+            rating: Number(r.rating ?? 0),
+            title: r.title ?? null,
+            body: r.body ?? null,
+            createdAt: r.createdAt ?? null,
+          })) : [];
+          setStats(s);
+          setReviews(list);
         }
       } catch (e: any) {
-        if (!abort) setError(e?.message || "Failed to load reviews");
+        if (!abort) {
+          setStats({ count: 0, average: 0, breakdown: { 1:0, 2:0, 3:0, 4:0, 5:0 } });
+          setReviews([]);
+          setError(null); // keep UI clean; show empty state instead of raw error
+        }
       } finally {
         if (!abort) setLoading(false);
       }
@@ -87,10 +107,10 @@ export default function ProductReviews({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           productId: pid,
-          name: name.trim(),
-          email: email.trim() || undefined,
+          name: name.trim(),                 // used in server fingerprint only
+          email: email.trim() || undefined,  // becomes userId or "anon" in DB
           rating,
-          comment: comment.trim(),
+          comment: comment.trim(),           // becomes "body" in DB
           termsAgreed: terms,
         }),
       });
@@ -221,10 +241,7 @@ export default function ProductReviews({
                 <li key={star} className="flex items-center gap-3">
                   <span className="w-10 text-right">{star}★</span>
                   <div className="h-2 w-full rounded bg-gray-200">
-                    <div
-                      className="h-2 rounded bg-blue-600"
-                      style={{ width: `${pct}%` }}
-                    />
+                    <div className="h-2 rounded bg-blue-600" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="w-12 text-right tabular-nums text-gray-600">{count}</span>
                 </li>
@@ -236,23 +253,26 @@ export default function ProductReviews({
         {/* list */}
         <ul className="space-y-4">
           {loading && <li className="text-sm text-gray-500">Loading…</li>}
-          {error && <li className="text-sm text-red-700">{error}</li>}
-          {!loading && !error && reviews.length === 0 && (
+          {!loading && reviews.length === 0 && (
             <li className="text-sm text-gray-500">No reviews yet.</li>
           )}
           {reviews.map((r) => (
             <li key={r.id} className="rounded-lg border border-gray-200 bg-white p-3">
               <div className="flex items-center justify-between">
-                <div className="font-medium text-gray-900">{r.name}</div>
+                {/* We don't have "name" in the DB; show userId if present, else generic */}
+                <div className="font-medium text-gray-900">{r.userId || "Verified Reviewer"}</div>
                 <div className="text-xs text-gray-500">
-                  {new Date(r.createdAt).toLocaleDateString()}
+                  {r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ""}
                 </div>
               </div>
               <div className="mt-1 text-sm text-amber-600">
                 {"★".repeat(r.rating)}{" "}
-                <span className="text-gray-400">{"★".repeat(5 - r.rating)}</span>
+                <span className="text-gray-300">{"★".repeat(Math.max(0, 5 - r.rating))}</span>
               </div>
-              <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{r.comment}</p>
+              {r.title ? <div className="mt-1 text-sm font-medium text-gray-900">{r.title}</div> : null}
+              {r.body ? (
+                <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{r.body}</p>
+              ) : null}
             </li>
           ))}
         </ul>

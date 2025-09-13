@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import ProductReviews from "./ProductReviews";
 
 export default function ProductInfoTabs({
   details,
   filePrep,
-  reviewsSlot,
+  reviewsProductId,
+  reviewsProductName,
 }: {
-  details: React.ReactNode;
-  filePrep: React.ReactNode;
-  reviewsSlot: React.ReactNode;
+  details: React.ReactNode;           // safe markup (no handlers)
+  filePrep: React.ReactNode;          // safe markup (no handlers)
+  reviewsProductId: string | number;  // primitives only
+  reviewsProductName?: string;
 }) {
   const [tab, setTab] = useState<"details" | "file" | "reviews">("details");
 
@@ -43,10 +46,7 @@ export default function ProductInfoTabs({
 
   return (
     <section className="mt-12">
-      <div
-        role="tablist"
-        className="flex items-end justify-start gap-8 border-b border-gray-200"
-      >
+      <div role="tablist" className="flex items-end justify-start gap-8 border-b border-gray-200">
         <TabBtn id="details" label="Details" />
         <TabBtn id="file" label="File Prep" />
         <TabBtn id="reviews" label="Reviews" />
@@ -55,7 +55,12 @@ export default function ProductInfoTabs({
       <div className="mt-6">
         {tab === "details" && <div className="prose max-w-none">{details}</div>}
         {tab === "file" && <div className="prose max-w-none">{filePrep}</div>}
-        {tab === "reviews" && <div>{reviewsSlot}</div>}
+        {tab === "reviews" && (
+          <ProductReviews
+            productId={reviewsProductId}
+            productName={reviewsProductName}
+          />
+        )}
       </div>
     </section>
   );

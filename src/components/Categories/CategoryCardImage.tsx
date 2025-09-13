@@ -1,41 +1,55 @@
-"use client";
+"use client"; // safe either way; this component is tiny and stateless
 
-import Image from "next/image";
-import { makeCloudflareLoader } from "@/lib/cfImages";
+import * as React from "react";
+import { cfImage } from "@/lib/cfImages";
 
-const categoryLoader = makeCloudflareLoader("categoryCard");
+/**
+ * CategoryCardImage
+ * - NEVER shows numbers/ids
+ * - Uses Cloudflare Images via cfImage() when kind="id"
+ */
+type Props = {
+  /** Cloudflare image id (when kind="id") or absolute/relative URL (when kind="url") */
+  src: string;
+  /** "id" = Cloudflare ID (recommended), "url" = already-built URL */
+  kind?: "id" | "url";
+  /** alt text (please pass descriptive product/category name) */
+  alt?: string;
+  /** Cloudflare variant to use for "id" (e.g. "subcategoryThumb", "productCard", "public") */
+  variant?: string;
+  className?: string;
+  sizes?: string;
+  loading?: "lazy" | "eager";
+  decoding?: "async" | "auto" | "sync";
+  draggable?: boolean;
+  fetchPriority?: "high" | "low" | "auto";
+};
 
-// Accept either a Cloudflare imageId or a URL fallback
 export default function CategoryCardImage({
-  imageId,
-  imageUrl,
-  alt,
-}: {
-  imageId?: string | null;
-  imageUrl?: string | null; // e.g. "/images/cat-*.jpg"
-  alt: string;
-}) {
-  if (imageId) {
-    return (
-      <Image
-        loader={categoryLoader}
-        src={imageId}
-        alt={alt}
-        fill
-        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
-        style={{ objectFit: "cover" }}
-      />
-    );
-  }
+  src,
+  kind = "id",
+  alt = "",
+  variant = "subcategoryThumb",
+  className = "w-full h-full object-cover",
+  sizes = "(max-width: 768px) 100vw, 33vw",
+  loading = "lazy",
+  decoding = "async",
+  draggable = false,
+  fetchPriority = "auto",
+}: Props) {
+  const url = kind === "id" ? cfImage(src, variant) : src;
 
   return (
-    <Image
-      src={imageUrl || "/placeholder.png"}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
       alt={alt}
-      fill
-      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
-      style={{ objectFit: "cover" }}
-      unoptimized
+      className={className}
+      sizes={sizes}
+      loading={loading}
+      decoding={decoding}
+      draggable={draggable}
+      fetchPriority={fetchPriority}
     />
   );
 }

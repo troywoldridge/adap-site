@@ -1,4 +1,5 @@
 // src/app/api/cart/lines/route.ts
+import "server-only";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
@@ -37,11 +38,26 @@ function sameArray(a: number[] = [], b: number[] = []) {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { productId, quantity = 1, optionIds = [] } = body as {
-    productId: number;
-    quantity?: number;
-    optionIds?: number[];
-  };
+
+  // Accept both `quantity` and `qty` (client can send either)
+  const productId = Number(body?.productId);
+  const quantity = Number(body?.quantity ?? body?.qty ?? 1);
+  const optionIds: number[] = Array.isArray(body?.optionIds)
+    ? body.optionIds.map((n: any) => Number(n)).filter(Number.isFinite)
+    : [];
+
+  // Optional pricing (cents) — used to show line totals downstream
+  const unitPriceCents = Number.isFinite(Number(body?.unitPriceCents))
+    ? Number(body.unitPriceCents)
+    : null;
+  const lineTotalCents = Number.isFinite(Number(body?.lineTotalCents))
+    ? Number(body.lineTotalCents)
+    : null;
+
+  if (!Number.isFinite(productId) || productId <= 0) {
+    return noStore(NextResponse.json({ ok: false, error: "invalid_productId" }, { status: 400 }));
+  }
+  const qty = Math.max(1, Number.isFinite(quantity) ? quantity : 1);
 
   const jar = await getJar();
   const cookieA = (jar.get?.("adap_sid")?.value ?? undefined) as string | undefined;
@@ -75,16 +91,23 @@ export async function POST(req: Request) {
     .select()
     .from(cartLines)
     .where(and(eq(cartLines.cartId, cart.id), eq(cartLines.productId, Number(productId))));
+
   const match = existing.find((l: any) => sameArray(l.optionIds ?? [], optionIds));
 
   let line: any;
   let merged = false;
+
   if (match) {
     merged = true;
-    const newQty = Number(match.quantity ?? 0) + Number(quantity ?? 1);
+    const newQty = Number(match.quantity ?? 0) + qty;
     [line] = await db
       .update(cartLines)
-      .set({ quantity: newQty })
+      .set({
+        quantity: newQty,
+        // only update price fields if provided in this request
+        ...(unitPriceCents != null ? { unitPriceCents } : {}),
+        ...(lineTotalCents != null ? { lineTotalCents } : {}),
+      })
       .where(eq(cartLines.id, match.id))
       .returning();
   } else {
@@ -93,15 +116,23 @@ export async function POST(req: Request) {
       .values({
         cartId: cart.id,
         productId: Number(productId),
-        quantity: Number(quantity),
-        optionIds: optionIds as any, // jsonb[]
+        quantity: qty,
+        optionIds: optionIds as any, // jsonb[] in your schema
         artwork: {},                 // nullable jsonb
+        ...(unitPriceCents != null ? { unitPriceCents } : {}),
+        ...(lineTotalCents != null ? { lineTotalCents } : {}),
       })
       .returning();
   }
 
   // ✅ build the FINAL response first, THEN set cookies on it
-  const res = NextResponse.json({ ok: true, merged, cartId: cart.id, line });
+  const res = NextResponse.json({
+    ok: true,
+    merged,
+    cartId: cart.id,
+    lineId: line.id,  // <—— critical for upload page
+    line,
+  });
   res.cookies.set("adap_sid", sid, COOKIE_OPTS);
   res.cookies.set("sid", sid,     COOKIE_OPTS);
   return noStore(res);

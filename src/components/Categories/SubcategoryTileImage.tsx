@@ -1,54 +1,51 @@
 "use client";
 
-import Image from "next/image";
-import { makeCloudflareLoader } from "@/lib/cfImages";
+import * as React from "react";
+import { cfImage } from "@/lib/cfImages";
 
-const subcategoryLoader = makeCloudflareLoader("subcategoryCard");
+/**
+ * SubcategoryTileImage
+ * - SAME behavior as CategoryCardImage, name kept for existing imports
+ * - Absolutely NO index/id captions or overlays
+ */
+type Props = {
+  src: string;
+  kind?: "id" | "url";
+  alt?: string;
+  variant?: string;
+  className?: string;
+  sizes?: string;
+  loading?: "lazy" | "eager";
+  decoding?: "async" | "auto" | "sync";
+  draggable?: boolean;
+  fetchPriority?: "high" | "low" | "auto";
+};
 
-// Flexible props so old & new call sites both work.
-type Props =
-  | { src: string; kind: "id" | "url"; alt: string }                 // new resolver shape
-  | { imageId?: string | null; imageUrl?: string | null; alt: string }; // legacy: pass one of these
+export default function SubcategoryTileImage({
+  src,
+  kind = "id",
+  alt = "",
+  variant = "productCard",
+  className = "w-full h-full object-cover",
+  sizes = "(max-width: 768px) 100vw, 25vw",
+  loading = "lazy",
+  decoding = "async",
+  draggable = false,
+  fetchPriority = "auto",
+}: Props) {
+  const url = kind === "id" ? cfImage(src, variant) : src;
 
-export default function SubcategoryTileImage(props: Props) {
-  let mode: "id" | "url";
-  let src = "";
-  let alt = "Image";
-
-  if ("src" in props) {
-    mode = props.kind;
-    src = props.src || "";
-    alt = props.alt;
-  } else {
-    const { imageId, imageUrl } = props;
-    alt = props.alt;
-    if (imageId) { mode = "id"; src = imageId; }
-    else { mode = "url"; src = imageUrl || "/placeholder.png"; }
-  }
-
-  if (mode === "id") {
-    // Cloudflare IMAGE_ID → loader (direct CDN, no /_next/image)
-    return (
-      <Image
-        loader={subcategoryLoader}
-        src={src}
-        alt={alt}
-        fill
-        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
-        style={{ objectFit: "cover" }}
-      />
-    );
-  }
-
-  // URL fallback → render direct and bypass optimizer (no 403)
   return (
-    <Image
-      src={src}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
       alt={alt}
-      fill
-      sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
-      style={{ objectFit: "cover" }}
-      unoptimized
+      className={className}
+      sizes={sizes}
+      loading={loading}
+      decoding={decoding}
+      draggable={draggable}
+      fetchPriority={fetchPriority}
     />
   );
 }

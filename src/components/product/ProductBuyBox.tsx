@@ -1,209 +1,225 @@
+// src/components/product/ProductBuyBox.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import ProceedToCheckout from "@/components/ProceedToCheckout";
-import { flushShipChoiceToCart } from "@/lib/shippingChoice";
 
+/** Option+Group shape coming from the PDP */
 type Option = { id: number; name: string };
 type Group = { name: string; options: Option[] };
 
-type Props = {
+export default function ProductBuyBox({
+  productId,
+  productName,        // not used here but safe to keep
+  optionGroups,
+  store,
+  cloudflareImageId,  // not used here but safe to keep
+}: {
   productId: number;
   productName: string;
   optionGroups: Group[];
-  store?: "US" | "CA";
-  cloudflareImageId?: string | null;
-};
+  store: "US" | "CA";
+  cloudflareImageId?: string;
+}) {
+  const router = useRouter();
 
-type PriceResp =
-  | { ok: true; unitPrice: number; currency: "USD" | "CAD" }
-  | { ok: false; error: string };
+  /* --------------------- Selection State (string values) -------------------- */
+  // Keep select values as strings so the <select> stays controlled.
+  const [choices, setChoices] = useState<Record<string, string>>({});
+  const get = useCallback((name: string) => choices[name] ?? "", [choices]);
+  const set = useCallback(
+    (name: string, value: string) =>
+      setChoices((prev) => ({ ...prev, [name]: value })),
+    []
+  );
 
-function normalizeLabel(s: unknown) {
-  return String(s ?? "").toLowerCase().replace(/\s+/g, "").replace(/[^a-z0-9]/g, "");
-}
-function findQtyGroupIndex(optionGroups: Group[]): number | null {
-  const candidates = new Set(["qty", "quantity", "orderqty", "orderquantity"]);
-  for (let i = 0; i < optionGroups.length; i++) {
-    const label = normalizeLabel(optionGroups[i].name);
-    if (candidates.has(label)) return i;
-  }
-  return null;
-}
-function findQtyValueIdByCount(g: Group, count: number): number | null {
-  const wanted = String(count);
-  const exact = g.options.find((o) => normalizeLabel(o.name) === normalizeLabel(wanted));
-  if (exact) return exact.id;
-  return g.options[0]?.id ?? null;
-}
-
-export default function ProductBuyBox({
-  productId,
-  productName,
-  optionGroups,
-  store = "US",
-  cloudflareImageId = null,
-}: Props) {
-  const [selected, setSelected] = useState<Record<number, number>>(() => {
-    const seed: Record<number, number> = {};
-    optionGroups.forEach((g, idx) => {
-      const first = g.options?.[0]?.id;
-      if (first) seed[idx] = first;
-    });
-    return seed;
-  });
-
-  const [sets, setSets] = useState<number>(1);
-  const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [currency, setCurrency] = useState<"USD" | "CAD">("USD");
-  const [loadingPrice, setLoadingPrice] = useState<boolean>(false);
-  const [priceError, setPriceError] = useState<string | null>(null);
-
-  // guard to avoid duplicate adds (Add & Upload → Go to Cart)
-  const lastLineId = useRef<string | null>(null);
-
-  // If you want to ensure any chosen shipping is flushed, do it when the user clicks buttons
-  // (calling it here at render was causing the await error).
-
+  // Initialize defaults (first option in each group) once the groups arrive.
   useEffect(() => {
-    const qIdx = findQtyGroupIndex(optionGroups);
-    if (qIdx == null) return;
-    const qtyGroup = optionGroups[qIdx];
-    const desiredId = findQtyValueIdByCount(qtyGroup, sets);
-    if (desiredId != null && selected[qIdx] !== desiredId) {
-      setSelected((prev) => ({ ...prev, [qIdx]: desiredId }));
-    }
-  }, [sets, optionGroups, selected]);
-
-  const optionIds = useMemo(() => {
-    const ids: number[] = [];
-    optionGroups.forEach((_, idx) => {
-      const v = selected[idx];
-      if (Number.isFinite(v)) ids.push(Number(v));
-    });
-    return ids;
-  }, [selected, optionGroups]);
-
-  useEffect(() => {
-    let abort = false;
-    (async () => {
-      if (!productId || optionIds.length === 0) {
-        setUnitPrice(0);
-        setPriceError(null);
-        return;
+    setChoices((prev) => {
+      const next = { ...prev };
+      for (const g of optionGroups) {
+        if (next[g.name] == null && g.options.length) {
+          next[g.name] = String(g.options[0].id);
+        }
       }
+      return next;
+    });
+  }, [optionGroups]);
+
+  // Numeric selection object for APIs
+  const numericSelection = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(choices).map(([k, v]) => [k, Number(v)])
+      ) as Record<string, number>,
+    [choices]
+  );
+
+  // Option id list (numeric) — handy for cart payloads
+  const optionIds = useMemo(
+    () =>
+      Object.values(numericSelection).filter((v) =>
+        Number.isFinite(v)
+      ) as number[],
+    [numericSelection]
+  );
+
+  // Helper: find a group with a fuzzy name match
+  const findGroup = useCallback(
+    (needle: string) =>
+      optionGroups.find((g) =>
+        g.name.toLowerCase().includes(needle.toLowerCase())
+      ),
+    [optionGroups]
+  );
+
+  // Quantity: parse from the selected option's NAME (e.g., "25", "50")
+  const quantity = useMemo(() => {
+    const g =
+      findGroup("quantity") || findGroup("qty") || findGroup("quantities");
+    if (!g) return 1;
+    const selId = Number(get(g.name) || "0");
+    const opt = g.options.find((o) => o.id === selId);
+    const n = Number.parseInt(opt?.name ?? "1", 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }, [get, findGroup, optionGroups]);
+
+  // Sides (best effort): look for a group mentioning "side"
+  const sides = useMemo(() => {
+    const g = findGroup("side");
+    if (!g) return 2;
+    const selId = Number(get(g.name) || "0");
+    const opt = g.options.find((o) => o.id === selId);
+    const label = (opt?.name || "").toLowerCase();
+    if (/\b2\b|two|double/.test(label)) return 2;
+    if (/\b1\b|one|single/.test(label)) return 1;
+    return 2;
+  }, [get, findGroup]);
+
+  /* --------------------------- Pricing state/UI ---------------------------- */
+  const [loadingPrice, setLoadingPrice] = useState(false);
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [unitPrice, setUnitPrice] = useState(0);
+  const [currency, setCurrency] = useState<"USD" | "CAD">("USD");
+
+  // Fetch price whenever the selection changes
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchPrice() {
       setLoadingPrice(true);
       setPriceError(null);
       try {
-        const res = await fetch(`/api/sinalite/price/${productId}?store=${store}`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ optionIds }),
-          cache: "no-store",
-        });
-        const json = (await res.json().catch(() => ({}))) as PriceResp;
-        if (!res.ok || !("ok" in json) || !json.ok) {
-          throw new Error((json as any)?.error || `pricing failed`);
+        const { unit, curr } = await priceViaApi(
+          productId,
+          numericSelection,
+          store
+        );
+        if (!cancelled) {
+          setUnitPrice(unit);
+          setCurrency(curr);
         }
-        if (!abort) {
-          setUnitPrice(Number(json.unitPrice || 0));
-          setCurrency(json.currency || "USD");
-        }
-      } catch (err: unknown) {
-        if (!abort) {
+      } catch (e: any) {
+        if (!cancelled) {
           setUnitPrice(0);
-          setPriceError(err instanceof Error ? err.message : "pricing error");
+          setPriceError(e?.message || "Invalid price in response");
         }
       } finally {
-        if (!abort) setLoadingPrice(false);
+        if (!cancelled) setLoadingPrice(false);
       }
-    })();
-    return () => { abort = true; };
-  }, [productId, store, JSON.stringify(optionIds)]);
+    }
 
-  const router = useRouter();
-
-  async function addAndGetLineId(): Promise<string | null> {
-    const payload = {
-      productId,
-      name: productName,
-      optionIds,
-      quantity: sets,
-      store,
-      cloudflareImageId: cloudflareImageId ?? null,
+    if (optionIds.length > 0) fetchPrice();
+    return () => {
+      cancelled = true;
     };
-    const res = await fetch("/api/cart/add", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || json?.ok === false) {
-      throw new Error(json?.error || `addToCart failed: ${res.status}`);
-    }
-    return json?.lineId ?? null;
-  }
+  }, [productId, store, optionIds.length, JSON.stringify(numericSelection)]);
 
-  async function onAddAndUpload() {
+  const subtotal = useMemo(
+    () => unitPrice * (quantity || 1),
+    [unitPrice, quantity]
+  );
+
+  /* ----------------------- Create line & navigate -------------------------- */
+  const [navBusy, setNavBusy] = useState(false);
+
+  const onAddAndUpload = useCallback(async () => {
+    if (!optionIds.length || navBusy) return;
+    setNavBusy(true);
     try {
-      const lineId = await addAndGetLineId();
-      await flushShipChoiceToCart(); // flush chosen shipping (if any)
-      if (lineId) {
-        router.push(`/product/${productId}/upload-artwork?lineId=${encodeURIComponent(lineId)}`);
-      } else {
-        router.push("/cart");
+      const unitPriceCents = Math.round((Number(unitPrice) || 0) * 100);
+      const lineTotalCents = Math.round((Number(subtotal) || 0) * 100);
+
+      const r = await fetch("/api/cart/lines", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          productId,
+          qty: quantity,       // server accepts qty or quantity
+          optionIds,           // numeric ids
+          unitPriceCents,
+          lineTotalCents,
+        }),
+        cache: "no-store",
+      });
+
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || json?.ok === false) {
+        throw new Error(json?.error || `Could not create cart line (${r.status})`);
       }
+
+      // Prefer explicit lineId; fall back to json.line?.id
+      const lineId: string =
+        String(json.lineId ?? json?.line?.id ?? "");
+
+      if (!lineId) {
+        throw new Error("Missing lineId in response");
+      }
+
+      router.push(
+        `/product/${productId}/upload-artwork?lineId=${encodeURIComponent(
+          lineId
+        )}&sides=${Math.max(1, sides)}#side-1`
+      );
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to add to cart");
+      console.error("Add & Upload error:", (e as any)?.message || e);
+    } finally {
+      setNavBusy(false);
     }
-  }
+  }, [navBusy, optionIds.length, unitPrice, subtotal, productId, quantity, optionIds, sides, router]);
 
-  const subtotal = unitPrice * sets;
-
+  /* --------------------------------- UI ----------------------------------- */
   return (
-    <div className="buybox">
-      {optionGroups.map((g, idx) => (
+    <div className="space-y-4">
+      {optionGroups.map((g) => (
         <div key={g.name} className="mb-3">
           <label className="block font-semibold mb-1.5">{g.name}</label>
           <select
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            value={selected[idx] ?? ""}
-            onChange={(e) => setSelected((prev) => ({ ...prev, [idx]: Number(e.target.value) }))}
+            className="w-full rounded-lg border border-gray-300"
+            value={get(g.name)}
+            onChange={(e) => set(g.name, e.target.value)}
           >
             {g.options.map((o) => (
-              <option key={o.id} value={o.id}>{o.name}</option>
+              <option key={o.id} value={String(o.id)}>
+                {o.name}
+              </option>
             ))}
           </select>
         </div>
       ))}
 
-      <div className="mt-4">
-        <label className="block font-semibold mb-1.5">Quantity</label>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-label="decrease"
-            onClick={() => setSets((s) => Math.max(1, s - 1))}
-            className="rounded-md border border-gray-300 px-3 py-1.5"
-          >–</button>
-          <span className="min-w-[32px] text-center">{sets}</span>
-          <button
-            type="button"
-            aria-label="increase"
-            onClick={() => setSets((s) => Math.min(9999, s + 1))}
-            className="rounded-md border border-gray-300 px-3 py-1.5"
-          >+</button>
-        </div>
-      </div>
-
       <div className="mt-4 font-semibold space-y-1">
         <div>
-          Price{loadingPrice ? "…" : ""}: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(unitPrice)}
+          Price{loadingPrice ? "…" : ""}:{" "}
+          {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
+            unitPrice || 0
+          )}
         </div>
         <div>
-          Subtotal: {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(subtotal)}
+          Subtotal:{" "}
+          {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
+            subtotal || 0
+          )}
         </div>
         {priceError ? <div className="text-red-700 mt-1">{priceError}</div> : null}
       </div>
@@ -211,24 +227,47 @@ export default function ProductBuyBox({
       <button
         type="button"
         onClick={onAddAndUpload}
-        className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800"
-        disabled={optionIds.length === 0}
+        className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800 disabled:opacity-50"
+        disabled={optionIds.length === 0 || loadingPrice || navBusy}
       >
-        Add & Upload Artwork
+        {navBusy ? "Preparing…" : "Add & Upload Artwork"}
       </button>
-
-      <ProceedToCheckout
-        to="/cart"
-        className="mt-2 inline-flex h-11 w-full items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-4 text-sm font-semibold text-gray-900 hover:bg-gray-200"
-        ensureAdded={async () => {
-          if (!lastLineId.current) {
-            lastLineId.current = (await addAndGetLineId()) || lastLineId.current;
-          }
-          await flushShipChoiceToCart();
-        }}
-      >
-        Go to Cart
-      </ProceedToCheckout>
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* LIVE PRICING: calls your /api/price route                          */
+/* Sends BOTH `selections` (name->id) and `options` (number[]) so     */
+/* it works with either server implementation.                        */
+/* Expected response: { ok:true, unitPrice:number, currency:"USD|CAD"}*/
+/* ------------------------------------------------------------------ */
+async function priceViaApi(
+  productId: number,
+  selections: Record<string, number>,
+  store: "US" | "CA"
+): Promise<{ unit: number; curr: "USD" | "CAD" }> {
+  const options = Object.values(selections).filter((n) => Number.isFinite(n));
+
+  const res = await fetch("/api/price", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      productId,
+      store,
+      selections, // key->id mapping
+      options,    // numeric list (compat)
+    }),
+    cache: "no-store",
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.ok === false) {
+    throw new Error(json?.error || `Pricing failed (${res.status})`);
+  }
+
+  const unit = Number(json.unitPrice);
+  const curr = (json.currency === "CAD" ? "CAD" : "USD") as "USD" | "CAD";
+  if (!Number.isFinite(unit)) throw new Error("Invalid price in response");
+  return { unit, curr };
 }
