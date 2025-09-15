@@ -1,10 +1,16 @@
 // src/components/CartShippingEstimator.tsx
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { saveShipChoice, flushShipChoiceToCart, type ShippingChoice } from "@/lib/shippingChoice";
 
-export type ShippingRate = {
+type Props = {
+  initialCountry: "US" | "CA";
+  initialState?: string;
+  initialZip?: string;
+};
+
+type Rate = {
   carrier: string;
   serviceCode: string;
   serviceName: string;
@@ -14,231 +20,158 @@ export type ShippingRate = {
   days?: number | null;
 };
 
-type Props = {
-  initialCountry?: "US" | "CA";
-  initialState?: string;
-  initialZip?: string;
-};
-
-function parseDays(rate: ShippingRate): number | null {
-  if (typeof rate.days === "number") return rate.days;
-  const m = rate.eta?.match(/(\d+)/);
-  return m ? Number(m[1]) : null;
-}
-
-function money(n: number, currency: "USD" | "CAD") {
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
-  } catch {
-    return `$${n.toFixed(2)}`;
-  }
-}
-
-/** Safely parse JSON; if server sent HTML/text, surface a readable error. */
-async function parseJsonSafe(res: Response) {
-  const ct = res.headers.get("content-type") || "";
-  if (ct.includes("application/json")) return res.json();
-  const text = await res.text();
-  throw new Error(text?.slice(0, 200) || `HTTP ${res.status}`);
-}
-
-export default function CartShippingEstimator({
-  initialCountry = "US",
-  initialState = "",
-  initialZip = "",
-}: Props) {
-  const router = useRouter();
-
+export default function CartShippingEstimator({ initialCountry, initialState = "", initialZip = "" }: Props) {
   const [country, setCountry] = useState<"US" | "CA">(initialCountry);
   const [state, setState] = useState(initialState);
   const [zip, setZip] = useState(initialZip);
-
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [rates, setRates] = useState<Rate[] | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rates, setRates] = useState<ShippingRate[]>([]);
-  const [selected, setSelected] = useState<number>(-1);
 
-  const cheapestIdx = useMemo(() => {
-    if (!rates.length) return -1;
-    let idx = 0, min = rates[0].amount;
-    for (let i = 1; i < rates.length; i++) {
-      if (rates[i].amount < min) { min = rates[i].amount; idx = i; }
-    }
-    return idx;
-  }, [rates]);
+  const disabled = useMemo(() => {
+    return !country || !zip.trim() || (country === "US" && !state.trim()) || (country === "CA" && !state.trim());
+  }, [country, state, zip]);
 
-  const getRates = useCallback(async () => {
+  const onEstimate = useCallback(async () => {
     setError(null);
-    setLoading(true);
+    setBusy(true);
     try {
-      // Per SinaLite API docs: POST /order/shippingEstimate
-      const res = await fetch("/api/cart/estimate-shipping", {
+      const res = await fetch("/api/cart/shipping/estimate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ shipCountry: country, shipState: state, shipZip: zip }),
+        body: JSON.stringify({ country, state, zip }),
         cache: "no-store",
       });
-      const data = await parseJsonSafe(res);
-      if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      const list: ShippingRate[] = (data.rates || []).map((r: ShippingRate) => ({
-        ...r,
-        days: parseDays(r),
-      }));
-      setRates(list);
-      setSelected(list.length ? 0 : -1);
+      const json = (await res.json()) as { ok: boolean; rates?: Rate[]; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error || `Estimate failed (${res.status})`);
+      setRates(json.rates || []);
     } catch (e: any) {
-      setError(e?.message || "Failed to fetch rates");
+      setError(e?.message || "Could not estimate shipping");
+      setRates(null);
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }, [country, state, zip]);
 
-  const applySelected = useCallback(async () => {
-    if (selected < 0 || !rates[selected]) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const r = rates[selected];
-      const res = await fetch("/api/cart/choose-shipping", {
+  const onChoose = useCallback(
+    async (r: Rate) => {
+      const choice: ShippingChoice = {
+        country,
+        state,
+        zip,
+        carrier: r.carrier,
+        method: r.serviceName,     // <- review page expects .method
+        cost: r.amount,            // <- and .cost
+        days: r.days ?? null,
+        currency: r.currency,
+      };
+      // Save locally for UX + push to cart
+      saveShipChoice(choice);
+      await fetch("/api/cart/shipping/choose", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          carrier: r.carrier,
-          method: r.serviceName || r.serviceCode,
-          amount: r.amount,
-          currency: r.currency,
-          days: parseDays(r),
-          country,
-          state,
-          zip,
-        }),
+        body: JSON.stringify(choice),
       });
-      const data = await parseJsonSafe(res);
-      if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      router.refresh(); // review page totals update with selectedShipping
-    } catch (e: any) {
-      setError(e?.message || "Failed to save shipping");
-    } finally {
-      setSaving(false);
-    }
-  }, [selected, rates, country, state, zip, router]);
+
+      // Optional: make sure cart totals refresh (server reads selectedShipping)
+      await flushShipChoiceToCart();
+      // Simple hard refresh so SSR totals update
+      window.location.reload();
+    },
+    [country, state, zip],
+  );
+
+  useEffect(() => {
+    // Auto-estimate if we have enough info
+    if (zip && state) onEstimate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: country === "CA" ? "CAD" : "USD" }).format(n);
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      {/* Header / inputs */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap gap-2">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h3 className="mb-3 text-sm font-semibold text-gray-900">Estimate shipping</h3>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700">Country</label>
           <select
-            className="h-10 min-w-[110px] rounded-lg border border-gray-300 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-600"
             value={country}
-            onChange={(e) => setCountry(e.target.value as "US" | "CA")}
-            aria-label="Destination country"
+            onChange={(e) => setCountry(e.target.value === "CA" ? "CA" : "US")}
+            className="mt-1 w-full rounded-md border border-gray-300 px-2 py-2 text-sm"
           >
-            <option value="US">US</option>
-            <option value="CA">CA</option>
+            <option value="US">United States</option>
+            <option value="CA">Canada</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700">{country === "US" ? "State" : "Province"}</label>
           <input
-            className="h-10 w-24 rounded-lg border border-gray-300 px-3 text-sm uppercase outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600"
             value={state}
-            onChange={(e) => setState(e.target.value.toUpperCase())}
-            placeholder={country === "US" ? "State" : "Prov"}
-            maxLength={2}
-            aria-label="State/Province"
+            onChange={(e) => setState(e.target.value)}
+            className="mt-1 w-full rounded-md border border-gray-300 px-2 py-2 text-sm"
+            placeholder={country === "US" ? "CA" : "ON"}
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700">{country === "US" ? "ZIP" : "Postal code"}</label>
           <input
-            className="h-10 w-32 rounded-lg border border-gray-300 px-3 text-sm outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600"
             value={zip}
             onChange={(e) => setZip(e.target.value)}
-            placeholder="ZIP/Postal"
-            aria-label="ZIP/Postal code"
+            className="mt-1 w-full rounded-md border border-gray-300 px-2 py-2 text-sm"
+            placeholder={country === "US" ? "94107" : "M5V 2T6"}
           />
         </div>
-        <button
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800 disabled:opacity-50"
-          onClick={getRates}
-          disabled={loading}
-        >
-          {loading ? "Getting rates…" : "Get Rates"}
-        </button>
       </div>
 
-      {error && (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onEstimate}
+          disabled={disabled || busy}
+          className="inline-flex h-9 items-center rounded-md bg-blue-700 px-3 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+        >
+          {busy ? "Estimating…" : "Get rates"}
+        </button>
+        {error ? <span className="text-sm text-rose-700">{error}</span> : null}
+      </div>
 
-      {/* Rates list */}
-      {!!rates.length && (
-        <ul className="mt-4 space-y-3">
-          {rates.map((r, i) => {
-            const isBest = i === cheapestIdx;
-            return (
-              <li key={`${r.carrier}-${r.serviceName}-${i}`}>
-                <label className="block">
-                  <input
-                    type="radio"
-                    name="ship-rate"
-                    className="peer sr-only"
-                    checked={selected === i}
-                    onChange={() => setSelected(i)}
-                  />
-                  <div
-                    className="
-                      grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-gray-200 bg-gray-50
-                      p-3 transition hover:bg-gray-100
-                      peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:ring-2 peer-checked:ring-blue-600
-                    "
-                  >
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">{r.carrier}</span>
-                        <span className="text-gray-400">—</span>
-                        <span className="truncate">{r.serviceName || r.serviceCode}</span>
-                        {isBest && (
-                          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                            Best price
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700">
-                          {parseDays(r) ?? 0} business {parseDays(r) === 1 ? "day" : "days"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="self-center text-right text-base font-bold">
-                      {money(r.amount, r.currency)}
-                    </div>
+      {rates && (
+        <div className="mt-4 grid grid-cols-1 gap-2">
+          {rates.length === 0 ? (
+            <div className="text-sm text-gray-600">No rates found for that address.</div>
+          ) : (
+            rates.map((r, i) => (
+              <div
+                key={`${r.carrier}-${r.serviceCode}-${i}`}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900">
+                    {r.carrier} — {r.serviceName}
                   </div>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {/* Footer actions */}
-      {!!rates.length && (
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm font-semibold text-gray-900 hover:bg-gray-200 disabled:opacity-50"
-            onClick={() => setRates([])}
-            disabled={loading || saving}
-          >
-            Clear
-          </button>
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white shadow hover:bg-blue-800 disabled:opacity-50"
-            onClick={applySelected}
-            disabled={selected < 0 || saving}
-          >
-            {saving ? "Saving…" : "Apply Shipping"}
-          </button>
+                  <div className="text-xs text-gray-600">
+                    {r.days != null ? `${r.days} business day${r.days === 1 ? "" : "s"}` : r.eta || "ETA TBA"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-sm font-semibold">{fmt(r.amount)}</div>
+                  <button
+                    onClick={() => onChoose(r)}
+                    className="inline-flex h-9 items-center rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    Select
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
-

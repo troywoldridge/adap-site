@@ -24,13 +24,11 @@ export default function ProductBuyBox({
   const router = useRouter();
 
   /* --------------------- Selection State (string values) -------------------- */
-  // Keep select values as strings so the <select> stays controlled.
   const [choices, setChoices] = useState<Record<string, string>>({});
   const get = useCallback((name: string) => choices[name] ?? "", [choices]);
   const set = useCallback(
-    (name: string, value: string) =>
-      setChoices((prev) => ({ ...prev, [name]: value })),
-    []
+    (name: string, value: string) => setChoices((prev) => ({ ...prev, [name]: value })),
+    [],
   );
 
   // Initialize defaults (first option in each group) once the groups arrive.
@@ -38,9 +36,7 @@ export default function ProductBuyBox({
     setChoices((prev) => {
       const next = { ...prev };
       for (const g of optionGroups) {
-        if (next[g.name] == null && g.options.length) {
-          next[g.name] = String(g.options[0].id);
-        }
+        if (next[g.name] == null && g.options.length) next[g.name] = String(g.options[0].id);
       }
       return next;
     });
@@ -49,34 +45,29 @@ export default function ProductBuyBox({
   // Numeric selection object for APIs
   const numericSelection = useMemo(
     () =>
-      Object.fromEntries(
-        Object.entries(choices).map(([k, v]) => [k, Number(v)])
-      ) as Record<string, number>,
-    [choices]
+      Object.fromEntries(Object.entries(choices).map(([k, v]) => [k, Number(v)])) as Record<
+        string,
+        number
+      >,
+    [choices],
   );
 
-  // Option id list (numeric) — handy for cart payloads
+  // Option id list (numeric)
   const optionIds = useMemo(
-    () =>
-      Object.values(numericSelection).filter((v) =>
-        Number.isFinite(v)
-      ) as number[],
-    [numericSelection]
+    () => (Object.values(numericSelection).filter((v) => Number.isFinite(v)) as number[]),
+    [numericSelection],
   );
 
   // Helper: find a group with a fuzzy name match
   const findGroup = useCallback(
     (needle: string) =>
-      optionGroups.find((g) =>
-        g.name.toLowerCase().includes(needle.toLowerCase())
-      ),
-    [optionGroups]
+      optionGroups.find((g) => g.name.toLowerCase().includes(needle.toLowerCase())),
+    [optionGroups],
   );
 
   // Quantity: parse from the selected option's NAME (e.g., "25", "50")
   const quantity = useMemo(() => {
-    const g =
-      findGroup("quantity") || findGroup("qty") || findGroup("quantities");
+    const g = findGroup("quantity") || findGroup("qty") || findGroup("quantities");
     if (!g) return 1;
     const selId = Number(get(g.name) || "0");
     const opt = g.options.find((o) => o.id === selId);
@@ -84,7 +75,7 @@ export default function ProductBuyBox({
     return Number.isFinite(n) && n > 0 ? n : 1;
   }, [get, findGroup, optionGroups]);
 
-  // Sides (best effort): look for a group mentioning "side"
+  // Sides (best effort)
   const sides = useMemo(() => {
     const g = findGroup("side");
     if (!g) return 2;
@@ -99,7 +90,8 @@ export default function ProductBuyBox({
   /* --------------------------- Pricing state/UI ---------------------------- */
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
-  const [unitPrice, setUnitPrice] = useState(0);
+  const [unitPrice, setUnitPrice] = useState(0);       // per-each
+  const [serverTotal, setServerTotal] = useState(0);   // full total for the combo (from SinaLite)
   const [currency, setCurrency] = useState<"USD" | "CAD">("USD");
 
   // Fetch price whenever the selection changes
@@ -110,17 +102,17 @@ export default function ProductBuyBox({
       setLoadingPrice(true);
       setPriceError(null);
       try {
-        const { unit, curr } = await priceViaApi(
-          productId,
-          numericSelection,
-          store
-        );
+        const { total, curr } = await priceViaApi(productId, numericSelection, store);
+
         if (!cancelled) {
-          setUnitPrice(unit);
+          const q = Math.max(1, quantity || 1);
+          setServerTotal(total);
+          setUnitPrice(total / q);
           setCurrency(curr);
         }
       } catch (e: any) {
         if (!cancelled) {
+          setServerTotal(0);
           setUnitPrice(0);
           setPriceError(e?.message || "Invalid price in response");
         }
@@ -133,12 +125,8 @@ export default function ProductBuyBox({
     return () => {
       cancelled = true;
     };
-  }, [productId, store, optionIds.length, JSON.stringify(numericSelection)]);
-
-  const subtotal = useMemo(
-    () => unitPrice * (quantity || 1),
-    [unitPrice, quantity]
-  );
+    // include quantity because server total depends on the "Quantity" option ID
+  }, [productId, store, optionIds.length, JSON.stringify(numericSelection), quantity]);
 
   /* ----------------------- Create line & navigate -------------------------- */
   const [navBusy, setNavBusy] = useState(false);
@@ -148,7 +136,7 @@ export default function ProductBuyBox({
     setNavBusy(true);
     try {
       const unitPriceCents = Math.round((Number(unitPrice) || 0) * 100);
-      const lineTotalCents = Math.round((Number(subtotal) || 0) * 100);
+      const lineTotalCents = Math.round((Number(serverTotal) || 0) * 100);
 
       const r = await fetch("/api/cart/lines", {
         method: "POST",
@@ -158,7 +146,7 @@ export default function ProductBuyBox({
           qty: quantity,       // server accepts qty or quantity
           optionIds,           // numeric ids
           unitPriceCents,
-          lineTotalCents,
+          lineTotalCents,      // already the full total — DO NOT multiply by qty again
         }),
         cache: "no-store",
       });
@@ -168,27 +156,28 @@ export default function ProductBuyBox({
         throw new Error(json?.error || `Could not create cart line (${r.status})`);
       }
 
-      // Prefer explicit lineId; fall back to json.line?.id
-      const lineId: string =
-        String(json.lineId ?? json?.line?.id ?? "");
-
-      if (!lineId) {
-        throw new Error("Missing lineId in response");
-      }
+      const lineId: string = String(json.lineId ?? json?.line?.id ?? "");
+      if (!lineId) throw new Error("Missing lineId in response");
 
       router.push(
         `/product/${productId}/upload-artwork?lineId=${encodeURIComponent(
-          lineId
-        )}&sides=${Math.max(1, sides)}#side-1`
+          lineId,
+        )}&sides=${Math.max(1, sides)}#side-1`,
       );
     } catch (e) {
       console.error("Add & Upload error:", (e as any)?.message || e);
     } finally {
       setNavBusy(false);
     }
-  }, [navBusy, optionIds.length, unitPrice, subtotal, productId, quantity, optionIds, sides, router]);
+  }, [navBusy, optionIds.length, unitPrice, serverTotal, productId, quantity, optionIds, sides, router]);
 
   /* --------------------------------- UI ----------------------------------- */
+  const fmt = useCallback(
+    (n: number) =>
+      new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n || 0),
+    [currency],
+  );
+
   return (
     <div className="space-y-4">
       {optionGroups.map((g) => (
@@ -210,16 +199,10 @@ export default function ProductBuyBox({
 
       <div className="mt-4 font-semibold space-y-1">
         <div>
-          Price{loadingPrice ? "…" : ""}:{" "}
-          {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-            unitPrice || 0
-          )}
+          Price (each){loadingPrice ? "…" : ""}: {fmt(unitPrice)}
         </div>
         <div>
-          Subtotal:{" "}
-          {new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-            subtotal || 0
-          )}
+          Subtotal: {fmt(serverTotal)}
         </div>
         {priceError ? <div className="text-red-700 mt-1">{priceError}</div> : null}
       </div>
@@ -240,13 +223,15 @@ export default function ProductBuyBox({
 /* LIVE PRICING: calls your /api/price route                          */
 /* Sends BOTH `selections` (name->id) and `options` (number[]) so     */
 /* it works with either server implementation.                        */
-/* Expected response: { ok:true, unitPrice:number, currency:"USD|CAD"}*/
+/* Expected response (SinaLite-aligned):                              */
+/*   { ok:true, currency:'USD'|'CAD', lineTotal:number, unitPrice?:number }  */
+/* We will treat `lineTotal` as the source of truth.                  */
 /* ------------------------------------------------------------------ */
 async function priceViaApi(
   productId: number,
   selections: Record<string, number>,
-  store: "US" | "CA"
-): Promise<{ unit: number; curr: "USD" | "CAD" }> {
+  store: "US" | "CA",
+): Promise<{ total: number; curr: "USD" | "CAD" }> {
   const options = Object.values(selections).filter((n) => Number.isFinite(n));
 
   const res = await fetch("/api/price", {
@@ -266,8 +251,16 @@ async function priceViaApi(
     throw new Error(json?.error || `Pricing failed (${res.status})`);
   }
 
-  const unit = Number(json.unitPrice);
   const curr = (json.currency === "CAD" ? "CAD" : "USD") as "USD" | "CAD";
-  if (!Number.isFinite(unit)) throw new Error("Invalid price in response");
-  return { unit, curr };
+
+  // Prefer explicit lineTotal from server; fall back to unitPrice if older route
+  let total = Number(json.lineTotal);
+  if (!Number.isFinite(total)) {
+    // Many previous implementations mislabeled SinaLite's TOTAL as "unitPrice"
+    const legacy = Number(json.unitPrice);
+    if (Number.isFinite(legacy)) total = legacy;
+  }
+  if (!Number.isFinite(total)) throw new Error("Invalid line total in response");
+
+  return { total, curr };
 }
