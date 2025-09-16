@@ -1,5 +1,5 @@
 // src/db/schema/cartLines.ts
-import { pgTable, uuid, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, integer, jsonb, timestamp, text } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { carts } from "./cart";
 
@@ -11,26 +11,25 @@ export const cartLines = pgTable("cart_lines", {
     .references(() => carts.id, { onDelete: "cascade" }),
 
   productId: integer("product_id").notNull(),
-
   quantity: integer("quantity").notNull().default(1),
 
-  // Unit price snapshot in cents (required)
+  // SELL (cents)
   unitPriceCents: integer("unit_price_cents").notNull().default(0),
 
-  // Optional precomputed line total in cents (nullable, NO default(null))
+  // Optional precomputed line total (cents)
   lineTotalCents: integer("line_total_cents"),
 
-  // Option selections (IDs) as JSON array; give a real SQL default, not null
+  // Option selections
   optionIds: jsonb("option_ids")
-    .$type<number[]>()              // tells TS this is number[]
+    .$type<number[]>() // TS hint only
     .notNull()
     .default(sql`'[]'::jsonb`),
 
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  artwork: jsonb("artwork"),
 
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  // NEW: currency
+  currency: text("currency").$type<"USD" | "CAD">().notNull().default("USD"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

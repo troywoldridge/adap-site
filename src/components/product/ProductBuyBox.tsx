@@ -90,11 +90,11 @@ export default function ProductBuyBox({
   /* --------------------------- Pricing state/UI ---------------------------- */
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
-  const [unitPrice, setUnitPrice] = useState(0);       // per-each
-  const [serverTotal, setServerTotal] = useState(0);   // full total for the combo (from SinaLite)
+  const [unitPrice, setUnitPrice] = useState(0);       // SELL, per-each (dollars)
+  const [serverTotal, setServerTotal] = useState(0);   // SELL, line total (dollars)
   const [currency, setCurrency] = useState<"USD" | "CAD">("USD");
 
-  // Fetch price whenever the selection changes
+  // Fetch SELL price whenever the selection changes
   useEffect(() => {
     let cancelled = false;
 
@@ -106,8 +106,8 @@ export default function ProductBuyBox({
 
         if (!cancelled) {
           const q = Math.max(1, quantity || 1);
-          setServerTotal(total);
-          setUnitPrice(total / q);
+          setServerTotal(total);          // dollars
+          setUnitPrice(total / q);        // dollars
           setCurrency(curr);
         }
       } catch (e: any) {
@@ -135,18 +135,15 @@ export default function ProductBuyBox({
     if (!optionIds.length || navBusy) return;
     setNavBusy(true);
     try {
-      const unitPriceCents = Math.round((Number(unitPrice) || 0) * 100);
-      const lineTotalCents = Math.round((Number(serverTotal) || 0) * 100);
-
+      // We no longer send price to the server; server will reprice for integrity.
       const r = await fetch("/api/cart/lines", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           productId,
-          qty: quantity,       // server accepts qty or quantity
-          optionIds,           // numeric ids
-          unitPriceCents,
-          lineTotalCents,      // already the full total — DO NOT multiply by qty again
+          quantity,   // server accepts quantity (and will normalize)
+          optionIds,  // numeric ids
+          store,      // so server knows US/CA context
         }),
         cache: "no-store",
       });
@@ -169,12 +166,12 @@ export default function ProductBuyBox({
     } finally {
       setNavBusy(false);
     }
-  }, [navBusy, optionIds.length, unitPrice, serverTotal, productId, quantity, optionIds, sides, router]);
+  }, [navBusy, optionIds.length, productId, quantity, optionIds, sides, store, router]);
 
   /* --------------------------------- UI ----------------------------------- */
   const fmt = useCallback(
     (n: number) =>
-      new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n || 0),
+      new Intl.NumberFormat(currency === "CAD" ? "en-CA" : "en-US", { style: "currency", currency }).format(n || 0),
     [currency],
   );
 
@@ -220,28 +217,26 @@ export default function ProductBuyBox({
 }
 
 /* ------------------------------------------------------------------ */
-/* LIVE PRICING: calls your /api/price route                          */
-/* Sends BOTH `selections` (name->id) and `options` (number[]) so     */
-/* it works with either server implementation.                        */
-/* Expected response (SinaLite-aligned):                              */
-/*   { ok:true, currency:'USD'|'CAD', lineTotal:number, unitPrice?:number }  */
-/* We will treat `lineTotal` as the source of truth.                  */
+/* LIVE PRICING (SELL): calls /api/price/pricing (markup applied)     */
+/* Expects response (cents): { ok, currency, unitSellCents,           */
+/*   lineSellCents }                                                  */
+/* Returns dollars to the component for display.                      */
 /* ------------------------------------------------------------------ */
 async function priceViaApi(
   productId: number,
   selections: Record<string, number>,
   store: "US" | "CA",
 ): Promise<{ total: number; curr: "USD" | "CAD" }> {
-  const options = Object.values(selections).filter((n) => Number.isFinite(n));
+  const optionIds = Object.values(selections).filter((n) => Number.isFinite(n));
 
-  const res = await fetch("/api/price", {
+  const res = await fetch("/api/price/pricing", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       productId,
       store,
-      selections, // key->id mapping
-      options,    // numeric list (compat)
+      quantity: inferQtyFromSelections(selections),
+      optionIds,
     }),
     cache: "no-store",
   });
@@ -252,15 +247,15 @@ async function priceViaApi(
   }
 
   const curr = (json.currency === "CAD" ? "CAD" : "USD") as "USD" | "CAD";
+  const lineSellCents = Number(json.lineSellCents);
+  if (!Number.isFinite(lineSellCents)) throw new Error("Invalid line total in response");
+  return { total: lineSellCents / 100, curr };
+}
 
-  // Prefer explicit lineTotal from server; fall back to unitPrice if older route
-  let total = Number(json.lineTotal);
-  if (!Number.isFinite(total)) {
-    // Many previous implementations mislabeled SinaLite's TOTAL as "unitPrice"
-    const legacy = Number(json.unitPrice);
-    if (Number.isFinite(legacy)) total = legacy;
-  }
-  if (!Number.isFinite(total)) throw new Error("Invalid line total in response");
-
-  return { total, curr };
+/** Best-effort quantity inference for the pricing call (same logic as component) */
+function inferQtyFromSelections(selections: Record<string, number>) {
+  // We don't have group names here, but server also derives price from optionIds.
+  // To be safe, default to 1; the true quantity is encoded by the Quantity group optionId anyway.
+  const n = Number(selections["Quantity"] || selections["Qty"] || 0);
+  return Number.isFinite(n) && n > 0 ? n : 1;
 }

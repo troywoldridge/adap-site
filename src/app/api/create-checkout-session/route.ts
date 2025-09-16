@@ -8,7 +8,7 @@ import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { and, eq, ne } from "drizzle-orm";
 
-// Cloudflare Images helper + local product assets
+// Cloudflare Images helper + local product assets (served via Cloudflare CDN)
 import { cfImage } from "@/lib/cfImages";
 import productAssetsRaw from "@/data/productAssets.json";
 
@@ -45,8 +45,7 @@ for (const p of productAssetsRaw as ProductAsset[]) {
 
 function titleCase(s?: string | null) {
   if (!s) return "";
-  return s
-    .replace(/[_-]+/g, " ")
+  return s.replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -55,16 +54,9 @@ function titleCase(s?: string | null) {
 function firstCfIdFromAsset(p?: ProductAsset | null): string | null {
   if (!p) return null;
   const refs = [
-    p.cf_image_1_id,
-    p.cf_image_2_id,
-    p.cf_image_3_id,
-    p.cf_image_4_id,
-    p.cf_image_id,
-    p.cloudflare_image_id,
-    p.cloudflare_id,
-  ]
-    .map((x) => (typeof x === "string" ? x.trim() : ""))
-    .filter(Boolean);
+    p.cf_image_1_id, p.cf_image_2_id, p.cf_image_3_id, p.cf_image_4_id,
+    p.cf_image_id, p.cloudflare_image_id, p.cloudflare_id,
+  ].map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
   return refs[0] || null;
 }
 
@@ -86,7 +78,7 @@ function productImageUrl(productId: number): string | undefined {
   const row = assetsById.get(productId);
   const id = firstCfIdFromAsset(row);
   if (!id) return undefined;
-  // Serve through Cloudflare CDN variants
+  // Serve through Cloudflare CDN variants 🚀
   return cfImage(id, "productCard") || cfImage(id, "public") || undefined;
 }
 
@@ -100,22 +92,7 @@ export async function POST(_req: NextRequest) {
     const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
     if (!sid) return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      // ... your existing line_items or amount/price logic ...
-      success_url: `${origin}/checkout?success=1`,
-      cancel_url: `${origin}/checkout?canceled=1`,
-
-      // So session.completed can find your cart
-      metadata: { sid, cartId: String(cart.id) },
-
-      // So the PaymentIntent also has it (for payment_intent.succeeded path)
-      payment_intent_data: {
-        metadata: { sid, cartId: String(cart.id) },
-      },
-    });
-
-    // Load open cart
+    // Load open cart (before Stripe creation!)
     const [cartRow] =
       (await db
         .select({
@@ -146,49 +123,8 @@ export async function POST(_req: NextRequest) {
 
     // Shipping selection (for country/state/zip + shipping line)
     const ship = (cartRow as any)?.selectedShipping ?? null;
-    const country = (ship?.country === "CA" ? "CA" : "US") as "US" | "CA";
-    const state = typeof ship?.state === "string" ? ship.state : undefined;
-    const zip = typeof ship?.zip === "string" ? ship.zip : undefined;
 
-    // Build batch request to our own internal pricing validator (SinaLite wrapper)
-    const batchPayload = {
-      items: lineRows.map((r) => ({
-        productId: Number(r.productId),
-        optionIds: Array.isArray(r.optionIds)
-          ? r.optionIds.map((n: unknown) => Number(n)).filter((n) => Number.isFinite(n))
-          : [],
-        quantity: Math.max(1, Number(r.quantity ?? 1)),
-        shipCountry: country,
-        shipState: state ?? "",
-        shipZip: zip ?? "",
-        storeCode: country === "CA" ? 6 : 9, // per Sinalite docs
-      })),
-    };
-
-    const batchRes = await fetch(`${origin}/api/sinalite/price/batch`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(batchPayload),
-      cache: "no-store",
-    });
-
-    // If the batch endpoint fails, we still fall back to existing DB prices
-    const batchJson = (await batchRes.json().catch(() => null)) as
-      | { ok: true; results: { productId: number; ok: boolean; unitPrice?: number; currency?: "USD" | "CAD" }[] }
-      | { ok: false; error: string }
-      | null;
-
-    // Map productId -> validated unitPrice (dollars)
-    const validatedMap = new Map<number, number>(); // dollars
-    if (batchRes.ok && batchJson && (batchJson as any).ok) {
-      for (const r of (batchJson as any).results ?? []) {
-        if (r && r.ok && typeof r.unitPrice === "number") {
-          validatedMap.set(Number(r.productId), Number(r.unitPrice));
-        }
-      }
-    }
-
-    // Build Stripe line_items with name, image, SKU; use validated price when available
+    // Build Stripe line_items with name, image, SKU; use DB unitPriceCents (already validated earlier)
     const currency = (cartRow.currency === "CAD" ? "cad" : "usd") as "usd" | "cad";
     const line_items: {
       quantity: number;
@@ -202,11 +138,7 @@ export async function POST(_req: NextRequest) {
     for (const r of lineRows) {
       const pid = Number(r.productId);
       const qty = Math.max(1, Number(r.quantity ?? 1));
-      const validatedDollars = validatedMap.get(pid);
-      const finalUnitCents =
-        Number.isFinite(validatedDollars) && validatedDollars! >= 0
-          ? Math.round(validatedDollars! * 100)
-          : Math.max(0, Number(r.unitPriceCents ?? 0));
+      const finalUnitCents = Math.max(0, Number(r.unitPriceCents ?? 0));
 
       const name = productName(pid);
       const imageUrl = productImageUrl(pid);
@@ -239,20 +171,21 @@ export async function POST(_req: NextRequest) {
       });
     }
 
-    const success_url = `${origin}/cart/review#checkout_success=1`;
-    const cancel_url = `${origin}/cart/review#checkout_cancelled=1`;
+      const success_url = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`; // ✅
+      const cancel_url  = `${origin}/cart/review?canceled=1`;                           // ✅
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items,
-      metadata: { sid, cartId: String(cartRow.id) },
-      success_url,
-      cancel_url,
-    });
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items,
+        metadata: { sid, cartId: String(cartRow.id) }, // keep this so webhooks can close the cart
+        success_url,
+        cancel_url,
+      });
+      return NextResponse.json({ ok: true, url: session.url });
 
-    return NextResponse.json({ ok: true, url: session.url });
-  } catch (e: any) {
-    console.error("create-checkout-session failed", e);
-    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
-  }
-}
+          return NextResponse.json({ ok: true, url: session.url });
+        } catch (e: any) {
+          console.error("create-checkout-session failed", e);
+          return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
+        }
+      }

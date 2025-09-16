@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CartSummary from "@/components/CartSummary";
-import type { ShippingRate } from "@/components/CartShippingEstimator";
+import type { ShippingRate } from "@/components/CartShippingEstimator"; // estimator result shape
 
 type AnyItem = {
   id: string;
@@ -26,10 +26,23 @@ type SavedItem = {
   unitPrice?: number;
 };
 
+// ✅ shape we persist in the cart/DB
+export type SelectedShipping = {
+  carrier: string;
+  method: string;
+  cost: number;
+  days: number | null;
+  currency: "USD" | "CAD";
+};
+
+// union for local state
+type ShippingLike = SelectedShipping | ShippingRate;
+
 type Props = {
   initialItems: AnyItem[];
   currency: "USD" | "CAD";
   store: "US" | "CA";
+  // keep prop signature as before; we'll normalize internally
   initialShipping: ShippingRate | null;
 };
 
@@ -37,18 +50,37 @@ const money = (n: number, currency: "USD" | "CAD") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency }).format((Number(n) || 0));
 
 function cfImgUrl(id?: string | null) {
-  if (!id) {
-    return null;
-  }
+  if (!id) return null;
   const acct = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q";
+  // served via Cloudflare Images CDN
   return `https://imagedelivery.net/${acct}/${id}/public`;
 }
 
 const SAVED_KEY = "ADAP_SAVED_V1";
 
+// normalize any incoming rate (estimator/server) into our chosen/DB shape
+function toSelectedShipping(anyRate: any): SelectedShipping | null {
+  if (!anyRate) return null;
+  const carrier = String(anyRate.carrier ?? "");
+  const method = String(anyRate.method ?? anyRate.serviceName ?? anyRate.serviceCode ?? "");
+  const cost =
+    typeof anyRate.cost === "number"
+      ? anyRate.cost
+      : Number(anyRate.amount ?? 0) || 0;
+  const days =
+    typeof anyRate.days === "number"
+      ? anyRate.days
+      : Number.isFinite(Number(anyRate.etaDays))
+      ? Number(anyRate.etaDays)
+      : null;
+  const currency: "USD" | "CAD" = anyRate.currency === "CAD" ? "CAD" : "USD";
+  if (!carrier || !method) return null;
+  return { carrier, method, cost, days, currency };
+}
+
 export default function CartPageClient({ initialItems, currency, store, initialShipping }: Props) {
   const [items, setItems] = useState<AnyItem[]>(initialItems || []);
-  const [selectedShipping, setSelectedShipping] = useState<ShippingRate | null>(initialShipping);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingLike | null>(initialShipping);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItem[]>([]);
 
@@ -116,17 +148,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
         json?.cart?.shipping ??
         null;
 
-      if (srvShip && typeof srvShip?.cost === "number") {
-        setSelectedShipping({
-          carrier: String(srvShip.carrier ?? ""),
-          method: String(srvShip.method ?? ""),
-          cost: Number(srvShip.cost ?? 0) || 0,
-          days: typeof srvShip.days === "number" ? srvShip.days : null,
-          currency: srvShip.currency === "CAD" ? "CAD" : "USD",
-        });
-      } else {
-        setSelectedShipping(null);
-      }
+      setSelectedShipping(toSelectedShipping(srvShip));
     } catch {}
   }
 
@@ -203,14 +225,15 @@ export default function CartPageClient({ initialItems, currency, store, initialS
   }
   function removeSaved(si: SavedItem) { persistSaved(saved.filter((x) => x.id !== si.id)); }
 
-  // When the user chooses a rate in the estimator, persist it server-side
-  async function onChangeShipping(rate: ShippingRate | null) {
-    setSelectedShipping(rate);
+  // When the user chooses a rate in the estimator/summary, persist it server-side
+  async function onChangeShipping(rate: any /* preview or chosen */) {
+    const chosen = toSelectedShipping(rate);
+    setSelectedShipping(chosen);
     try {
       await fetch("/api/cart/shipping/choose", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(rate ?? {}),
+        body: JSON.stringify(chosen ?? {}),
         cache: "no-store",
       });
       // optional: refresh to confirm server echo
@@ -368,8 +391,9 @@ export default function CartPageClient({ initialItems, currency, store, initialS
               subtotal={subtotal}
               lines={miniLines}
               store={store}
-              selectedShipping={selectedShipping}
-              onChangeShipping={onChangeShipping}
+              // keep CartSummary’s typing happy regardless of its prop constraint
+              selectedShipping={selectedShipping as any}
+              onChangeShipping={onChangeShipping as any}
             />
           </div>
         </aside>

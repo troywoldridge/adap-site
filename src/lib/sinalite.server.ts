@@ -1,6 +1,6 @@
 // src/lib/sinalite.server.ts
 // Canonical Sinalite server utilities (auth wrapper + pricing + shipping).
-// 🔗 Always refer to Sinalite API docs. Uses your existing getSinaliteAccessToken().
+// 🔗 Always refer to Sinalite API documentation. Uses your existing getSinaliteAccessToken().
 
 import "server-only";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
@@ -56,10 +56,11 @@ async function apiFetch<T>(
    Pricing
    Endpoint: POST /price/{productId}/{storeCode}
    Body: { productOptions: string[] } // option value IDs as strings
+   NOTE: SinaLite returns the JOB TOTAL (line price), not a per-unit price.
 ──────────────────────────────────────────────────────────────────────────── */
 
 type PriceResp = {
-  price?: string | number;
+  price?: string | number;                 // job total for selected chain
   packageInfo?: Record<string, string>;
   productOptions?: Record<string, string>; // group -> optionId
 };
@@ -69,7 +70,7 @@ export async function priceByOptionIds(params: {
   storeCode: 6 | 9;
   optionIds: (number | string)[];
   baseUrl?: string;
-}): Promise<{ unitPriceCents: number; optionsByGroup: Record<string, string> }> {
+}): Promise<{ linePriceCents: number; optionsByGroup: Record<string, string> }> {
   const { productId, storeCode, optionIds, baseUrl } = params;
 
   const data = await apiFetch<PriceResp>(`/price/${productId}/${storeCode}`, {
@@ -78,10 +79,12 @@ export async function priceByOptionIds(params: {
     baseUrl,
   });
 
+  // IMPORTANT: `price` is the full job total for the current option chain (Qty included).
   const priceNum = Number(data?.price);
-  const unitPriceCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : 0;
+  const linePriceCents = Number.isFinite(priceNum) ? Math.round(priceNum * 100) : 0;
+
   const optionsByGroup = (data?.productOptions ?? {}) as Record<string, string>;
-  return { unitPriceCents, optionsByGroup };
+  return { linePriceCents, optionsByGroup };
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

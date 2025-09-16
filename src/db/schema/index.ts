@@ -24,8 +24,8 @@ export * from "./uploads";
 export * from "./cartCredits";
 export * from "./addresses";
 // ── If/when you move orders into their own files, uncomment these
-// export * from "./orders";
-// export * from "./orderItems";
+export * from "./orders";
+export * from "./orderItems";
 
 // ── Relations (avoid star-export to prevent duplicate named exports)
 import * as schemaRelations from "./relations";

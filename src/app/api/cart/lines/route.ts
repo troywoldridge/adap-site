@@ -6,6 +6,7 @@ import crypto from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema";
+import { computePrice } from "@/lib/price/compute";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -37,28 +38,27 @@ function sameArray(a: number[] = [], b: number[] = []) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
 
-  // Accept both `quantity` and `qty` (client can send either)
+  // Accept both `quantity` and `qty`
   const productId = Number(body?.productId);
-  const quantity = Number(body?.quantity ?? body?.qty ?? 1);
+  const quantity = Math.max(1, Number(body?.quantity ?? body?.qty ?? 1) || 1);
+  const store: "US" | "CA" = body?.store === "CA" ? "CA" : "US";
   const optionIds: number[] = Array.isArray(body?.optionIds)
     ? body.optionIds.map((n: any) => Number(n)).filter(Number.isFinite)
     : [];
 
-  // Optional pricing (cents) — used to show line totals downstream
-  const unitPriceCents = Number.isFinite(Number(body?.unitPriceCents))
-    ? Number(body.unitPriceCents)
-    : null;
-  const lineTotalCents = Number.isFinite(Number(body?.lineTotalCents))
-    ? Number(body.lineTotalCents)
-    : null;
-
   if (!Number.isFinite(productId) || productId <= 0) {
     return noStore(NextResponse.json({ ok: false, error: "invalid_productId" }, { status: 400 }));
   }
-  const qty = Math.max(1, Number.isFinite(quantity) ? quantity : 1);
+  if (optionIds.length === 0) {
+    return noStore(NextResponse.json({ ok: false, error: "missing_optionIds" }, { status: 400 }));
+  }
 
+  // ✅ Compute server-authoritative pricing (SinaLite cost ➜ tiered markup)
+  const priced = await computePrice({ productId, store, quantity, optionIds });
+
+  // Get/choose SID
   const jar = await getJar();
   const cookieA = (jar.get?.("adap_sid")?.value ?? undefined) as string | undefined;
   const cookieB = (jar.get?.("sid")?.value ?? undefined) as string | undefined;
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     (v): v is string => typeof v === "string" && v.length > 0,
   );
 
-  // prefer an SID that already has an open cart
+  // Prefer existing open cart for a candidate SID
   let openCartSid: string | undefined;
   for (const candidate of candidates) {
     const c = await db.query.carts.findFirst({
@@ -78,15 +78,17 @@ export async function POST(req: Request) {
   // ALWAYS end up with a plain string
   const sid: string = openCartSid ?? cookieA ?? cookieB ?? crypto.randomUUID();
 
-  // find or create cart
+  // Find or create cart (persist currency)
   let cart = await db.query.carts.findFirst({
     where: and(eq(carts.sid, sid), eq(carts.status, "open")),
   });
   if (!cart) {
-    [cart] = await db.insert(carts).values({ sid, status: "open" }).returning();
+    [cart] = await db.insert(carts).values({ sid, status: "open", currency: priced.currency }).returning();
+  } else if (!cart.currency) {
+    await db.update(carts).set({ currency: priced.currency }).where(eq(carts.id, cart.id));
   }
 
-  // merge behavior (same productId + optionIds → bump quantity)
+  // Merge behavior (same productId + optionIds → bump quantity)
   const existing = await db
     .select()
     .from(cartLines)
@@ -99,14 +101,15 @@ export async function POST(req: Request) {
 
   if (match) {
     merged = true;
-    const newQty = Number(match.quantity ?? 0) + qty;
+    const newQty = Math.max(1, Number(match.quantity ?? 0) + quantity);
     [line] = await db
       .update(cartLines)
       .set({
         quantity: newQty,
-        // only update price fields if provided in this request
-        ...(unitPriceCents != null ? { unitPriceCents } : {}),
-        ...(lineTotalCents != null ? { lineTotalCents } : {}),
+        currency: priced.currency,
+        unitPriceCents: priced.unitSellCents,                 // SELL (per-each)
+        lineTotalCents: priced.unitSellCents * newQty,        // keep subtotal in sync
+        updatedAt: new Date(),
       })
       .where(eq(cartLines.id, match.id))
       .returning();
@@ -116,24 +119,25 @@ export async function POST(req: Request) {
       .values({
         cartId: cart.id,
         productId: Number(productId),
-        quantity: qty,
-        optionIds: optionIds as any, // jsonb[] in your schema
-        artwork: {},                 // nullable jsonb
-        ...(unitPriceCents != null ? { unitPriceCents } : {}),
-        ...(lineTotalCents != null ? { lineTotalCents } : {}),
+        quantity,
+        optionIds: optionIds as any,                          // json/int[] per your schema
+        currency: priced.currency,
+        unitPriceCents: priced.unitSellCents,                 // SELL (per-each)
+        lineTotalCents: priced.unitSellCents * quantity,      // subtotal snapshot
+        artwork: {},
       })
       .returning();
   }
 
-  // ✅ build the FINAL response first, THEN set cookies on it
+  // ✅ Build the FINAL response first, THEN set cookies
   const res = NextResponse.json({
     ok: true,
     merged,
     cartId: cart.id,
-    lineId: line.id,  // <—— critical for upload page
+    lineId: line.id, // for the upload page
     line,
   });
   res.cookies.set("adap_sid", sid, COOKIE_OPTS);
-  res.cookies.set("sid", sid,     COOKIE_OPTS);
+  res.cookies.set("sid", sid, COOKIE_OPTS);
   return noStore(res);
 }

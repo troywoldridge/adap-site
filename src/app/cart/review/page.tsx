@@ -19,8 +19,8 @@ import HashToast from "@/components/HashToast";
 import AddAnotherSideButton from "@/components/AddAnotherSideButton";
 import CartShippingEstimator from "@/components/CartShippingEstimator";
 import ChangeShippingButton from "@/components/ChangeShippingButton";
-import CartCreditsRow from "@/components/CartCreditsRow"; // ✅ keep only once
-import { getCartCreditsCents } from "@/lib/cartCredits"; // ✅ sum applied credits
+import CartCreditsRow from "@/components/CartCreditsRow";
+import { getCartCreditsCents } from "@/lib/cartCredits";
 
 // Cloudflare Images URL builder (serves via Cloudflare CDN)
 import { cfImage } from "@/lib/cfImages";
@@ -36,7 +36,6 @@ type ProductAsset = {
   id?: number | string | null;
   sku?: string | null;
   name?: string | null;
-  // Cloudflare image columns (any one may exist)
   cf_image_id?: string | null;
   cf_image_1_id?: string | null;
   cf_image_2_id?: string | null;
@@ -52,20 +51,16 @@ type LineVM = {
   productId: number;
   quantity: number;
   name: string;
-  unit: number;   // unit price (dollars)
-  total: number;  // line total (dollars)
+  unit: number;      // unit price (dollars)
+  total: number;     // line total (dollars)
   artworkUrls: string[];
+  optionIds: number[]; // ✅ needed for SinaLite shipping estimate
 };
 
 /* ----------------------- Cloudflare helpers ---------------------- */
-
-// Hard-code your cart thumbnail variant (Cloudflare Images)
 const CARD_VARIANT = "productThumb" as const;
-
-// Known good placeholder ID in CF Images
 const CF_PLACEHOLDER_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
 
-/** Pick the best CF image ID from a product asset row. */
 function firstCfIdFromAsset(p?: ProductAsset | null): string | null {
   if (!p) return null;
   const refs = [
@@ -82,7 +77,6 @@ function firstCfIdFromAsset(p?: ProductAsset | null): string | null {
   return refs[0] || null;
 }
 
-/* ---------------------- Build fast lookup map --------------------- */
 const productAssetById = new Map<number, ProductAsset>();
 for (const p of productAssetsRaw as ProductAsset[]) {
   const id = Number(p?.id);
@@ -91,24 +85,14 @@ for (const p of productAssetsRaw as ProductAsset[]) {
   }
 }
 
-/** Build a final URL for a cart line’s product image (Cloudflare-first). */
 function cartLineImageUrl(productId?: number | string | null): string {
   const pid = Number(productId);
   const row = Number.isFinite(pid) ? productAssetById.get(pid) : undefined;
   const ref = firstCfIdFromAsset(row) ?? CF_PLACEHOLDER_ID;
-
-  // If a full URL sneaks in, passthrough
   if (ref.startsWith("http://") || ref.startsWith("https://")) return ref;
-
-  // Otherwise treat as Cloudflare image ID (served from Cloudflare CDN)
-  return (
-    cfImage(ref, CARD_VARIANT) ||
-    cfImage(ref, "public") ||
-    "/placeholder.svg"
-  );
+  return cfImage(ref, CARD_VARIANT) || cfImage(ref, "public") || "/placeholder.svg";
 }
 
-/** Name fallback for cart lines if DB row lacks it. */
 function nameFallback(productId?: number | string | null): string {
   const pid = Number(productId);
   const row = Number.isFinite(pid) ? productAssetById.get(pid) : undefined;
@@ -121,11 +105,7 @@ function nameFallback(productId?: number | string | null): string {
 
 function titleCase(s?: string | null) {
   if (!s) return "";
-  return s
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function moneyFmt(amount: number, currency: "USD" | "CAD") {
@@ -134,6 +114,32 @@ function moneyFmt(amount: number, currency: "USD" | "CAD") {
   } catch {
     return `$${amount.toFixed(2)}`;
   }
+}
+
+/* ---- normalize optionIds from various DB shapes (json, text, pg array) ---- */
+function normalizeOptIds(v: unknown): number[] {
+  try {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.map(Number).filter(Number.isFinite);
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (!s) return [];
+      if (s.startsWith("[")) {
+        // JSON array
+        const parsed = JSON.parse(s);
+        return Array.isArray(parsed) ? parsed.map(Number).filter(Number.isFinite) : [];
+      }
+      if (s.startsWith("{") && s.endsWith("}")) {
+        // Postgres text array format "{1,2,3}"
+        return s
+          .slice(1, -1)
+          .split(",")
+          .map((x) => Number(x))
+          .filter(Number.isFinite);
+      }
+    }
+  } catch {}
+  return [];
 }
 
 /* ----------------------------- DB load ---------------------------- */
@@ -168,7 +174,6 @@ async function loadCart() {
     .from(cartLines)
     .where(eq(cartLines.cartId, cart.id));
 
-  // Fetch any uploaded artwork URLs for these lines
   const lineIds = rows.map((r) => r.id);
   let artRows: { cartLineId: string; side: number | null; url: string }[] = [];
   if (lineIds.length > 0) {
@@ -182,7 +187,6 @@ async function loadCart() {
       .where(inArray(cartArtwork.cartLineId, lineIds));
   }
 
-  // Group artwork by cartLineId (keep current order)
   const artworkMap = new Map<string, string[]>();
   for (const a of artRows) {
     const key = a.cartLineId;
@@ -205,6 +209,7 @@ async function loadCart() {
       unit: unitCents / 100,
       total: totalCents / 100,
       artworkUrls: artworkMap.get(r.id) ?? [],
+      optionIds: normalizeOptIds(r.optionIds), // ✅ include optionIds for SinaLite
     };
   });
 
@@ -234,17 +239,22 @@ export default async function ReviewCartPage() {
   const initState = defaultAddr?.state ?? "";
   const initZip = defaultAddr?.postalCode ?? "";
 
-  // Dollars for UI math (your DB stores cents on lines; we converted above)
+  // Dollars for UI math
   const subtotal = lines.reduce((acc, l) => acc + l.total, 0);
   const shipping = Number(cart.selectedShipping?.cost ?? 0);
   const tax = 0;
 
-  // ✅ pull applied credits (in cents) and convert to dollars for display
+  // Credits
   const creditsCents = await getCartCreditsCents(cart.id);
   const credits = Math.max(0, (creditsCents || 0) / 100);
-
-  // ✅ subtract credit from the total (never below $0)
   const grandTotal = Math.max(0, subtotal + shipping + tax - credits);
+
+  // ✅ Build minimal lines for estimator (SinaLite expects productId + options)
+  const miniLines = lines.map((l) => ({
+    productId: l.productId,
+    optionIds: Array.isArray(l.optionIds) ? l.optionIds : [],
+    quantity: l.quantity || 1,
+  }));
 
   return (
     <main className="container mx-auto py-8">
@@ -280,7 +290,7 @@ export default async function ReviewCartPage() {
                     Qty {line.quantity} • {moneyFmt(line.unit, currency)} each
                   </div>
 
-                  {/* Customer artwork thumbnails (PDFs handled by CartArtworkThumb) */}
+                  {/* Customer artwork thumbnails */}
                   {hasArtwork ? (
                     <div className="mt-2 flex flex-wrap gap-3">
                       {line.artworkUrls!.map((u, i) => (
@@ -293,7 +303,6 @@ export default async function ReviewCartPage() {
                         />
                       ))}
 
-                      {/* Always offer to add one more side */}
                       <AddAnotherSideButton
                         productId={line.productId}
                         lineId={line.id}
@@ -339,7 +348,6 @@ export default async function ReviewCartPage() {
           <span>{moneyFmt(tax, currency)}</span>
         </div>
 
-        {/* Loyalty credits row (negative) — uses your component */}
         <CartCreditsRow creditsCents={creditsCents} currency={currency} />
 
         <hr className="my-2" />
@@ -356,6 +364,8 @@ export default async function ReviewCartPage() {
             initialCountry={initCountry}
             initialState={initState}
             initialZip={initZip}
+            lines={miniLines}              // ✅ send lines
+            currency={currency}            // helpful for UI formatting
           />
         ) : (
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

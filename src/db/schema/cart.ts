@@ -22,7 +22,7 @@ export const carts = pgTable(
     userId: text("user_id"),
 
     // Cart-wide currency (US storeCode=9 => USD, CA storeCode=6 => CAD per Sinalite docs)
-    currency: text("currency").notNull().default("USD"),
+    currency: text("currency").$type<"USD" | "CAD">().notNull().default("USD"),
 
     // Persist the user’s chosen shipping option from POST /order/shippingEstimate
     selectedShipping: jsonb("selected_shipping")
