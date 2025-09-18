@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import { cfImage } from "@/lib/cfImages";
 
 export interface FeaturedCategory {

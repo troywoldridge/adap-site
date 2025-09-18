@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import slugify from "slugify";
 import productAssets from "@/data/productAssets.json";
 

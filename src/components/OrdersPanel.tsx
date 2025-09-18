@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import Link from "next/link";
 
 // Cloudflare Images URL builder (CDN variants)

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import { makeCloudflareLoader } from "@/lib/cfImages";
 
 /** Uses your "subcategoryCard" preset which maps to subcategoryThumb/category variants */

@@ -1,68 +1,99 @@
-import { getProductsBySubcategory, getSubcategoryDetails } from "@/lib/sinalite.client";
-import { mergeProduct, mergeSubcategory } from "@/lib/mergeUtils";
+import "server-only";
+import Image from "@/components/ImageSafe";
 import ProductGrid from "@/components/ProductGrid";
-import Image from "next/image";
+import { mergeProduct, mergeSubcategory } from "@/lib/mergeUtils";
+// ⬇️ switch to the server client we just finalized
+import { getProductsBySubcategory, getSubcategoryDetails } from "@/lib/sinalite.server";
 import type { Metadata } from "next";
 
-// --- Dynamic SEO per subcategory page ---
-export async function generateMetadata({ params }: { params: { subcategoryId: string } }): Promise<Metadata> {
-  // Get subcategory details for SEO
-  const subcat = mergeSubcategory({ id: params.subcategoryId });
+function toInt(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/* ----------------------------- SEO ----------------------------- */
+export async function generateMetadata({
+  params,
+}: {
+  params: { subcategoryId: string };
+}): Promise<Metadata> {
+  const subId = toInt(params.subcategoryId);
+  const subFromMerge =
+    subId !== null
+      ? (mergeSubcategory({ id: subId }) as any)
+      : (mergeSubcategory({ slug: params.subcategoryId }) as any);
+
+  // Fetch SinaLite details (name/slug/desc/image) when ID numeric
+  const fromSina = subId !== null ? await getSubcategoryDetails(subId) : undefined;
+
+  const name = subFromMerge?.name ?? fromSina?.name;
+  const description = subFromMerge?.description ?? fromSina?.description ?? "";
+  const image = subFromMerge?.image ?? fromSina?.image;
+
   return {
-    title: subcat?.name ? `${subcat.name} | Shop Print Products` : "Shop Print Products | American Design And Printing",
-    description: subcat?.description || "Shop our print product lineup by subcategory.",
+    title: name ? `${name} | Shop Print Products` : "Shop Print Products | American Design And Printing",
+    description: description || "Shop our print product lineup by subcategory.",
     openGraph: {
-      title: subcat?.name || "Shop Print Products",
-      description: subcat?.description || "",
-      images: subcat?.image ? [subcat.image] : [],
+      title: name || "Shop Print Products",
+      description: description || "",
+      images: image ? [image] : [],
     },
   };
 }
 
-export default async function SubcategoryProductsPage({ params }: { params: { subcategoryId: string } }) {
-  const { subcategoryId } = params;
-  const storeCode = process.env.NEXT_PUBLIC_STORE_CODE!;
-  
-  // Fetch subcategory details for the hero section
-  const subcat = mergeSubcategory({ id: subcategoryId });
-  
-  // Fetch and merge all products in this subcategory
-  let products: any[] = [];
-  try {
-    products = await getProductsBySubcategory(subcategoryId, storeCode);
-  } catch {
+/* ----------------------------- Page ----------------------------- */
+export default async function SubcategoryProductsPage({
+  params,
+}: {
+  params: { subcategoryId: string };
+}) {
+  const subId = toInt(params.subcategoryId);
+  const storeCode = process.env.NEXT_PUBLIC_STORE_CODE;
+
+  if (subId === null) {
     return (
-      <main className="container py-12 text-center">
-        <h1 className="text-xl font-bold text-red-600">Unable to load products</h1>
-        <p>Check your Sinalite API connection.</p>
+      <main className="mx-auto max-w-6xl px-4 py-12 text-center">
+        <h1 className="text-xl font-bold text-red-600">Invalid subcategory</h1>
+        <p className="mt-2 text-neutral-700">We couldn’t recognize that subcategory.</p>
       </main>
     );
   }
-  const mergedProducts = products.map(mergeProduct);
+
+  // Merge local (for asset image mapping) + SinaLite (authoritative text)
+  const local = mergeSubcategory({ id: subId }) as any;
+  const sina = await getSubcategoryDetails(subId, storeCode);
+  const subName = local?.name ?? sina?.name ?? "Products";
+  const subDesc = local?.description ?? sina?.description ?? "";
+  const subImage = local?.image ?? sina?.image;
+
+  // Products from SinaLite, then merged for local image ids/attrs if any
+  const rawProducts = await getProductsBySubcategory(subId, storeCode);
+  const products = rawProducts.map(mergeProduct);
 
   return (
-    <main className="container">
-      {/* Subcategory hero/intro */}
-      <section className="category-intro">
-        {subcat?.image && (
-          <Image
-            src={subcat.image}
-            alt={subcat?.name || "Subcategory Hero"}
-            width={820}
-            height={250}
-            className="category-hero-img"
-            priority
-            unoptimized
-          />
+    <main className="mx-auto max-w-6xl px-4 py-10">
+      {/* Subcategory hero */}
+      <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm ring-1 ring-black/5">
+        {subImage && (
+          <div className="overflow-hidden rounded-xl border">
+            {/* subImage is a URL from SinaLite or local assets — delivered via Cloudflare CDN in your stack */}
+            <Image
+              src={subImage}
+              alt={subName}
+              width={1200}
+              height={320}
+              className="h-auto w-full object-cover"
+              priority
+              unoptimized
+            />
+          </div>
         )}
-        <h1 className="section-title">{subcat?.name || "Products"}</h1>
-        <p className="category-intro__desc">
-          {subcat?.description || "Explore all products in this collection below."}
-        </p>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight">{subName}</h1>
+        {!!subDesc && <p className="mt-2 max-w-3xl text-sm text-neutral-700">{subDesc}</p>}
       </section>
 
       {/* Product grid */}
-      <ProductGrid products={mergedProducts} />
+      <ProductGrid products={products as any[]} />
     </main>
   );
 }

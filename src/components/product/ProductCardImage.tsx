@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import { makeCloudflareLoader } from "@/lib/cfImages";
 
 const productCardLoader = makeCloudflareLoader("productCard");

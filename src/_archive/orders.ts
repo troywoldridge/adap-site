@@ -33,7 +33,7 @@ export const orderItems = pgTable(
   ],
 );
 
-export const orderArtwork = pgTable(
+export const cartArtwork = pgTable(
   "order_artwork",
   {
     id: serial("id").primaryKey().notNull(),

@@ -2,7 +2,7 @@
 "use client";
 
 import Head from "next/head";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import Link from "next/link";
 import { useState, useMemo, useCallback } from "react";
 import { usePathname, useSearchParams } from "next/navigation";

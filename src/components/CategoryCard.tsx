@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import { useInView } from "react-intersection-observer";
 import type { Category } from "@/types/category";
 

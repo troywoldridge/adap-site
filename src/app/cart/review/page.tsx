@@ -1,17 +1,9 @@
 // src/app/cart/review/page.tsx
 import "server-only";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { and, eq, ne, inArray } from "drizzle-orm";
-
-import { db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartArtwork } from "@/db/schema/cartArtwork";
-
+import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
-import { getDefaultAddress } from "@/lib/addresses";
 
 import CartArtworkThumb from "@/components/CartArtworkThumb";
 import ClientToastHub from "@/components/ClientToastHub";
@@ -21,11 +13,7 @@ import CartShippingEstimator from "@/components/CartShippingEstimator";
 import ChangeShippingButton from "@/components/ChangeShippingButton";
 import CartCreditsRow from "@/components/CartCreditsRow";
 import { getCartCreditsCents } from "@/lib/cartCredits";
-
-// Cloudflare Images URL builder (serves via Cloudflare CDN)
 import { cfImage } from "@/lib/cfImages";
-
-// Local product assets (Cloudflare image IDs live here)
 import productAssetsRaw from "@/data/productAssets.json";
 
 export const dynamic = "force-dynamic";
@@ -51,13 +39,13 @@ type LineVM = {
   productId: number;
   quantity: number;
   name: string;
-  unit: number;      // unit price (dollars)
-  total: number;     // line total (dollars)
+  unit: number;
+  total: number;
   artworkUrls: string[];
-  optionIds: number[]; // ✅ needed for SinaLite shipping estimate
+  optionIds: number[];
 };
 
-/* ----------------------- Cloudflare helpers ---------------------- */
+/* ----------------------- CF image helpers ------------------------ */
 const CARD_VARIANT = "productThumb" as const;
 const CF_PLACEHOLDER_ID = "a90ba357-76ea-48ed-1c65-44fff4401600";
 
@@ -116,104 +104,49 @@ function moneyFmt(amount: number, currency: "USD" | "CAD") {
   }
 }
 
-/* ---- normalize optionIds from various DB shapes (json, text, pg array) ---- */
-function normalizeOptIds(v: unknown): number[] {
-  try {
-    if (!v) return [];
-    if (Array.isArray(v)) return v.map(Number).filter(Number.isFinite);
-    if (typeof v === "string") {
-      const s = v.trim();
-      if (!s) return [];
-      if (s.startsWith("[")) {
-        // JSON array
-        const parsed = JSON.parse(s);
-        return Array.isArray(parsed) ? parsed.map(Number).filter(Number.isFinite) : [];
-      }
-      if (s.startsWith("{") && s.endsWith("}")) {
-        // Postgres text array format "{1,2,3}"
-        return s
-          .slice(1, -1)
-          .split(",")
-          .map((x) => Number(x))
-          .filter(Number.isFinite);
-      }
-    }
-  } catch {}
-  return [];
+/* ---------------------------- Fetch cart ------------------------- */
+// ✅ Next 15: headers() must be awaited
+async function getBaseUrl() {
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (host) return `${proto}://${host}`;
+  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
 }
 
-/* ----------------------------- DB load ---------------------------- */
+/** Use the canonical cart API so cart + review always match */
 async function loadCart() {
-  const jar = await cookies();
-  const sid = jar.get("sid")?.value ?? jar.get("adap_sid")?.value ?? "";
-  if (!sid) return null;
-
-  const [cart] =
-    (await db
-      .select({
-        id: carts.id,
-        status: carts.status,
-        currency: carts.currency,
-        selectedShipping: carts.selectedShipping,
-      })
-      .from(carts)
-      .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
-      .limit(1)) ?? [];
-
-  if (!cart) return null;
-
-  const rows = await db
-    .select({
-      id: cartLines.id,
-      productId: cartLines.productId,
-      quantity: cartLines.quantity,
-      unitPriceCents: cartLines.unitPriceCents,
-      lineTotalCents: cartLines.lineTotalCents,
-      optionIds: cartLines.optionIds,
-    })
-    .from(cartLines)
-    .where(eq(cartLines.cartId, cart.id));
-
-  const lineIds = rows.map((r) => r.id);
-  let artRows: { cartLineId: string; side: number | null; url: string }[] = [];
-  if (lineIds.length > 0) {
-    artRows = await db
-      .select({
-        cartLineId: cartArtwork.cartLineId,
-        side: cartArtwork.side,
-        url: cartArtwork.url,
-      })
-      .from(cartArtwork)
-      .where(inArray(cartArtwork.cartLineId, lineIds));
-  }
-
-  const artworkMap = new Map<string, string[]>();
-  for (const a of artRows) {
-    const key = a.cartLineId;
-    if (!artworkMap.has(key)) artworkMap.set(key, []);
-    artworkMap.get(key)!.push(a.url);
-  }
-
-  const lines: LineVM[] = rows.map((r) => {
-    const qty = Number(r.quantity ?? 0);
-    const unitCents = Number(r.unitPriceCents ?? 0);
-    const totalCents = Number.isFinite(Number(r.lineTotalCents))
-      ? Number(r.lineTotalCents)
-      : unitCents * qty;
-
-    return {
-      id: r.id,
-      productId: Number(r.productId),
-      quantity: qty,
-      name: nameFallback(r.productId),
-      unit: unitCents / 100,
-      total: totalCents / 100,
-      artworkUrls: artworkMap.get(r.id) ?? [],
-      optionIds: normalizeOptIds(r.optionIds), // ✅ include optionIds for SinaLite
-    };
+  const base = await getBaseUrl();
+  const res = await fetch(`${base}/api/cart/current`, {
+    cache: "no-store",
+    next: { revalidate: 0 },
   });
+  if (!res.ok) return null;
+  const json = await res.json();
 
-  return { cart, lines };
+  const cart = json?.cart ?? null;
+  const linesRaw = Array.isArray(json?.lines) ? json.lines : [];
+
+  const lines: LineVM[] = linesRaw.map((r: any) => ({
+    id: String(r.id),
+    productId: Number(r.productId),
+    quantity: Number(r.quantity ?? 0),
+    name: r.productName || nameFallback(r.productId),
+    unit: (Number(r.unitPriceCents ?? 0) || 0) / 100,
+    total: (Number(r.lineTotalCents ?? 0) || 0) / 100,
+    artworkUrls: (json.attachments?.[String(r.id)] || [])
+      .map((a: any) => a?.url)
+      .filter(Boolean),
+    optionIds: Array.isArray(r.optionIds) ? r.optionIds : [],
+  }));
+
+  return {
+    cart: {
+      ...(cart || {}),
+      selectedShipping: json?.selectedShipping ?? json?.cart?.selectedShipping ?? null,
+    },
+    lines,
+  };
 }
 
 /* ------------------------------ Page ------------------------------ */
@@ -222,9 +155,17 @@ export default async function ReviewCartPage() {
 
   if (!data || data.lines.length === 0) {
     return (
-      <main className="container mx-auto py-8">
-        <h1 className="text-2xl font-semibold">Your cart</h1>
-        <p className="mt-4 text-neutral-600">Your cart is empty.</p>
+      <main className="mx-auto max-w-6xl px-4 py-12">
+        <div className="rounded-2xl border bg-white/80 p-10 text-center shadow-sm backdrop-blur">
+          <h1 className="text-2xl font-semibold tracking-tight">Your cart</h1>
+          <p className="mt-3 text-neutral-600">Your cart is empty.</p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-blue-700 px-5 font-semibold text-white hover:bg-blue-800"
+          >
+            Continue shopping
+          </Link>
+        </div>
       </main>
     );
   }
@@ -234,7 +175,7 @@ export default async function ReviewCartPage() {
 
   // Clerk auth() is async in Next 15
   const { userId } = await auth();
-  const defaultAddr = userId ? await getDefaultAddress(userId) : null;
+  const defaultAddr = userId ? await import("@/lib/addresses").then(m => m.getDefaultAddress(userId)) : null;
   const initCountry = (defaultAddr?.country === "CA" ? "CA" : "US") as "US" | "CA";
   const initState = defaultAddr?.state ?? "";
   const initZip = defaultAddr?.postalCode ?? "";
@@ -249,7 +190,7 @@ export default async function ReviewCartPage() {
   const credits = Math.max(0, (creditsCents || 0) / 100);
   const grandTotal = Math.max(0, subtotal + shipping + tax - credits);
 
-  // ✅ Build minimal lines for estimator (SinaLite expects productId + options)
+  // ✅ Minimal lines for SinaLite rate estimator
   const miniLines = lines.map((l) => ({
     productId: l.productId,
     optionIds: Array.isArray(l.optionIds) ? l.optionIds : [],
@@ -257,160 +198,187 @@ export default async function ReviewCartPage() {
   }));
 
   return (
-    <main className="container mx-auto py-8">
+    <main className="mx-auto max-w-6xl px-4 py-10">
       <ClientToastHub />
       <HashToast />
-      <h1 className="mb-6 text-2xl font-semibold">Review your cart</h1>
 
-      {/* Lines */}
-      <section className="space-y-4">
-        {lines.map((line) => {
-          const productImg = cartLineImageUrl(line.productId);
-          const hasArtwork = (line.artworkUrls?.length ?? 0) > 0;
-
-          return (
-            <article
-              key={line.id}
-              className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-start md:justify-between"
-            >
-              <div className="flex items-start gap-4">
-                {/* Product image (Cloudflare Images CDN) */}
-                <Image
-                  src={productImg}
-                  alt={line.name}
-                  width={80}
-                  height={80}
-                  className="rounded border object-cover"
-                  unoptimized
-                />
-
-                <div>
-                  <div className="font-medium">{line.name}</div>
-                  <div className="text-sm text-neutral-600">
-                    Qty {line.quantity} • {moneyFmt(line.unit, currency)} each
-                  </div>
-
-                  {/* Customer artwork thumbnails */}
-                  {hasArtwork ? (
-                    <div className="mt-2 flex flex-wrap gap-3">
-                      {line.artworkUrls!.map((u, i) => (
-                        <CartArtworkThumb
-                          key={`${line.id}-art-${i}`}
-                          url={u}
-                          alt={`Artwork side ${i + 1}`}
-                          size={80}
-                          openLabel="Open"
-                        />
-                      ))}
-
-                      <AddAnotherSideButton
-                        productId={line.productId}
-                        lineId={line.id}
-                        currentSides={line.artworkUrls!.length}
-                      />
-                    </div>
-                  ) : (
-                    <div className="mt-2">
-                      <AddAnotherSideButton
-                        productId={line.productId}
-                        lineId={line.id}
-                        currentSides={0}
-                        label="Upload artwork"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-right font-semibold">
-                {moneyFmt(line.total, currency)}
-              </div>
-            </article>
-          );
-        })}
-      </section>
-
-      {/* Totals */}
-      <aside className="mt-8 rounded-lg border bg-neutral-50 p-4">
-        <div className="flex justify-between py-2">
-          <span>Subtotal</span>
-          <span>{moneyFmt(subtotal, currency)}</span>
+      <header className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Review your order</h1>
+          <p className="mt-1 text-sm text-neutral-600">
+            Make sure everything looks perfect before checkout.
+          </p>
         </div>
-        <div className="flex justify-between py-2">
-          <span>
-            Shipping
-            {cart.selectedShipping?.method ? ` — ${cart.selectedShipping.method}` : " (estimated)"}
-          </span>
-          <span>{moneyFmt(shipping, currency)}</span>
-        </div>
-        <div className="flex justify-between py-2">
-          <span>Tax</span>
-          <span>{moneyFmt(tax, currency)}</span>
-        </div>
-
-        <CartCreditsRow creditsCents={creditsCents} currency={currency} />
-
-        <hr className="my-2" />
-        <div className="flex justify-between py-2 text-lg font-bold">
-          <span>Total</span>
-          <span>{moneyFmt(grandTotal, currency)}</span>
-        </div>
-      </aside>
-
-      {/* Shipping estimator OR selected card */}
-      <div className="mt-6">
-        {!cart.selectedShipping ? (
-          <CartShippingEstimator
-            initialCountry={initCountry}
-            initialState={initState}
-            initialZip={initZip}
-            lines={miniLines}              // ✅ send lines
-            currency={currency}            // helpful for UI formatting
-          />
-        ) : (
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-900">Selected shipping</span>
-                  <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                    {cart.selectedShipping.days ?? "–"} business{" "}
-                    {cart.selectedShipping.days === 1 ? "day" : "days"}
-                  </span>
-                </div>
-                <div className="mt-1 truncate text-sm text-gray-600">
-                  {cart.selectedShipping.carrier} — {cart.selectedShipping.method}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-base font-bold">
-                  {moneyFmt(Number(cart.selectedShipping.cost || 0), currency)}
-                </div>
-                <ChangeShippingButton />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Action bar */}
-      <div className="mt-6 flex justify-end gap-3">
         <Link
           href="/cart"
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-gray-100 px-4 text-sm font-semibold text-gray-900 hover:bg-gray-200"
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-900 hover:bg-gray-50"
         >
           Back to cart
         </Link>
-        <Link
-          href="/checkout"
-          className={`inline-flex h-10 items-center justify-center rounded-lg bg-blue-700 px-5 text-sm font-semibold text-white shadow hover:bg-blue-800 ${
-            !cart.selectedShipping ? "pointer-events-none opacity-50" : ""
-          }`}
-          aria-disabled={!cart.selectedShipping}
-        >
-          Continue to checkout
-        </Link>
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* LEFT: Lines */}
+        <section className="lg:col-span-8 space-y-4">
+          {lines.map((line) => {
+            const productImg = cartLineImageUrl(line.productId);
+            const hasArtwork = (line.artworkUrls?.length ?? 0) > 0;
+
+            return (
+              <article
+                key={line.id}
+                className="rounded-2xl border bg-white p-4 shadow-sm ring-1 ring-black/5"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex items-start gap-4">
+                    {/* Product image (Cloudflare CDN) */}
+                    <div className="overflow-hidden rounded-xl border">
+                      <Image
+                        src={productImg}
+                        alt={line.name}
+                        width={88}
+                        height={88}
+                        className="h-22 w-22 object-cover"
+                        unoptimized
+                      />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-base font-semibold">{line.name}</h3>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          Qty {line.quantity}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-sm text-neutral-600">
+                        {moneyFmt(line.unit, currency)} each
+                      </div>
+
+                      {/* Customer artwork thumbnails */}
+                      {hasArtwork ? (
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          {line.artworkUrls!.map((u, i) => (
+                            <CartArtworkThumb
+                              key={`${line.id}-art-${i}`}
+                              url={u}
+                              alt={`Artwork side ${i + 1}`}
+                            />
+                          ))}
+                          <AddAnotherSideButton
+                            productId={line.productId}
+                            lineId={line.id}
+                            currentSides={line.artworkUrls!.length}
+                          />
+                        </div>
+                      ) : (
+                        <div className="mt-3">
+                          <AddAnotherSideButton
+                            productId={line.productId}
+                            lineId={line.id}
+                            currentSides={0}
+                            label="Upload artwork"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <div className="text-lg font-bold">{moneyFmt(line.total, currency)}</div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        {/* RIGHT: Summary */}
+        <aside className="lg:col-span-4">
+          <div className="rounded-2xl border bg-white p-5 shadow-sm ring-1 ring-black/5">
+            <h2 className="text-base font-semibold">Order summary</h2>
+            <div className="mt-4 space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-600">Subtotal</span>
+                <span className="font-medium">{moneyFmt(subtotal, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-600">
+                  Shipping
+                  {cart.selectedShipping?.method ? ` — ${cart.selectedShipping.method}` : " (estimated)"}
+                </span>
+                <span className="font-medium">{moneyFmt(shipping, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-600">Tax</span>
+                <span className="font-medium">{moneyFmt(0, currency)}</span>
+              </div>
+
+              <CartCreditsRow creditsCents={creditsCents} currency={currency} />
+
+              <hr className="my-3" />
+
+              <div className="flex items-center justify-between text-base">
+                <span className="font-semibold">Total</span>
+                <span className="text-lg font-extrabold">{moneyFmt(grandTotal, currency)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border bg-white p-5 shadow-sm ring-1 ring-black/5">
+            {!cart.selectedShipping ? (
+              <>
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold">Shipping estimator</h3>
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                    Required to continue
+                  </span>
+                </div>
+                <CartShippingEstimator
+                  initialCountry={initCountry}
+                  initialState={initState}
+                  initialZip={initZip}
+                  lines={miniLines}
+                  currency={currency}
+                />
+              </>
+            ) : (
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-900">Selected shipping</span>
+                    <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                      {cart.selectedShipping.days ?? "–"} business{" "}
+                      {cart.selectedShipping.days === 1 ? "day" : "days"}
+                    </span>
+                  </div>
+                  <div className="mt-1 truncate text-sm text-gray-600">
+                    {cart.selectedShipping.carrier} — {cart.selectedShipping.method}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-base font-bold">
+                    {moneyFmt(Number(cart.selectedShipping.cost || 0), currency)}
+                  </div>
+                  <ChangeShippingButton />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <Link
+              href="/checkout"
+              className={`inline-flex w-full h-11 items-center justify-center rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white shadow hover:bg-blue-800 ${
+                !cart.selectedShipping ? "pointer-events-none opacity-50" : ""
+              }`}
+              aria-disabled={!cart.selectedShipping}
+            >
+              Continue to checkout
+            </Link>
+          </div>
+        </aside>
       </div>
     </main>
   );
 }
+

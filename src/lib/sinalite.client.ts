@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { k } from "@upstash/redis/zmscore-CgRD7oFR";
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import "server-only";
 
 /**
@@ -108,6 +107,49 @@ async function getAccessTokenRaw(): Promise<string> {
   };
 
   return withBearer(`${tokenCache.token_type} ${tokenCache.access_token}`);
+}
+
+export type StorefrontProduct = {
+  id: number;
+  sku?: string;
+  name: string;
+  image?: string;               // many tenants return this
+  category_id?: number;
+  subcategory_id?: number;
+  description?: string;
+};
+
+export type StorefrontSubcategory = {
+  id: number;
+  slug?: string;
+  name: string;
+  description?: string;
+  image?: string;
+};
+
+/** GET all products in a given subcategory */
+export async function getProductsBySubcategory(
+  subcategoryId: string | number,
+  storeCode?: string
+): Promise<StorefrontProduct[]> {
+  const sc = resolveStoreCode(storeCode);
+  const sid = encodeURIComponent(String(subcategoryId));
+  // Typical path used by storefront API
+  return apiFetchJson<StorefrontProduct[]>(
+    `storefront/${encodeURIComponent(sc)}/subcategories/${sid}/products`
+  );
+}
+
+/** GET subcategory details (name, description, image) */
+export async function getSubcategoryDetails(
+  subcategoryId: string | number,
+  storeCode?: string
+): Promise<StorefrontSubcategory> {
+  const sc = resolveStoreCode(storeCode);
+  const sid = encodeURIComponent(String(subcategoryId));
+  return apiFetchJson<StorefrontSubcategory>(
+    `storefront/${encodeURIComponent(sc)}/subcategories/${sid}`
+  );
 }
 
 // ─────────────────────────────────────────────────────────────

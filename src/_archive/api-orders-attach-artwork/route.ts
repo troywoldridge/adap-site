@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { orderArtwork } from "@/db/schema";
+import { cartArtwork } from "@/db/schema";
 
 function bad(status: number, msg: string) {
   return NextResponse.json({ error: msg }, { status });
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       : undefined;
 
   // Build rows as the exact insert type for this table
-  const rows: typeof orderArtwork.$inferInsert[] = (files as IncomingFile[]).map((f, i) => {
+  const rows: typeof cartArtwork.$inferInsert[] = (files as IncomingFile[]).map((f, i) => {
     const sideIndex = typeof f.sideIndex === "number" ? f.sideIndex : i;
 
     return {
@@ -75,9 +75,9 @@ export async function POST(req: Request) {
     };
   });
 
-  const inserted = await db.insert(orderArtwork).values(rows).returning({
-    id: orderArtwork.id,
-    sideIndex: orderArtwork.sideIndex,
+  const inserted = await db.insert(cartArtwork).values(rows).returning({
+    id: cartArtwork.id,
+    sideIndex: cartArtwork.sideIndex,
   });
 
   // Optional SinaLite push per the Sinalite API docs

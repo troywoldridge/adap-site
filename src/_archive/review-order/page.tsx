@@ -1,10 +1,10 @@
 // src/app/review-order/page.tsx
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 
 import { db } from "@/lib/db";
-import { orderArtwork } from "@/db/schema"; // barrel re-export
+import { cartArtwork } from "@/db/schema"; // barrel re-export
 import { artworkThumbUrl, isPdfMime, safeText } from "@/lib/cdn";
 import { getProductDetails } from "@/lib/sinalite.client";
 import { getOrderSession } from "@/lib/session"; // returns { id, productId, totals, shipping, ... }
@@ -49,14 +49,14 @@ export default async function ReviewOrderPage() {
   try {
     const rows = await db
       .select({
-        id: orderArtwork.id,
-        filename: orderArtwork.filename,
-        publicUrl: orderArtwork.publicUrl,
-        contentType: orderArtwork.contentType,
-        sideIndex: orderArtwork.sideIndex,
+        id: cartArtwork.id,
+        filename: cartArtwork.filename,
+        publicUrl: cartArtwork.publicUrl,
+        contentType: cartArtwork.contentType,
+        sideIndex: cartArtwork.sideIndex,
       })
-      .from(orderArtwork)
-      .where(eq(orderArtwork.orderSessionId, orderSessionId));
+      .from(cartArtwork)
+      .where(eq(cartArtwork.orderSessionId, orderSessionId));
 
     uploads = (rows || []).sort((a, b) => (a.sideIndex ?? 0) - (b.sideIndex ?? 0));
   } catch {

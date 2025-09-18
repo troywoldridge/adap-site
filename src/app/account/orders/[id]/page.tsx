@@ -1,7 +1,7 @@
 // src/app/account/orders/[id]/page.tsx
 import "server-only";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";

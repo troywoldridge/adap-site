@@ -1,6 +1,6 @@
-// src/lib/sinalite.server.ts
-// Canonical Sinalite server utilities (auth wrapper + pricing + shipping).
-// 🔗 Always refer to Sinalite API documentation. Uses your existing getSinaliteAccessToken().
+// Canonical Sinalite server utilities (auth wrapper + pricing + shipping + storefront).
+// 🔗 Always refer to SinaLite API documentation.
+// Uses your existing getSinaliteAccessToken().
 
 import "server-only";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
@@ -10,7 +10,7 @@ export const API_BASE =
   process.env.SINALITE_BASE_URL ||
   "https://api.sinaliteuppy.com"; // sandbox default
 
-/** Per Sinalite: 6 = Canada, 9 = US */
+/** Per Sinalite: 6 = Canada, 9 = US (legacy numeric code some endpoints use) */
 export function resolveStoreCode(country: "US" | "CA"): 9 | 6 {
   return country === "US" ? 9 : 6;
 }
@@ -23,6 +23,13 @@ export async function getSinaliteBearer(): Promise<string> {
 
 function asBearer(token: string): string {
   return /^Bearer\s/i.test(token) ? token : `Bearer ${token}`;
+}
+
+function resolveStoreString(input?: string | null): string {
+  const envStore = process.env.NEXT_PUBLIC_STORE_CODE?.trim();
+  const sc = (input ?? envStore ?? "").trim();
+  if (!sc) throw new Error("Missing storeCode (NEXT_PUBLIC_STORE_CODE).");
+  return sc;
 }
 
 /** Typed fetch to Sinalite with auth + JSON, no-store cache. */
@@ -52,12 +59,55 @@ async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
-   Pricing
-   Endpoint: POST /price/{productId}/{storeCode}
-   Body: { productOptions: string[] } // option value IDs as strings
-   NOTE: SinaLite returns the JOB TOTAL (line price), not a per-unit price.
-──────────────────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   STOREFRONT CATALOG HELPERS (SinaLite docs)
+   GET /storefront/{store}/subcategories/{id}
+   GET /storefront/{store}/subcategories/{id}/products
+──────────────────────────────────────────────────────────── */
+
+export type SubcategoryDetails = {
+  id: number;
+  name?: string;
+  slug?: string;
+  description?: string;
+  image?: string;
+};
+
+export async function getSubcategoryDetails(
+  subcategoryId: number,
+  storeCode?: string
+): Promise<SubcategoryDetails> {
+  const sc = resolveStoreString(storeCode);
+  const sid = encodeURIComponent(String(subcategoryId));
+  return apiFetch<SubcategoryDetails>(`/storefront/${encodeURIComponent(sc)}/subcategories/${sid}`);
+}
+
+export type StorefrontProduct = {
+  id: number | string;
+  name: string;
+  sku?: string;
+  image?: string;
+  category_id?: number | string;
+  subcategory_id?: number | string;
+  // any other keys from SinaLite are passed through by your merge layer
+  [k: string]: unknown;
+};
+
+export async function getProductsBySubcategory(
+  subcategoryId: number,
+  storeCode?: string
+): Promise<StorefrontProduct[]> {
+  const sc = resolveStoreString(storeCode);
+  const sid = encodeURIComponent(String(subcategoryId));
+  return apiFetch<StorefrontProduct[]>(
+    `/storefront/${encodeURIComponent(sc)}/subcategories/${sid}/products`
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   PRICING  (POST /price/{productId}/{storeCodeNumeric})
+   NOTE: SinaLite returns the JOB TOTAL (line price).
+──────────────────────────────────────────────────────────── */
 
 type PriceResp = {
   price?: string | number;                 // job total for selected chain
@@ -87,13 +137,10 @@ export async function priceByOptionIds(params: {
   return { linePriceCents, optionsByGroup };
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
-   Shipping Estimate
-   Endpoint: POST /order/shippingEstimate
-   Supports BOTH shapes:
-   - items: [{ productId, optionIds: number[] }] ➜ send array of strings
-   - items: [{ productId, options: Record<string,string> }] ➜ send map directly
-──────────────────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────
+   SHIPPING ESTIMATE (POST /order/shippingEstimate)
+   Accepts both option-ids array and options map, per docs.
+──────────────────────────────────────────────────────────── */
 
 export type EstimateItemIds = { productId: number; optionIds: (number | string)[] };
 export type EstimateItemMap = { productId: number; options: Record<string, string> };
@@ -136,17 +183,17 @@ export async function estimateShipping(params: {
 
   const currency: "USD" | "CAD" = shippingInfo.ShipCountry === "US" ? "USD" : "CAD";
 
-  return (raw.body ?? []).map(([carrier, method, price, days]) => {
+  return (raw.body ?? []).map(([carrier, method, price, d]) => {
     const amt = Number(price);
-    const d = Number(days);
+    const days = Number(d);
     return {
       carrier,
       serviceCode: String(method),
       serviceName: String(method),
       amount: Number.isFinite(amt) ? amt : 0,
       currency,
-      eta: Number.isFinite(d) ? `${d} business day${d === 1 ? "" : "s"}` : null,
-      days: Number.isFinite(d) ? d : null,
+      eta: Number.isFinite(days) ? `${days} business day${days === 1 ? "" : "s"}` : null,
+      days: Number.isFinite(days) ? days : null,
     };
   });
 }

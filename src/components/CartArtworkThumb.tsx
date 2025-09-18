@@ -1,81 +1,40 @@
 // src/components/CartArtworkThumb.tsx
 "use client";
-
-import Image from "next/image";
-import { useMemo, useState, useCallback } from "react";
-import { isPdfUrl, thumbCandidatesFor } from "@/lib/artworkThumb";
+import Image from "@/components/ImageSafe";
 
 type Props = {
-  url: string;            // original artwork URL (PDF or image)
+  url?: string | null;        // e.g. https://cdn.adap.com/... (R2 via CF)
+  cfImageId?: string | null;  // if present, serve via Cloudflare Images
   alt?: string;
-  size?: number;          // square size in px
   className?: string;
-  // Optional CTA:
-  openLabel?: string;     // e.g. "View PDF"
 };
 
-export default function CartArtworkThumb({
-  url,
-  alt = "Artwork",
-  size = 80,
-  className = "",
-  openLabel = "View",
-}: Props) {
-  const pdf = isPdfUrl(url);
+const CF_ACCOUNT = process.env.NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH || "";
+const CF_VARIANT = "productCard";
 
-  const candidates = useMemo(
-    () => (pdf ? thumbCandidatesFor(url) : [url]),
-    [pdf, url]
-  );
+export default function CartArtworkThumb({ url, cfImageId, alt = "Artwork", className = "" }: Props) {
+  if (cfImageId && CF_ACCOUNT) {
+    const src = `https://imagedelivery.net/${CF_ACCOUNT}/${cfImageId}/${CF_VARIANT}`;
+    return (
+      <div className={`relative h-14 w-14 overflow-hidden rounded border border-neutral-200 ${className}`}>
+        <Image src={src} alt={alt} fill sizes="56px" style={{ objectFit: "cover" }} draggable={false} />
+      </div>
+    );
+  }
 
-  const [srcIndex, setSrcIndex] = useState(0);
-  const [failed, setFailed] = useState(false);
-  const currentSrc = candidates[srcIndex];
-
-  const onImgError = useCallback(() => {
-    const next = srcIndex + 1;
-    if (next < candidates.length) {
-      setSrcIndex(next);
-    } else {
-      setFailed(true);
-    }
-  }, [srcIndex, candidates.length]);
+  if (url) {
+    return (
+      <div className={`relative h-14 w-14 overflow-hidden rounded border border-neutral-200 ${className}`}>
+        <img src={url} alt={alt} decoding="async" loading="lazy"
+             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+             draggable={false}/>
+      </div>
+    );
+  }
 
   return (
-    <div className={`relative inline-flex items-center gap-2 ${className}`}>
-      {/* Thumbnail box */}
-      <div className="relative overflow-hidden rounded border bg-white" style={{ width: size, height: size }}>
-        {!failed ? (
-          <Image
-            src={currentSrc}
-            alt={alt}
-            width={size}
-            height={size}
-            className="object-cover"
-            unoptimized
-            onError={onImgError}
-          />
-        ) : (
-          // Fallback for PDFs or missing thumbs
-          <div className="flex h-full w-full items-center justify-center bg-slate-100">
-            {pdf ? (
-              <span className="rounded bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">PDF</span>
-            ) : (
-              <span className="rounded bg-slate-500 px-2 py-0.5 text-xs font-semibold text-white">FILE</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Open original file */}
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs font-medium text-blue-700 hover:underline"
-      >
-        {openLabel}
-      </a>
+    <div className={`inline-flex h-14 w-14 items-center justify-center rounded border border-neutral-200 bg-neutral-100 text-xs text-neutral-500 ${className}`}>
+      No art
     </div>
   );
 }

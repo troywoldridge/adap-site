@@ -1,123 +1,180 @@
 // src/app/api/cart/current/route.ts
-import { NextResponse, type NextRequest } from "next/server";
+import "server-only";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { and, eq, inArray } from "drizzle-orm";
+
 import { db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";          // ✅ import from concrete files
-import { cartLines } from "@/db/schema/cartLines"; // ✅ not from "./cart"
-import { and, desc, eq } from "drizzle-orm";
+import { carts, cartLines, cartAttachments } from "@/db/schema";
+
+// 🔹 We don't have a products table; load product info from JSON assets
+import productAssets from "@/data/productAssets.json";
 
 export const runtime = "nodejs";
-export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-const COOKIE_OPTS = {
-  httpOnly: true as const,
-  sameSite: "lax" as const,
-  path: "/" as const,
-  secure: process.env.NODE_ENV === "production",
-  maxAge: 60 * 60 * 24 * 30, // 30 days
-};
+const SID_COOKIE = "sid";
 
+// Handle no-store cache
 function noStore(res: NextResponse) {
   res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
   return res;
 }
 
-// Next 14/15 compatible cookie jar getter
-async function getJar() {
+// Next 14 (sync) + Next 15 (async) cookie helper
+async function getCookieJar() {
   const maybe = cookies() as any;
   return typeof maybe?.then === "function" ? await maybe : maybe;
 }
 
-export async function GET(_req: NextRequest) {
-  try {
-    // Start a response up-front so Set-Cookie survives
-    let res = NextResponse.json({
-      ok: true,
-      items: [] as any[],
-      subtotal: 0,
-      currency: "USD" as "USD" | "CAD",
-      selectedShipping: null as any,
-    });
+// Small helper to safely coerce numbers
+function toNum(u: unknown, d = 0) {
+  const n = Number(u as any);
+  return Number.isFinite(n) ? n : d;
+}
 
-    const jar = await getJar();
-    const cookieA = (jar.get?.("adap_sid")?.value ?? undefined) as string | undefined;
-    const cookieB = (jar.get?.("sid")?.value ?? undefined) as string | undefined;
+// Build a quick lookup: productId -> { name, cfImageId }
+type ProductAsset = {
+  id: number;
+  name?: string | null;
+  cf_image_1_id?: string | null;
+  // ...other fields ignored
+};
+const assetById = new Map<number, ProductAsset>();
+for (const raw of productAssets as ProductAsset[]) {
+  if (raw && typeof raw.id === "number") {
+    assetById.set(raw.id, raw);
+  }
+}
 
-    const candidates: string[] = [cookieA, cookieB].filter(
-      (v): v is string => typeof v === "string" && v.length > 0,
-    );
+export async function GET() {
+  // 🧯 Fixes: "Property 'get' does not exist on type 'Promise<ReadonlyRequestCookies>'"
+  const jar = await getCookieJar();
+  const sid = jar.get(SID_COOKIE)?.value ?? "";
 
-    let chosen: string | undefined;
-    let foundCart: any = null;
-
-    // Prefer the SID that actually has an OPEN cart
-    for (const sid of candidates) {
-      const c = await db.query.carts.findFirst({
-        where: and(eq(carts.sid, sid), eq(carts.status, "open")),
-      });
-      if (c) {
-        chosen = sid;
-        foundCart = c;
-        break;
-      }
-    }
-
-    // Even if we didn't find an open cart, keep both cookies in sync (prefer adap_sid then sid)
-    if (!chosen) chosen = cookieA ?? cookieB;
-    if (chosen) {
-      res.cookies.set("adap_sid", chosen, COOKIE_OPTS);
-      res.cookies.set("sid", chosen, COOKIE_OPTS);
-    }
-
-    // No open cart yet → return empty payload (read endpoints shouldn't create carts)
-    if (!foundCart) {
-      return noStore(res);
-    }
-
-    // Load cart lines ordered newest-first
-    const lines = await db
-      .select()
-      .from(cartLines)
-      .where(eq(cartLines.cartId, foundCart.id))
-      .orderBy(desc(cartLines.createdAt));
-
-    // Normalize to the shared client shape (Cart + Review)
-    const items = lines.map((l: any) => {
-      const qty = Number(l.quantity ?? 1);
-      const unit =
-        typeof l.unitPriceCents === "number" ? l.unitPriceCents / 100 : 0;
-      const lineTotal =
-        typeof l.lineTotalCents === "number" ? l.lineTotalCents / 100 : unit * qty;
-
-      return {
-        id: l.id,
-        productId: l.productId,
-        quantity: qty,
-        optionIds: Array.isArray(l.optionIds) ? l.optionIds : [],
-        unitPrice: unit,
-        lineTotal,
-        name: null,            // hydrate later from catalog if desired
-        image: null,           // Cloudflare Image ID if you store it
-        optionsByGroup: {},    // hydrate if you keep a map
-        attachments: [],       // hydrate from cartAttachments if needed
-      };
-    });
-
-    const subtotal = items.reduce((sum: number, it: any) => sum + (Number(it.lineTotal) || 0), 0);
-    const currency: "USD" | "CAD" = foundCart.currency === "CAD" ? "CAD" : "USD";
-    const selectedShipping = foundCart.selectedShipping ?? null;
-
-    res = NextResponse.json(
-      { ok: true, items, subtotal, currency, selectedShipping },
-      { headers: res.headers },
-    );
-    return noStore(res);
-  } catch (e: any) {
-    console.error("GET /api/cart/current failed:", e);
-    return NextResponse.json(
-      { ok: false, error: String(e?.message ?? e) },
-      { status: 500, headers: { "Cache-Control": "no-store" } },
+  if (!sid) {
+    return noStore(
+      NextResponse.json(
+        { cart: null, lines: [], attachments: {}, selectedShipping: null },
+        { status: 200 },
+      ),
     );
   }
+
+  // 1) Find open cart for this sid
+  const openCart = await db.query.carts.findFirst({
+    where: and(eq(carts.sid, sid), eq(carts.status, "open")),
+  });
+
+  if (!openCart) {
+    return noStore(
+      NextResponse.json(
+        { cart: null, lines: [], attachments: {}, selectedShipping: null },
+        { status: 200 },
+      ),
+    );
+  }
+
+  // 2) Pull lines (no SQL join to products; we'll enrich from JSON)
+  const lineRows = await db
+    .select({
+      lineId: cartLines.id,
+      productId: cartLines.productId,
+      quantity: cartLines.quantity as any,          // adapt to your schema
+      unitPriceCents: (cartLines as any).unitPriceCents ?? null,  // optional
+      lineTotalCents: (cartLines as any).lineTotalCents ?? null,  // optional
+      optionChain: (cartLines as any).optionChain ?? null,        // optional
+    })
+    .from(cartLines)
+    .where(eq(cartLines.cartId, openCart.id));
+
+  // 3) Enrich lines from productAssets.json
+  const lines = (lineRows || []).map((r) => {
+    const pid = toNum(r.productId);
+    const qty = toNum(r.quantity, 1);
+    const asset = assetById.get(pid);
+
+    const productName = asset?.name ?? null;
+    const productCfImageId = asset?.cf_image_1_id ?? null;
+
+    // cents -> keep as-is for clients that want it; UI can convert
+    const unitPriceCents = r.unitPriceCents ?? null;
+    const lineTotalCents =
+      r.lineTotalCents ?? (typeof unitPriceCents === "number" ? unitPriceCents * qty : null);
+
+    return {
+      id: String(r.lineId),
+      productId: pid,
+      productName,           // ✅ name now available without a DB table
+      productCfImageId,      // ✅ first CF image id
+      quantity: qty,
+      unitPriceCents: typeof unitPriceCents === "number" ? unitPriceCents : null,
+      lineTotalCents: typeof lineTotalCents === "number" ? lineTotalCents : null,
+      optionChain: r.optionChain ?? null,
+    };
+  });
+
+  // 4) Attachments per line (uploaded artwork)
+  const lineIds = lines.map((l) => l.id).filter(Boolean);
+  let attachmentsByLine: Record<
+    string,
+    Array<{
+      id: string;
+      fileName: string;
+      url?: string | null;
+      key?: string | null;
+      cfImageId?: string | null; // if you later generate Cloudflare Images thumbnails
+      createdAt?: string | null;
+    }>
+  > = {};
+
+  if (lineIds.length > 0) {
+    const attRows = await db
+      .select({
+        id: cartAttachments.id,
+        lineId: cartAttachments.lineId,
+        fileName: cartAttachments.fileName,
+        url: cartAttachments.url,
+        key: cartAttachments.key,
+        createdAt: cartAttachments.createdAt as any,
+        // If you add a CF image id column later, map it here:
+        // cfImageId: (cartAttachments as any).cfImageId ?? null,
+      })
+      .from(cartAttachments)
+      .where(inArray(cartAttachments.lineId, lineIds as any));
+
+    for (const a of attRows) {
+      const lid = String(a.lineId);
+      if (!attachmentsByLine[lid]) attachmentsByLine[lid] = [];
+      attachmentsByLine[lid].push({
+        id: String(a.id),
+        fileName: a.fileName ?? "Artwork",
+        url: a.url ?? null,          // R2 public or Cloudflare-proxied URL
+        key: a.key ?? null,
+        // cfImageId: (a as any).cfImageId ?? null, // keep commented until you add the column
+        createdAt: a.createdAt ? String(a.createdAt) : null,
+      });
+    }
+  }
+
+  // 5) Selected shipping (if you persist it on carts)
+  const selectedShipping =
+    (openCart as any).selectedShipping ??
+    (openCart as any).shipping ??
+    null;
+
+  // 6) Response
+  return noStore(
+    NextResponse.json({
+      cart: {
+        id: openCart.id,
+        sid: openCart.sid,
+        status: openCart.status,
+        currency: (openCart as any).currency ?? "USD",
+      },
+      lines,
+      attachments: attachmentsByLine, // keyed by lineId
+      selectedShipping: selectedShipping ?? null,
+    }),
+  );
 }

@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import Link from "next/link";
 
 export type ArtworkFile = {

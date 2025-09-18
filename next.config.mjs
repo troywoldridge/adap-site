@@ -154,6 +154,7 @@ const directives = {
   "base-uri": `'self'`,
   "form-action": `'self' https://api.stripe.com`,
   "frame-ancestors": `'none'`,
+  "manifest-src": `'self'`,
 };
 
 // Build strings
@@ -193,6 +194,7 @@ const imageRemotePatterns = [
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
+   { protocol: "https", hostname: "cdn.adap.com", pathname: "/**" },
 ];
 
 if (PUBLIC_CDN_HOST) {
@@ -244,6 +246,7 @@ const nextConfig = {
       { source: "/order/review", destination: "/cart/review", permanent: true },
     ];
   },
+  
 };
 
 export default nextConfig;

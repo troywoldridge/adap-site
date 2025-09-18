@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 import Link from "next/link";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { getHeroSlides, type HeroSlide } from "@/lib/heroSlides";

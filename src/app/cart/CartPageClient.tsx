@@ -5,15 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import CartSummary from "@/components/CartSummary";
 import type { ShippingRate } from "@/components/CartShippingEstimator"; // estimator result shape
 
+/* =========================================================
+   Types
+   ========================================================= */
 type AnyItem = {
   id: string;
   productId: number;
-  name?: string | null;
+  name?: string | null;                 // product name (prefer this)
   optionIds: number[];
   quantity: number;
-  cloudflareImageId?: string | null;
-  serverUnitPrice?: number;  // from server
-  unitPrice?: number;        // client override
+  cloudflareImageId?: string | null;    // product CF image id
+  serverUnitPrice?: number;             // dollars from server
+  unitPrice?: number;                   // client override (dollars)
 };
 
 type SavedItem = {
@@ -26,39 +29,63 @@ type SavedItem = {
   unitPrice?: number;
 };
 
-// ✅ shape we persist in the cart/DB
 export type SelectedShipping = {
   carrier: string;
   method: string;
-  cost: number;
+  cost: number; // dollars
   days: number | null;
   currency: "USD" | "CAD";
 };
 
-// union for local state
 type ShippingLike = SelectedShipping | ShippingRate;
 
 type Props = {
   initialItems: AnyItem[];
   currency: "USD" | "CAD";
   store: "US" | "CA";
-  // keep prop signature as before; we'll normalize internally
   initialShipping: ShippingRate | null;
 };
 
-const money = (n: number, currency: "USD" | "CAD") =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency }).format((Number(n) || 0));
+type Attachment = {
+  id: string;
+  fileName: string;
+  url?: string | null;                 // public R2 (optionally proxied by CF)
+  cfImageId?: string | null;           // if you later store Cloudflare Images id for artwork
+};
 
-function cfImgUrl(id?: string | null) {
-  if (!id) return null;
-  const acct = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q";
-  // served via Cloudflare Images CDN
-  return `https://imagedelivery.net/${acct}/${id}/public`;
-}
+type ApiCurrent = {
+  cart: { id: string; sid: string; status: string; currency?: "USD" | "CAD" } | null;
+  lines: Array<{
+    id: string;
+    productId: number;
+    productName?: string | null;
+    productCfImageId?: string | null;
+    quantity: number;
+    unitPriceCents?: number | null;    // cents, optional
+    lineTotalCents?: number | null;    // cents, optional
+    optionChain?: string | null;
+  }>;
+  // attachments keyed by lineId
+  attachments: Record<string, Array<{ id: string; fileName: string; url?: string | null; key?: string | null; cfImageId?: string | null }>>;
+  selectedShipping?: SelectedShipping | null;
+};
 
 const SAVED_KEY = "ADAP_SAVED_V1";
 
-// normalize any incoming rate (estimator/server) into our chosen/DB shape
+/* =========================================================
+   Helpers
+   ========================================================= */
+const money = (n: number, currency: "USD" | "CAD") =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency }).format(Number(n) || 0);
+
+function cfImgUrl(id?: string | null, variant: string = "public") {
+  if (!id) return null;
+  const acct = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q";
+  // served via Cloudflare Images CDN
+  return `https://imagedelivery.net/${acct}/${id}/${variant}`;
+}
+
+// Normalize any incoming rate (estimator/server) into our chosen/DB shape
 function toSelectedShipping(anyRate: any): SelectedShipping | null {
   if (!anyRate) return null;
   const carrier = String(anyRate.carrier ?? "");
@@ -78,11 +105,35 @@ function toSelectedShipping(anyRate: any): SelectedShipping | null {
   return { carrier, method, cost, days, currency };
 }
 
+/** Pick the best thumbnail for a line:
+ *  1) If artwork attachment exists: prefer its Cloudflare Images ID, else its public URL
+ *  2) Else fall back to product Cloudflare image
+ */
+function pickLineThumb(
+  it: AnyItem,
+  attMap: Record<string, Attachment[]>,
+): { src: string | null; alt: string } {
+  const list = attMap[it.id];
+  if (list && list.length > 0) {
+    const a = list[0];
+    const artSrc = a.cfImageId ? cfImgUrl(a.cfImageId, "productCard") : (a.url ?? null);
+    if (artSrc) {
+      return { src: artSrc, alt: a.fileName || it.name || `Product ${it.productId}` };
+    }
+  }
+  const prodSrc = cfImgUrl(it.cloudflareImageId, "productCard") || cfImgUrl(it.cloudflareImageId, "public");
+  return { src: prodSrc, alt: it.name || `Product ${it.productId}` };
+}
+
+/* =========================================================
+   Component
+   ========================================================= */
 export default function CartPageClient({ initialItems, currency, store, initialShipping }: Props) {
   const [items, setItems] = useState<AnyItem[]>(initialItems || []);
   const [selectedShipping, setSelectedShipping] = useState<ShippingLike | null>(initialShipping);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItem[]>([]);
+  const [attachmentsByLine, setAttachmentsByLine] = useState<Record<string, Attachment[]>>({});
 
   // Load saved list (localStorage)
   useEffect(() => {
@@ -122,35 +173,88 @@ export default function CartPageClient({ initialItems, currency, store, initialS
     [items],
   );
 
-  // Refresh cart from server; handle both shapes: {items,...} or {cart:{items,...}}
+  /** Try to load enriched cart from /api/cart/current first:
+   *  Expecting fields:
+   *    - lines[] with productName & productCfImageId and unitPriceCents
+   *    - attachments keyed by lineId (first entry = primary artwork)
+   *  Falls back to /api/cart if /current not available.
+   */
   async function refreshFromServer() {
     try {
-      const res = await fetch("/api/cart", { cache: "no-store" });
-      if (!res.ok) return;
-      const json = await res.json();
+      // 1) Prefer /api/cart/current
+      const res = await fetch("/api/cart/current", { cache: "no-store" });
+      if (res.ok) {
+        const json = (await res.json()) as ApiCurrent;
 
-      const itemsShape: AnyItem[] =
-        (json?.items as AnyItem[]) ??
-        (json?.cart?.items as AnyItem[]) ??
-        [];
+        // Map lines to our local AnyItem shape (convert cents -> dollars if provided)
+        const mapped: AnyItem[] = (json.lines || []).map((ln) => {
+          const unitDollars =
+            typeof ln.unitPriceCents === "number" ? ln.unitPriceCents / 100 : undefined;
+          return {
+            id: String(ln.id),
+            productId: Number(ln.productId),
+            name: ln.productName ?? null,                         // ✅ product name from server
+            optionIds: [],                                        // (if you want, parse ln.optionChain into ids array)
+            quantity: Number(ln.quantity || 1),
+            cloudflareImageId: ln.productCfImageId ?? null,       // product image
+            serverUnitPrice: unitDollars,
+          };
+        });
 
-      const srvItems =
-        itemsShape.map((it) => ({
-          ...it,
-          serverUnitPrice:
-            typeof it.unitPrice === "number" ? it.unitPrice : it.serverUnitPrice,
-        })) || [];
-      setItems(srvItems);
+        setItems(mapped);
 
-      const srvShip: any =
-        json?.selectedShipping ??
-        json?.cart?.selectedShipping ??
-        json?.cart?.shipping ??
-        null;
+        // attachments mapping
+        const att: Record<string, Attachment[]> = {};
+        for (const [lineId, list] of Object.entries(json.attachments || {})) {
+          att[lineId] = (list || []).map((a) => ({
+            id: String(a.id),
+            fileName: a.fileName ?? "Artwork",
+            url: a.url ?? undefined,
+            cfImageId: (a as any).cfImageId ?? undefined,
+          }));
+        }
+        setAttachmentsByLine(att);
 
-      setSelectedShipping(toSelectedShipping(srvShip));
-    } catch {}
+        // selected shipping
+        if (json.selectedShipping) {
+          setSelectedShipping(toSelectedShipping(json.selectedShipping));
+        }
+        return; // done
+      }
+
+      // 2) Fallback: legacy /api/cart (keeps your old shape working)
+      const res2 = await fetch("/api/cart", { cache: "no-store" });
+      if (res2.ok) {
+        const j2 = await res2.json();
+        const itemsShape: AnyItem[] =
+          (j2?.items as AnyItem[]) ??
+          (j2?.cart?.items as AnyItem[]) ??
+          [];
+        const srvItems =
+          itemsShape.map((it) => ({
+            ...it,
+            serverUnitPrice:
+              typeof it.unitPrice === "number" ? it.unitPrice : it.serverUnitPrice,
+          })) || [];
+        setItems(srvItems);
+
+        const srvShip: any =
+          j2?.selectedShipping ??
+          j2?.cart?.selectedShipping ??
+          j2?.cart?.shipping ??
+          null;
+        setSelectedShipping(toSelectedShipping(srvShip));
+      }
+    } catch (e) {
+      console.error("refreshFromServer error", e);
+    }
   }
+
+  useEffect(() => {
+    // On mount, upgrade to enriched payload if available
+    refreshFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function removeLine(lineId: string) {
     setBusyId(lineId);
@@ -236,11 +340,13 @@ export default function CartPageClient({ initialItems, currency, store, initialS
         body: JSON.stringify(chosen ?? {}),
         cache: "no-store",
       });
-      // optional: refresh to confirm server echo
       await refreshFromServer();
     } catch {}
   }
 
+  /* =========================================================
+     Render
+     ========================================================= */
   return (
     <main className="cart2">
       <h1 className="sr-only" id="cart-heading">Your Cart</h1>
@@ -263,19 +369,22 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                     : typeof it.unitPrice === "number"
                     ? it.unitPrice
                     : 0;
+
                 const lineTotal = unit * (it.quantity || 1);
-                const img = cfImgUrl(it.cloudflareImageId);
+
+                const thumb = pickLineThumb(it, attachmentsByLine);
+                const displayName = it.name || `Product ${it.productId}`;
 
                 return (
                   <li key={it.id} className="cart2__row card">
                     <div className="cart2__rowGrid">
-                      {/* thumb */}
+                      {/* thumb: prefers artwork if present */}
                       <div className="cart2__thumb" aria-hidden="true">
-                        {img ? (
+                        {thumb.src ? (
                           <img
                             className="cart2__thumbImg"
-                            src={img}
-                            alt={it.name ?? `Product ${it.productId}`}
+                            src={thumb.src}
+                            alt={thumb.alt}
                             loading="lazy"
                             decoding="async"
                           />
@@ -286,7 +395,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
 
                       {/* main */}
                       <div className="minw0">
-                        <div className="cart2__name">{it.name || `Product ${it.productId}`}</div>
+                        <div className="cart2__name">{displayName}</div>
                         <div className="cart2__each">
                           {unit ? `${money(unit, currency)} each` : "$0.00 each"}
                         </div>
@@ -301,7 +410,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                             disabled={busyId === it.id}
                             onChange={(e) => updateQty(it.id, Number(e.currentTarget.value))}
                             className="cart2__qtyInput"
-                            aria-label={`Quantity for ${it.name || `Product ${it.productId}`}`}
+                            aria-label={`Quantity for ${displayName}`}
                           />
                         </div>
 
@@ -309,7 +418,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                           onClick={() => saveForLater(it)}
                           disabled={busyId === it.id}
                           className="link-btn"
-                          aria-label={`Save ${it.name || `Product ${it.productId}` } for later`}
+                          aria-label={`Save ${displayName} for later`}
                         >
                           Save for later
                         </button>
@@ -322,7 +431,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
                           onClick={() => removeLine(it.id)}
                           disabled={busyId === it.id}
                           className="link-dim"
-                          aria-label={`Remove ${it.name || `Product ${it.productId}`}`}
+                          aria-label={`Remove ${displayName}`}
                         >
                           {busyId === it.id ? "Removing…" : "Remove"}
                         </button>
@@ -340,7 +449,7 @@ export default function CartPageClient({ initialItems, currency, store, initialS
               <h3 className="m-0">Saved for later</h3>
               <ul className="cart2__list mt-3">
                 {saved.map((si) => {
-                  const img = cfImgUrl(si.cloudflareImageId);
+                  const img = cfImgUrl(si.cloudflareImageId, "productCard") || cfImgUrl(si.cloudflareImageId, "public");
                   return (
                     <li key={si.id} className="cart2__savedRow">
                       <div className="cart2__rowGrid">
@@ -391,7 +500,6 @@ export default function CartPageClient({ initialItems, currency, store, initialS
               subtotal={subtotal}
               lines={miniLines}
               store={store}
-              // keep CartSummary’s typing happy regardless of its prop constraint
               selectedShipping={selectedShipping as any}
               onChangeShipping={onChangeShipping as any}
             />
@@ -412,22 +520,6 @@ export default function CartPageClient({ initialItems, currency, store, initialS
         .cart2__right > .card,
         .cart2__right .order-summary,
         .cart2__right .estimator{width:100%}
-
-        .cart2__right,
-        .cart2__right .cartpg__summary,
-        .cart2__right .cartpg__summaryCard,
-        .cart2__right .cart-summary,
-        .cart2__right .order-summary,
-        .cart2__right .reviewpg__shipCard,
-        .cart2__right .estWrap,
-        .cart2__right .estimator,
-        .cart2__right .estimator.estimator--compact,
-        .cart2__right .estimator.estimator--compact .estimator__rates {
-          width: 100% !important;
-          max-width: none !important;
-          margin-left: 0 !important;
-          margin-right: 0 !important;
-        }
 
         .cart2{--ink:#0f172a;--muted:#64748b}
         .cart2, .cart2 *{font-size:14px;color:var(--ink)}

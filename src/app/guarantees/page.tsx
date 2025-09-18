@@ -1,6 +1,6 @@
 // src/app/guarantees/page.tsx
 import type { Metadata } from "next";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 
 export const metadata: Metadata = {
   title: "Our Guarantees | ADAP",

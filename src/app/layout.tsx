@@ -4,13 +4,21 @@ import NotificationBar from "@/components/NotificationBar";
 import Header from "@/components/Header";
 import SupportBanner from "@/components/SupportBanner";
 import Footer from "@/components/Footer";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cfUrl } from "@/lib/data";
 import RouteProgress from "@/components/RouteProgress";
 
 // const NAV_ITEMS if you enable client nav later
 // import Navigation, { type NavItem } from "@/client/components/navigation";
+export const viewport: Viewport = {
+  // one color OR light/dark variants:
+  // themeColor: "#0047ab",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+  ],
+};
 
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
@@ -39,6 +47,7 @@ export const metadata: Metadata = {
   title: "Custom Print Experts | American Design And Printing",
   description:
     "Your one-stop for trade printing—business cards, banners, invitations, and more. Powered by SinaLite.",
+  manifest: "/site.webmanifest",
   // 🚀 Robots & Googlebot directives
   robots: {
   index: true,

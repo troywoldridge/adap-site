@@ -1,6 +1,6 @@
 // src/components/SiteFooter.tsx
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ImageSafe";
 
 // Cloudflare Images (env-driven with safe defaults)
 const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH ?? "";
