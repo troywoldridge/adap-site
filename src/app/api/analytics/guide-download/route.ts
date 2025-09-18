@@ -37,7 +37,7 @@ async function appendJSONL(filePath: string, obj: unknown) {
  * Optionally insert into your DB via Drizzle.
  * - We **only** try this if GUIDE_ANALYTICS_USE_DB=1
  * - We assume a named export `db` from "@/lib/db"
- * - We assume a named export `guideDownloads` from "@/db/schema/guideDownloads"
+ * - We assume a named export `guideDownloads` from "@/lib/db/schema/guideDownloads"
  * - All errors are swallowed (analytics must never block UX)
  */
 async function tryInsertDb(payload: {

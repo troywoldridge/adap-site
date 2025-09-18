@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
       where: and(eq(cartLines.cartId, cart.id), inArray(cartLines.id, lineIds)),
       columns: { id: true },
     });
-    const okSet = new Set(existingLines.map((r) => r.id));
+    const okSet = new Set(existingLines.map((r: { id: any; }) => r.id));
     const missing = lineIds.filter((id) => !okSet.has(id));
     if (missing.length) {
       return jsonNoStore(

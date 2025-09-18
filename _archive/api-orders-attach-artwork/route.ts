@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { cartArtwork } from "@/db/schema";
+import { cartArtwork } from "@/lib/db/schema";
 
 function bad(status: number, msg: string) {
   return NextResponse.json({ error: msg }, { status });

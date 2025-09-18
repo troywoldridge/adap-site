@@ -1,49 +1,23 @@
-"use client";
+// Server Component
+import ImageSafe from "@/components/ImageSafe";
+import { cfImage } from "@/lib/cfImages";
 
-import Image from "@/components/ImageSafe";
-import { makeCloudflareLoader } from "@/lib/cfImages";
+export default function SubcategoryTileImage({ idOrUrl, alt }: { idOrUrl: string; alt: string }) {
+  // If it’s a CF image ID, turn it into a full URL on the server
+  const src = idOrUrl.startsWith("http")
+    ? idOrUrl
+    : cfImage(idOrUrl, "productCard"); // or "categoryThumb" etc.
 
-/** Uses your "subcategoryCard" preset which maps to subcategoryThumb/category variants */
-const subcategoryLoader = makeCloudflareLoader("subcategoryCard");
-
-type Props = {
-  /** Cloudflare IMAGE_ID if kind === "id"; otherwise a full URL (/images/... or https) */
-  src: string;
-  kind: "id" | "url";
-  alt: string;
-  className?: string;
-};
-
-/**
- * Self-wrapping tile image:
- * - Provides its own positioned wrapper for <Image fill />
- * - Works with Cloudflare Image IDs via your custom loader (CDN!)
- * - Falls back to unoptimized for arbitrary remote URLs when kind="url"
- */
-export default function SubcategoryTileImage({ src, kind, alt, className }: Props) {
+  // Since src is absolute, you can drop the custom loader entirely:
   return (
-    <div className={`relative w-full aspect-[4/3] bg-gray-50 ${className ?? ""}`}>
-      {kind === "id" ? (
-        <Image
-          loader={subcategoryLoader}
-          src={src} // Cloudflare IMAGE_ID
-          alt={alt}
-          fill
-          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
-          style={{ objectFit: "cover" }}
-          priority={false}
-        />
-      ) : (
-        <Image
-          src={src} // full URL or /images/...
-          alt={alt}
-          fill
-          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
-          style={{ objectFit: "cover" }}
-          unoptimized
-          priority={false}
-        />
-      )}
+    <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg">
+      <ImageSafe
+        src={src}          // already a full imagedelivery.net URL
+        alt={alt}
+        fill
+        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 360px"
+        // no loader prop needed
+      />
     </div>
   );
 }

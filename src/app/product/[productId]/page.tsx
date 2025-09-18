@@ -312,10 +312,12 @@ export default async function ProductPage({
 
   /* ---------- Cloudflare gallery via productAssets ---------- */
   const ids = allImageIds(prodRow);
-  const gallery: string[] =
-    ids.length > 0
-      ? ids.map((id, i) => cfImage(id, V(i === 0 ? "productHero" : "productCard")) || "")
-      : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", V("productHero"))!]; // safe fallback
+const gallery: string[] =
+  ids.length > 0
+    ? ids
+        .map((id, i) => cfImage(id, V(i === 0 ? "productHero" : "productCard")))
+        .filter(Boolean) as string[]     // 👈 add this
+    : [cfImage("a90ba357-76ea-48ed-1c65-44fff4401600", V("productHero"))!];
 
   const productName =
     meta?.name || (prodRow.name ? String(prodRow.name) : titleCase(productSlug));
@@ -393,9 +395,15 @@ export default async function ProductPage({
       <section className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,720px)_minmax(0,460px)]">
         {/* LEFT */}
         <div>
-          <ProductGallery images={gallery} productName={productName} />
-          <ProductInfoTabs details={details} filePrep={filePrep} reviewsSlot={reviewsSlot} />
-        </div>
+            <ProductGallery images={gallery} productName={productName} />
+            {/* was: <ProductInfoTabs details={details} filePrep={filePrep} reviewsSlot={reviewsSlot} /> */}
+            <ProductInfoTabs
+              details={details}
+              filePrep={filePrep}
+              reviewsProductId={sinaliteIdStr}
+              reviewsProductName={productName}
+            />
+         </div>
 
         {/* RIGHT: Buy Box (SinaLite options + Cloudflare hero) */}
         <aside className="lg:sticky lg:top-24 h-fit" id="buy-box">

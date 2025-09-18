@@ -1,22 +1,19 @@
 // src/lib/product-images.ts
 // Builds product image URLs using Cloudflare Images, sourced from productAssets.json
-// NOTE: This aligns with SinaLite product IDs/SKUs you use in pricing and product pages.
+// ✅ Uses CF CDN variants; aligns with SinaLite product IDs/SKUs you use elsewhere.
 
 import productAssets from "@/data/productAssets.json";
-import { cfImageUrl } from "src/lib/cloudflare-image";
+import { cfImageUrl } from "@/lib/cloudflare-image"; // or: import { cfImage as cfImageUrl } from "@/lib/cfImages";
 
 type ProductRow = {
   id?: number | string;
   sku?: string;
   name?: string;
-  // Preferred image columns
   cf_image_1_id?: string | null;
   cf_image_2_id?: string | null;
   cf_image_3_id?: string | null;
   cf_image_4_id?: string | null;
-  // Optional single fallback
   cf_image_id?: string | null;
-  // Allow extra fields without typing headaches
   [k: string]: unknown;
 };
 
@@ -26,16 +23,15 @@ function toNum(n: unknown): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
-function collectImageIds(p?: ProductRow | undefined): string[] {
+function collectImageIds(p?: ProductRow): string[] {
   if (!p) return [];
-  const ids: (string | null | undefined)[] = [
+  const ids = [
     p.cf_image_1_id,
     p.cf_image_2_id,
     p.cf_image_3_id,
     p.cf_image_4_id,
-    p.cf_image_id, // fallback if present
+    p.cf_image_id, // optional single fallback
   ];
-  // Clean + de-dupe while preserving order
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of ids) {
@@ -48,49 +44,42 @@ function collectImageIds(p?: ProductRow | undefined): string[] {
   return out;
 }
 
-/**
- * Return Cloudflare image URLs for a product.
- * - Tries numeric product `id` first, then `sku`.
- * - Uses variant "public" by default (change if you want "productCard" or others).
- */
+/** Return Cloudflare image URLs for a product. */
 export function productImagesForProductId(
   pid: string | number,
   sku?: string,
-  variant: string = "public"
+  // 👇 default to productCard so listings don’t forget to pass it
+  variant: string = "productCard"
 ): string[] {
   const pidNum = toNum(pid);
 
-  // 1) Try to find by numeric product id
+  // 1) numeric product id
   let product = (productAssets as ProductRow[]).find((p) => {
     const idNum = toNum(p.id);
     return pidNum !== null && idNum !== null && idNum === pidNum;
   });
 
-  // 2) Fallback to SKU match
+  // 2) fallback to SKU
   if (!product && sku) {
     product = (productAssets as ProductRow[]).find(
-      (p) => typeof p.sku === "string" && p.sku === sku
+      (p) => typeof p.sku === "string" && p.sku.trim() === sku
     );
   }
 
   const imageIds = collectImageIds(product);
   if (imageIds.length === 0) return [];
 
-  // Map to Cloudflare delivery URLs via your loader helper
-  const urls = imageIds
+  // Map IDs -> Cloudflare CDN URLs
+  return imageIds
     .map((id) => cfImageUrl(id, variant))
     .filter((u): u is string => typeof u === "string" && !!u);
-
-  return urls;
 }
 
-/**
- * Convenience: return just the first/hero image URL for a product.
- */
+/** Convenience: first/hero image URL (defaults to productHero). */
 export function productHeroImageUrl(
   pid: string | number,
   sku?: string,
-  variant: string = "public"
+  variant: string = "productHero"
 ): string | null {
   const urls = productImagesForProductId(pid, sku, variant);
   return urls.length ? urls[0] : null;

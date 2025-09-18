@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema/cart";
+import { carts, cartLines } from "@/lib/db/schema/cart";
 import { getOrSetSid } from "@/lib/sid";
 
 export const runtime = "nodejs";

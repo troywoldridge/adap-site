@@ -1,22 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import ProductReviews from "./ProductReviews";
+import { useState, type ReactNode } from "react";
+import ProductReviews from "@/components/product/ProductReviews";
+
+type Props = {
+  details: ReactNode;
+  filePrep: ReactNode;
+  reviewsProductId: string | number;
+  reviewsProductName?: string;
+  className?: string;
+};
 
 export default function ProductInfoTabs({
   details,
   filePrep,
   reviewsProductId,
   reviewsProductName,
-}: {
-  details: React.ReactNode;           // safe markup (no handlers)
-  filePrep: React.ReactNode;          // safe markup (no handlers)
-  reviewsProductId: string | number;  // primitives only
-  reviewsProductName?: string;
-}) {
+  className = "",
+}: Props) {
   const [tab, setTab] = useState<"details" | "file" | "reviews">("details");
 
-  const TabBtn = ({
+  const TabButton = ({
     id,
     label,
   }: {
@@ -25,43 +29,36 @@ export default function ProductInfoTabs({
   }) => (
     <button
       type="button"
-      role="tab"
-      aria-selected={tab === id}
       onClick={() => setTab(id)}
-      className={[
-        "relative -mb-px px-3 md:px-6 py-3",
-        "text-base md:text-lg font-semibold transition-colors",
-        tab === id ? "text-gray-900" : "text-gray-500 hover:text-gray-800",
-      ].join(" ")}
+      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+        tab === id ? "bg-blue-600 text-white" : "bg-white text-neutral-700 border hover:bg-neutral-50"
+      } border`}
+      aria-selected={tab === id}
     >
       {label}
-      <span
-        className={[
-          "pointer-events-none absolute inset-x-0 -bottom-[1px] h-[2px]",
-          tab === id ? "bg-blue-600" : "bg-transparent",
-        ].join(" ")}
-      />
     </button>
   );
 
   return (
-    <section className="mt-12">
-      <div role="tablist" className="flex items-end justify-start gap-8 border-b border-gray-200">
-        <TabBtn id="details" label="Details" />
-        <TabBtn id="file" label="File Prep" />
-        <TabBtn id="reviews" label="Reviews" />
+    <div className={`mt-6 ${className}`}>
+      <div className="flex gap-2">
+        <TabButton id="details" label="Details" />
+        <TabButton id="file" label="File Prep" />
+        <TabButton id="reviews" label="Reviews" />
       </div>
 
-      <div className="mt-6">
-        {tab === "details" && <div className="prose max-w-none">{details}</div>}
-        {tab === "file" && <div className="prose max-w-none">{filePrep}</div>}
+      <div className="mt-4 rounded-xl border bg-white p-4">
+        {tab === "details" && <div>{details}</div>}
+        {tab === "file" && <div>{filePrep}</div>}
         {tab === "reviews" && (
-          <ProductReviews
-            productId={reviewsProductId}
-            productName={reviewsProductName}
-          />
+          <div>
+            <ProductReviews
+              productId={reviewsProductId}
+              productName={reviewsProductName ?? ""}
+            />
+          </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

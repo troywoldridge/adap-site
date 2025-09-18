@@ -4,8 +4,8 @@ import { cookies, headers } from "next/headers";
 import stripe from "@/lib/stripe"; // centralized client (API version handled there)
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
 import { and, eq, ne } from "drizzle-orm";
 
 // Local asset map for names/images (Cloudflare Images only; no images.json)

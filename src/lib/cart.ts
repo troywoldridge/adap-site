@@ -1,7 +1,7 @@
 // src/lib/cart.ts
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
+import { carts } from "@/lib/db/schema/cart";
 import { eq } from "drizzle-orm";
 import { getOrSetSid } from "@/lib/sid";
 

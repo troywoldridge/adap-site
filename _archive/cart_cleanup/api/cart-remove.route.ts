@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getOrSetSid } from "@/lib/sid";
 import { getOrCreateOpenCartBySid } from "@/lib/cart";
 import { db } from "@/lib/db";
-import { cartLines } from "@/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cart";
 import { and, eq } from "drizzle-orm";
 
 export async function POST(req: Request) {

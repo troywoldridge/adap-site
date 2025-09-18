@@ -1,42 +1,66 @@
 // src/app/api/me/summary/route.ts
+import "server-only";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
-
-import { db } from "@/lib/db";
-import { customers, loyaltyWallets, orders } from "@/db/schema/customer";
+import { getAuth, currentUser } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
+import { db } from "@/lib/db";
+import { customers } from "@/db/schema/customer";     // <- customers table that includes `clerkUserId`
+import { loyaltyWallets } from "@/db/schema/loyalty"; // <- loyalty schema
+import { orders } from "@/db/schema/orders";          // <- orders schema (has `userId`)
+
 export async function GET(req: NextRequest) {
-  // Clerk auth derived from NextRequest (typed correctly)
-  const { userId, sessionClaims } = await getAuth(req);
+  // getAuth is synchronous (do NOT await)
+  const { userId } = getAuth(req);
   if (!userId) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
-  const email = (sessionClaims?.email as string) || null;
-  const displayName = (sessionClaims?.name as string) || null;
+  // Prefer Clerk's user object for reliable email/name
+  const user = await currentUser();
+  const email =
+    user?.primaryEmailAddress?.emailAddress ||
+    user?.emailAddresses?.[0]?.emailAddress ||
+    // fallback so we never pass `undefined` to a NOT NULL email column
+    `${userId}@users.invalid`;
 
-  // Upsert customer + ensure wallet
+  const displayName =
+    user?.fullName ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+    null;
+
+  // Upsert customer by clerkUserId (ensure email is a definite string)
   const [cust] = await db
     .insert(customers)
     .values({
-      clerkUserId: userId,
-      email: email ?? undefined,
-      displayName: displayName ?? undefined,
+      clerkUserId: userId,       // must exist on your customers schema
+      email,                      // never undefined
+      displayName: displayName ?? null,
     })
     .onConflictDoUpdate({
       target: customers.clerkUserId,
-      set: { email: email ?? undefined, displayName: displayName ?? undefined },
+      set: {
+        email,                    // keep as string
+        displayName: displayName ?? null,
+      },
     })
     .returning();
 
-  const [wallet] = await db
-    .select()
-    .from(loyaltyWallets)
-    .where(eq(loyaltyWallets.customerId, cust.id))
-    .limit(1);
+  // Ensure wallet for this customer
+  let wallet =
+    (await db.query.loyaltyWallets.findFirst({
+      where: eq(loyaltyWallets.customerId, cust.id),
+    })) || null;
 
+  if (!wallet) {
+    [wallet] = await db
+      .insert(loyaltyWallets)
+      .values({ customerId: cust.id, pointsBalance: 0 })
+      .returning();
+  }
+
+  // Recent orders — your orders table uses `userId` (not customerId) elsewhere
   const recentOrders = await db
     .select({
       id: orders.id,
@@ -47,7 +71,7 @@ export async function GET(req: NextRequest) {
       placedAt: orders.placedAt,
     })
     .from(orders)
-    .where(eq(orders.customerId, cust.id))
+    .where(eq(orders.userId, userId))
     .orderBy(desc(orders.placedAt))
     .limit(5);
 

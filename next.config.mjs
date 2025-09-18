@@ -4,29 +4,36 @@ import path from "node:path";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-// ------- Inputs -------
-const R2_PUBLIC_BASEURL = process.env.R2_PUBLIC_BASEURL || process.env.R2_PUBLIC_BASE || "";
-const R2_DIRECT_HOST    = process.env.R2_DIRECT_HOST || "";
-const R2_ACCOUNT_ID     = process.env.R2_ACCOUNT_ID || "";
-const R2_BUCKET         = process.env.R2_BUCKET || "";
-const R2_CDN_HOST       = process.env.R2_CDN_HOST || "cdn.adap.com";
+/* ===================== Inputs (support server + client envs) ===================== */
+const R2_PUBLIC_BASEURL =
+  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_R2_PUBLIC_BASEURL ||
+  process.env.R2_PUBLIC_BASE_URL ||
+  process.env.R2_PUBLIC_BASEURL ||
+  "";
+
+const R2_DIRECT_HOST = process.env.R2_DIRECT_HOST || "";
+const R2_ACCOUNT_ID  = process.env.R2_ACCOUNT_ID  || "";
+const R2_BUCKET      = process.env.R2_BUCKET      || "";
+const R2_CDN_HOST    = process.env.R2_CDN_HOST    || "cdn.adap.com"; // hard default
 const USE_NEXT_IMAGE_OPTIMIZER = process.env.USE_NEXT_IMAGE_OPTIMIZER !== "false";
 
-// ------- Compute CDN -------
+/* ===================== Compute CDN target ===================== */
+// Prefer explicit public base (may include a path like /artwork), else fallback to host.
 const PUBLIC_CDN = R2_PUBLIC_BASEURL || `https://${R2_CDN_HOST}`;
 
 let PUBLIC_CDN_ORIGIN = "";
-let PUBLIC_CDN_HOST = "";
+let PUBLIC_CDN_HOST   = "";
 let PUBLIC_CDN_PROTOCOL = "";
-let PUBLIC_CDN_PORT = "";
+let PUBLIC_CDN_PORT   = "";
 
 try {
   const u = new URL(PUBLIC_CDN);
-  PUBLIC_CDN_ORIGIN   = u.origin;
-  PUBLIC_CDN_HOST     = u.hostname;
+  PUBLIC_CDN_ORIGIN   = u.origin;             // e.g. https://cdn.adap.com
+  PUBLIC_CDN_HOST     = u.hostname;           // e.g. cdn.adap.com
   PUBLIC_CDN_PROTOCOL = u.protocol.replace(":", "");
   PUBLIC_CDN_PORT     = u.port || "";
-} catch {}
+} catch { /* noop */ }
 
 // R2 helpers
 const R2_BUCKET_HOST =
@@ -35,16 +42,16 @@ const R2_BUCKET_HOST =
 const R2_DIRECT_HTTPS = R2_DIRECT_HOST ? `https://${R2_DIRECT_HOST}` : "";
 const R2_DIRECT_HTTP  = R2_DIRECT_HOST ? `http://${R2_DIRECT_HOST}` : "";
 
-// helpers
+/* ===================== Helpers ===================== */
 const sanitize = (arr) =>
   Array.from(new Set(arr.filter(Boolean))).filter((s) => !/^https:\/\/\./.test(s));
 
 // Strip non-ASCII + control chars from header values (HTTP/1.1)
 function asciiSafe(s) {
-  return String(s).replace(/[^\x20-\x7E]+/g, ""); // keep visible ASCII only
+  return String(s).replace(/[^\x20-\x7E]+/g, "");
 }
 
-// ------- CSP lists -------
+/* ===================== CSP lists ===================== */
 const scriptSrcList = [
   `'self'`,
   `'unsafe-inline'`,
@@ -81,7 +88,7 @@ const connectSrcList = sanitize([
   `https://r2.cloudflarestorage.com`,
   `https://*.r2.cloudflarestorage.com`,
   R2_BUCKET_HOST ? `https://${R2_BUCKET_HOST}` : "",
-  PUBLIC_CDN_ORIGIN,
+  PUBLIC_CDN_ORIGIN,     // ✅ your CDN origin (e.g., https://cdn.adap.com)
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
   `https://clerk-telemetry.com`,
@@ -95,15 +102,15 @@ const imgSrcList = sanitize([
   `data:`,
   `blob:`,
   `https://imagedelivery.net`, // Cloudflare Images (CDN)
-  `https://img.clerk.com`,      // Clerk provider icons
+  `https://img.clerk.com`,
   `https://api.sinaliteuppy.com`,
   `https://liveapi.sinalite.com`,
   // R2 public reads
   `https://r2.cloudflarestorage.com`,
   `https://*.r2.cloudflarestorage.com`,
   `https://*.r2.dev`,
-  `https://${R2_CDN_HOST}`,
-  PUBLIC_CDN_ORIGIN,
+  `https://${R2_CDN_HOST}`,  // ✅ explicit host fallback
+  PUBLIC_CDN_ORIGIN,        // ✅ derived origin from NEXT_PUBLIC_R2_PUBLIC_BASE_URL (handles /artwork)
   R2_DIRECT_HTTPS,
   R2_DIRECT_HTTP,
   isDev ? `http://localhost:3000` : ``,
@@ -157,7 +164,6 @@ const directives = {
   "manifest-src": `'self'`,
 };
 
-// Build strings
 const ContentSecurityPolicy = Object.entries(directives)
   .map(([k, v]) => `${k} ${v}`)
   .join("; ");
@@ -170,7 +176,6 @@ if (isDev) {
   console.log("CSP (dev) — full string:\n", ContentSecurityPolicy, "\n");
 }
 
-// Build headers array (adds Report-Only + ASCII-safe preview in dev)
 const preview = asciiSafe(
   ContentSecurityPolicy.length > 256
     ? ContentSecurityPolicy.slice(0, 256) + "..."
@@ -188,13 +193,13 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
-// ------- next/image remotePatterns -------
+/* ===================== next/image remotePatterns ===================== */
 const imageRemotePatterns = [
   { protocol: "https", hostname: "imagedelivery.net", pathname: "/**" }, // Cloudflare Images
   { protocol: "https", hostname: "api.sinaliteuppy.com", pathname: "/**" },
   { protocol: "https", hostname: "liveapi.sinalite.com", pathname: "/**" },
   { protocol: "https", hostname: "r2.cloudflarestorage.com", pathname: "/**" },
-   { protocol: "https", hostname: "cdn.adap.com", pathname: "/**" },
+  { protocol: "https", hostname: "cdn.adap.com", pathname: "/**" },      // hard default
 ];
 
 if (PUBLIC_CDN_HOST) {
@@ -246,7 +251,6 @@ const nextConfig = {
       { source: "/order/review", destination: "/cart/review", permanent: true },
     ];
   },
-  
 };
 
 export default nextConfig;

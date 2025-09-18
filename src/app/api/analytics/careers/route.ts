@@ -1,113 +1,122 @@
+// app/api/admin/reviews/route.ts
+import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies, headers } from "next/headers";
-import crypto from "node:crypto";
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { auth, currentUser } from "@clerk/nextjs/server";
+
 import { db } from "@/lib/db";
-import { careerEvents } from "@/db/schema";
+// If your table isn't re-exported by "@/db/schema", import from its concrete file:
+// import { productReviews } from "@/db/schema/productReviews";
+import { productReviews } from "@/db/schema";
 
-// NOTE: Fulfillment/pricing powered by Sinalite (see /mnt/data/sinalite_documentation.txt).
-// Image delivery should use Cloudflare Images URLs (not applicable here, but kept per standards).
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-type CareerEventName = "list_view" | "job_view" | "apply_click";
+const ADMIN_EMAILS = ["troy.woldridge.1@gmail.com"];
 
-type Body =
-  | { event: "list_view" }
-  | {
-      event: "job_view" | "apply_click";
-      jobSlug: string;
-      jobTitle?: string;
-      location?: string;
-      employmentType?: string;
-    }
-  | (Record<string, unknown> & { event: CareerEventName }); // allow future extension
-
-const SID_COOKIE = "sid"; // reuse your existing session cookie name
-
-function getClientIp(xff: string | null): string {
-  // First IP in X-Forwarded-For is the client in most setups
-  if (!xff) return "";
-  return xff.split(",")[0].trim();
+/* helpers */
+function isUuidLike(s: unknown): s is string {
+  return (
+    typeof s === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s)
+  );
 }
-
-function hashIp(ip: string, salt: string): string | null {
-  if (!ip) return null;
-  return crypto.createHash("sha256").update(ip + salt).digest("hex");
+function toNum(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
+async function requireAdmin() {
+  const { userId } = await auth();
+  if (!userId) return { ok: false as const, reason: "unauth" };
 
-function parseUtm(url: string | null) {
-  try {
-    if (!url) return null;
-    const u = new URL(url);
-    const qp = u.searchParams;
-    const utm: Record<string, string> = {};
-    for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]) {
-      const v = qp.get(key);
-      if (v) utm[key] = v;
-    }
-    return Object.keys(utm).length ? utm : null;
-  } catch {
-    return null;
+  const user = await currentUser();
+  const emails = user?.emailAddresses?.map((e) => e.emailAddress) ?? [];
+  if (!emails.some((e) => ADMIN_EMAILS.includes(e))) {
+    return { ok: false as const, reason: "forbid" };
   }
+  return { ok: true as const };
 }
 
+/* GET: list reviews (optionally filter by productId / rating) */
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin();
+  if (!gate.ok) {
+    const status = gate.reason === "unauth" ? 401 : 403;
+    return NextResponse.json({ error: "Unauthorized" }, { status });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const productIdParam = searchParams.get("productId");
+  const ratingParam = searchParams.get("rating");
+
+  const conditions: any[] = [];
+
+  if (productIdParam !== null && productIdParam !== "") {
+    const pid = toNum(productIdParam);
+    if (pid !== null) conditions.push(eq(productReviews.productId, pid));
+  }
+  if (ratingParam !== null && ratingParam !== "") {
+    const r = toNum(ratingParam);
+    if (r !== null) conditions.push(eq(productReviews.rating, r));
+  }
+
+  // Build & execute in one expression so TS doesn't complain about builder reassignments
+  const rows = await (
+    conditions.length
+      ? db
+          .select()
+          .from(productReviews)
+          .where(and(...conditions))
+          .orderBy(desc(productReviews.createdAt))
+      : db
+          .select()
+          .from(productReviews)
+          .orderBy(desc(productReviews.createdAt))
+  );
+
+  return NextResponse.json(rows);
+}
+
+/* POST: bulk delete (and optional approve if you add that column later) */
 export async function POST(req: NextRequest) {
-  try {
-    const data = (await req.json()) as Body;
-
-    if (!data?.event) {
-      return NextResponse.json({ ok: false, error: "Missing event" }, { status: 400 });
-    }
-    const event = String(data.event) as CareerEventName;
-    if (!["list_view", "job_view", "apply_click"].includes(event)) {
-      return NextResponse.json({ ok: false, error: "Unsupported event" }, { status: 400 });
-    }
-
-    // headers + cookies
-    const h = headers();
-    const xff = h.get("x-forwarded-for");
-    const ua = h.get("user-agent") || "";
-    const referer = h.get("referer") || "";
-
-    const jar = cookies();
-    let sid = jar.get(SID_COOKIE)?.value || null;
-    if (!sid) {
-      sid = crypto.randomUUID();
-      // set a long-lived, lax cookie
-      jar.set({
-        name: SID_COOKIE,
-        value: sid,
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-      });
-    }
-
-    const ip = getClientIp(xff);
-    const salt = process.env.ANALYTICS_SALT || "adap-default-salt-change-me";
-    const ipHash = hashIp(ip, salt);
-
-    // optional UTM from referer query
-    const utm = parseUtm(referer);
-
-    // shape insert row
-    const row = {
-      sid,
-      ipHash,
-      userAgent: ua,
-      referer,
-      event,
-      jobSlug: (data as any).jobSlug ?? null,
-      jobTitle: (data as any).jobTitle ?? null,
-      location: (data as any).location ?? null,
-      employmentType: (data as any).employmentType ?? null,
-      utm: utm as any,
-    };
-
-    await db.insert(careerEvents).values(row);
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("analytics.careers error:", err);
-    return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
+  const gate = await requireAdmin();
+  if (!gate.ok) {
+    const status = gate.reason === "unauth" ? 401 : 403;
+    return NextResponse.json({ error: "Unauthorized" }, { status });
   }
+
+  const body = (await req.json().catch(() => ({}))) as {
+    ids?: unknown[];
+    action?: string;
+  };
+
+  if (!Array.isArray(body.ids) || body.ids.length === 0) {
+    return NextResponse.json({ error: "ids must be a non-empty array" }, { status: 400 });
+  }
+
+  // Your product_reviews.id is UUID (string)
+  const idStrs = body.ids.filter(isUuidLike) as string[];
+  if (idStrs.length === 0) {
+    return NextResponse.json({ error: "ids must be valid UUID strings" }, { status: 400 });
+  }
+
+  if (body.action === "delete") {
+    await db.delete(productReviews).where(inArray(productReviews.id, idStrs));
+    return NextResponse.json({ success: true });
+  }
+
+  if (body.action === "approve") {
+    // No `approved` column in your schema today. If you add it:
+    // await db
+    //   .update(productReviews)
+    //   .set({ approved: true })
+    //   .where(inArray(productReviews.id, idStrs));
+    // return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { error: "approve action not supported (no 'approved' column)" },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({ error: "action must be 'delete' or 'approve'" }, { status: 400 });
 }

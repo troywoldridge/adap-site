@@ -1,14 +1,13 @@
 // src/app/api/cart/artwork/route.ts
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
+
 import { db } from "@/lib/db";
-
+import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
-import { cartAttachments } from "@/db/schema/cartAttachments"; // has: id, cartId, lineId, key, url, createdAt
-import { carts } from "@/db/schema/cart"; // for optional validation
-
-import { cfUrl } from "@/lib/data"; // builds Cloudflare Images delivery URL from a storageId/key
+import { cartAttachments } from "@/db/schema/cartAttachments";
+import { cfUrl } from "@/lib/cdn"; // <- make sure this returns a Cloudflare Images URL for a given key/id
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,10 +18,22 @@ function noStore(res: NextResponse) {
   return res;
 }
 
+function safeFileName(input?: string | null, fallbackKey?: string): string {
+  const s = (input ?? "").trim();
+  if (s) return s;
+  // try basename from key (handles "folder/abc.png" or a bare id)
+  const base = (fallbackKey ?? "").split("/").pop() ?? "";
+  return base || "artwork";
+}
+
+function ensureUrlFromKey(key: string): string {
+  // Prefer CDN URL; if cfUrl returns empty, fall back to the key (last resort).
+  return cfUrl(key) ?? key;
+}
+
 /**
  * GET /api/cart/artwork?lineId=... | ?cartId=...
- * Returns attachments normalized for the Review page:
- *  [{ id, storageId, url, fileName? }]
+ * Returns { ok, attachments: [{ id, storageId, url, fileName }] }
  */
 export async function GET(req: NextRequest) {
   try {
@@ -31,31 +42,49 @@ export async function GET(req: NextRequest) {
     const cartId = searchParams.get("cartId") ?? undefined;
 
     if (!lineId && !cartId) {
-      return NextResponse.json(
-        { ok: false, error: "Provide lineId or cartId" },
-        { status: 400 },
-      );
+      return NextResponse.json({ ok: false, error: "Provide lineId or cartId" }, { status: 400 });
     }
 
-    // Build where clause using Drizzle helpers (no strings)
-    const where =
-      lineId && cartId
-        ? and(eq(cartAttachments.lineId, lineId), eq(cartAttachments.cartId, cartId))
-        : lineId
-        ? eq(cartAttachments.lineId, lineId)
-        : eq(cartAttachments.cartId, cartId!);
+    let rows: Array<{
+      id: string;
+      cartId: string | null;
+      lineId: string | null;
+      key: string;
+      url: string;
+      fileName: string;
+      createdAt: Date | null;
+    }> = [];
 
-    const rows = await db
-      .select()
-      .from(cartAttachments)
-      .where(where)
-      .orderBy(desc(cartAttachments.createdAt)); // ✅ Drizzle wants Column/SQL, not a string
+    if (lineId) {
+      rows = await db
+        .select()
+        .from(cartAttachments)
+        .where(eq(cartAttachments.lineId, lineId))
+        .orderBy(desc(cartAttachments.createdAt));
+    } else {
+      // by cartId: gather lineIds then fetch attachments for them
+      const lineRows = await db
+        .select({ id: cartLines.id })
+        .from(cartLines)
+        .where(eq(cartLines.cartId, cartId!));
+
+      const lineIds = lineRows.map((r) => r.id);
+      if (lineIds.length === 0) {
+        return noStore(NextResponse.json({ ok: true, attachments: [] }));
+      }
+
+      rows = await db
+        .select()
+        .from(cartAttachments)
+        .where(inArray(cartAttachments.lineId, lineIds))
+        .orderBy(desc(cartAttachments.createdAt));
+    }
 
     const attachments = rows.map((r) => ({
       id: r.id,
       storageId: r.key,
-      url: r.url || cfUrl(r.key), // prefer stored URL; else synthesize via Cloudflare CDN
-      // fileName isn't in the schema; include if you later add it
+      url: r.url || ensureUrlFromKey(r.key),
+      fileName: r.fileName,
     }));
 
     return noStore(NextResponse.json({ ok: true, attachments }));
@@ -71,8 +100,10 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/cart/artwork
  * body: { lineId: string, storageId: string, fileName?: string }
- * - Resolves cartId from the line
- * - Stores attachment using Cloudflare Images key and URL
+ *
+ * - Validates line + open cart
+ * - Inserts REQUIRED columns for your schema:
+ *   cartId, lineId, productId, fileName, key, url, createdAt, updatedAt
  */
 export async function POST(req: NextRequest) {
   try {
@@ -82,9 +113,8 @@ export async function POST(req: NextRequest) {
       fileName?: string;
     };
 
-    const lineId = body?.lineId;
-    const storageId = body?.storageId;
-
+    const lineId = (body.lineId ?? "").trim();
+    const storageId = (body.storageId ?? "").trim();
     if (!lineId || !storageId) {
       return NextResponse.json(
         { ok: false, error: "lineId and storageId are required" },
@@ -92,45 +122,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Resolve the cartId from the line (and ensure the line exists)
-    const line = await db.query.cartLines.findFirst({
-      where: eq(cartLines.id, lineId),
-    });
-
+    // Resolve line & cart
+    const line = await db.query.cartLines.findFirst({ where: eq(cartLines.id, lineId) });
     if (!line) {
-      return NextResponse.json(
-        { ok: false, error: "Cart line not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ ok: false, error: "Cart line not found" }, { status: 404 });
     }
 
-    // Optional: make sure the cart is still open
     const cart = await db.query.carts.findFirst({
       where: and(eq(carts.id, line.cartId), eq(carts.status, "open")),
     });
     if (!cart) {
-      return NextResponse.json(
-        { ok: false, error: "Cart is not open or not found" },
-        { status: 409 },
-      );
+      return NextResponse.json({ ok: false, error: "Cart is not open or not found" }, { status: 409 });
     }
 
-    const url = cfUrl(storageId); // serve via Cloudflare Images CDN (fast!)
+    // Build required fields
+    const now = new Date();
+    const url = ensureUrlFromKey(storageId);
+    const fileName = safeFileName(body.fileName, storageId);
 
-    const [inserted] = await db
+    // Use strong typing to satisfy Drizzle insert shape
+    const values: typeof cartAttachments.$inferInsert = {
+      cartId: cart.id,
+      lineId: lineId,
+      productId: line.productId,      // <- comes from the cart line
+      fileName,
+      key: storageId,
+      url,                            // <- non-null string
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const [row] = await db
       .insert(cartAttachments)
-      .values({
-        cartId: cart.id,
-        lineId,
-        key: storageId, // store the image key / asset id
-        url,            // store the resolved CDN URL (nice for direct linking)
-      })
+      .values(values)
       .returning({ id: cartAttachments.id });
 
     return noStore(
       NextResponse.json({
         ok: true,
-        attachment: { id: inserted.id, storageId, url, fileName: body.fileName ?? null },
+        attachment: { id: row.id, storageId, url, fileName },
       }),
     );
   } catch (err: any) {

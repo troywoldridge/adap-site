@@ -1,4 +1,5 @@
 // lib/session.ts
+import "server-only";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -42,8 +43,8 @@ export interface OrderSession {
 
   notes?: string | null;
 
-  createdAt?: Date | null;
-  updatedAt?: Date | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 const COOKIE_KEY = "orderSessionId";
@@ -51,9 +52,19 @@ const COOKIE_KEY = "orderSessionId";
 type Row = typeof orderSessions.$inferSelect;
 type Insert = typeof orderSessions.$inferInsert;
 
+/** Normalize Next.js cookies() across versions (sync vs async) without ts-ignore */
+type CookieJar = Awaited<ReturnType<typeof cookies>>;
+async function getJar(): Promise<CookieJar> {
+  const maybe = cookies() as unknown;
+  if (typeof (maybe as any)?.then === "function") {
+    return await (maybe as Promise<CookieJar>);
+  }
+  return maybe as CookieJar;
+}
+
 // DB → App model
 function toModel(row: Row): OrderSession {
-  const r: any = row; // narrow “any” to just this boundary
+  const r: any = row;
   return {
     id: r.id,
     userId: r.userId ?? null,
@@ -94,7 +105,6 @@ function toInsert(initial: Partial<OrderSession>): Insert {
     shippingInfo: i.shippingInfo ?? null,
     billingInfo: i.billingInfo ?? null,
     currency: i.currency ?? "USD",
-    // If your DB columns are NUMERIC, these strings still work with drizzle; if they are TEXT, this is required.
     subtotal: String(i.subtotal ?? 0),
     tax: String(i.tax ?? 0),
     discount: String(i.discount ?? 0),
@@ -105,25 +115,25 @@ function toInsert(initial: Partial<OrderSession>): Insert {
     sinaliteOrderId: null,
     notes: i.notes ?? null,
   };
-  // Only set userId if you actually passed one; avoids “unknown property” in schemas without userId.
   if (i.userId !== undefined) {
     insert.userId = i.userId ?? null;
   }
-
   return insert as Insert;
 }
 
 export async function getOrderSessionIdFromCookie(): Promise<string | null> {
-  return cookies().get(COOKIE_KEY)?.value ?? null;
+  const jar = await getJar();
+  return jar.get(COOKIE_KEY)?.value ?? null;
 }
 
 export async function setOrderSessionCookie(id: string) {
-  cookies().set(COOKIE_KEY, id, {
+  const jar = await getJar();
+  jar.set(COOKIE_KEY, id, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 
@@ -135,9 +145,7 @@ export async function createOrderSession(initial: Partial<OrderSession>): Promis
 
 export async function getOrderSession(): Promise<OrderSession | null> {
   const id = await getOrderSessionIdFromCookie();
-  if (!id) {
-    return null;
-  }
+  if (!id) return null;
 
   const rows = await db
     .select()
@@ -189,9 +197,7 @@ export async function getOrderSessionByStripeSession(
       .from(orderSessions)
       .where(eq(orderSessions.stripePaymentIntentId, paymentIntentId))
       .limit(1);
-    if (a[0]) {
-      return toModel(a[0]);
-    }
+    if (a[0]) return toModel(a[0]);
   }
 
   const b = await db

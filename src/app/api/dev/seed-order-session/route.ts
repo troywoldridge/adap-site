@@ -1,11 +1,13 @@
 // app/api/dev/seed-order-session/route.ts
+import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { db } from "@/lib/db";
-import { orderSessions } from "@/db/schema";
-import { stripe } from "@/lib/stripe";
 import type Stripe from "stripe";
 import { eq } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { orderSessions } from "@/db/schema"; // or "@/db/schema/orderSessions" if that’s where it lives
+import { stripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +16,21 @@ export const revalidate = 0;
 function deny(msg = "Not allowed") {
   return NextResponse.json({ error: msg }, { status: 403 });
 }
+
+type SeedBody = {
+  id?: string;
+  userId?: string;
+  productId?: string;
+  currency?: string; // "USD"|"CAD"|...
+  total?: number; // dollars
+  options?: (number | string)[] | Record<string, unknown>;
+  files?: { type: string; url: string }[];
+  shippingInfo?: Record<string, unknown> | null;
+  billingInfo?: Record<string, unknown> | null;
+  notes?: string | null;
+  createCheckout?: boolean;
+  test?: boolean;
+};
 
 export async function POST(req: NextRequest) {
   if (process.env.NODE_ENV === "production") {
@@ -27,57 +44,46 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = (await req.json().catch(() => ({}))) as Partial<{
-      id: string;
-      userId: string;
-      productId: string;
-      currency: string;
-      total: number; // incoming number
-      options: (number | string)[] | Record<string, any>;
-      files: { type: string; url: string }[];
-      shippingInfo: Record<string, any> | null;
-      billingInfo: Record<string, any> | null;
-      notes: string | null;
-      createCheckout: boolean;
-      test: boolean;
-    }>;
+    const body = (await req.json().catch(() => ({}))) as SeedBody;
 
     const id = body.id || randomUUID();
     const now = new Date();
-
-    // If your DB schema has total as TEXT/VARCHAR, cast to string here.
-    // (If you control the schema, consider making these NUMERIC.)
     const totalNumber = typeof body.total === "number" ? body.total : 20.0;
 
+    // shape kept loose to fit your existing schema
     const row = {
-  id,
-  userId: body.userId || "dev-user",
-  productId: body.productId || "businesscard_14pt_aq",
-  options: body.options ?? [],
-  files: body.files ?? [],
-  shippingInfo: body.shippingInfo ?? null,
-  billingInfo: body.billingInfo ?? ({ BillEmail: "test@example.com" } as any),
-  currency: body.currency || "USD",
-  subtotal: "0",          // ← string
-  tax: "0",               // ← string
-  discount: "0",          // ← string
-  total: String(totalNumber), // ← already string
-  selectedShippingRate: null,
-  stripeCheckoutSessionId: null,
-  stripePaymentIntentId: null,
-  sinaliteOrderId: null,
-  trackingUrl: null,
-  notes: body.notes ?? null,
-  createdAt: now,
-  updatedAt: now,
-};
+      id,
+      userId: body.userId || "dev-user",
+      productId: body.productId || "businesscard_14pt_aq",
+      options: body.options ?? [],
+      files: body.files ?? [],
+      shippingInfo: body.shippingInfo ?? null,
+      billingInfo: body.billingInfo ?? ({ BillEmail: "test@example.com" } as any),
+      currency: body.currency || "USD",
+      subtotal: "0",
+      tax: "0",
+      discount: "0",
+      total: String(totalNumber),
+      selectedShippingRate: null,
+      stripeCheckoutSessionId: null,
+      stripePaymentIntentId: null,
+      sinaliteOrderId: null,
+      trackingUrl: null,
+      notes: body.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-    const existing = await db.query.orderSessions.findFirst({
-      where: (os, { eq }) => eq(os.id, id),
-    });
+    // ✅ No implicit-any: use eq(orderSessions.id, id)
+    const existing =
+      (await db
+        .select()
+        .from(orderSessions)
+        .where(eq(orderSessions.id, id))
+        .limit(1))?.[0] || null;
 
     if (!existing) {
-      await db.insert(orderSessions).values(row); // ✅ matches schema
+      await db.insert(orderSessions).values(row);
     }
 
     const createCheckout =
@@ -93,14 +99,13 @@ export async function POST(req: NextRequest) {
       const toCents = (n: number | string | null | undefined) =>
         Math.round(Number(n || 0) * 100);
 
-      // ✅ Use Stripe create params type (fixes #2 and #4)
       let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
         {
           quantity: 1,
           price_data: {
-            currency: (row.currency || "USD").toLowerCase(),
+            currency: (row.currency || "USD").toLowerCase() as "usd" | "cad",
             product_data: {
-              name: row.productId,
+              name: String(row.productId),
               description: Array.isArray(row.options)
                 ? `Options: ${row.options.join(", ")}`.slice(0, 499)
                 : `Options: ${JSON.stringify(row.options)}`.slice(0, 499),
@@ -153,7 +158,7 @@ export async function POST(req: NextRequest) {
       await db
         .update(orderSessions)
         .set({ stripeCheckoutSessionId: checkout.id })
-        .where(eq(orderSessions.id, row.id)); // ✅ fix #3
+        .where(eq(orderSessions.id, row.id));
 
       return NextResponse.json(
         { id: row.id, checkoutUrl: checkout.url, test },

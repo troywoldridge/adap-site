@@ -2,12 +2,16 @@
 import Stripe from "stripe";
 
 /**
- * Use STRIPE_SECRET_KEY for live/dev. Optionally set STRIPE_API_VERSION
- * (e.g. "2024-06-20"). If not set, Stripe will use your account default.
+ * Server-side Stripe SDK instance.
+ * ⚠️ Use only in Node.js runtimes (Next.js route handlers with runtime="nodejs").
+ *
+ * Env:
+ *   - STRIPE_SECRET_KEY  (required)
+ *   - STRIPE_API_VERSION (optional, e.g. "2024-06-20"; falls back to Stripe account default)
  */
 const key =
   process.env.STRIPE_SECRET_KEY ||
-  process.env.STRIPE_API_KEY; // fallback if you used a different name
+  process.env.STRIPE_API_KEY; // optional fallback
 
 if (!key) {
   throw new Error(
@@ -15,19 +19,21 @@ if (!key) {
   );
 }
 
-// If you provide a version, it must be YYYY-MM-DD. Otherwise leave undefined.
+// If provided, must be YYYY-MM-DD; otherwise leave undefined to use account default.
 const apiVersion = (process.env.STRIPE_API_VERSION ??
   undefined) as Stripe.StripeConfig["apiVersion"];
 
 export const stripe = new Stripe(key, {
-  apiVersion,            // ✅ allowed
-  maxNetworkRetries: 2,  // ✅ allowed
-  timeout: 60_000,       // ✅ allowed
-  appInfo: {             // ✅ allowed (shows in Stripe logs)
+  apiVersion,
+  maxNetworkRetries: 2,
+  timeout: 60_000,
+  appInfo: {
     name: "ADAP",
     version: "1.0.0",
   },
-  // ❌ DO NOT pass "betas" or any unsupported keys here.
 });
 
 export type { Stripe };
+
+// ✅ Compatibility shim: allow both default and named imports
+export default stripe;

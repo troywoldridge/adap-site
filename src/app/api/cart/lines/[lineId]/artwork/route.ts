@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { cartArtwork } from "@/db/schema/cartArtwork";
-import { r2PublicUrl } from "@/lib/r2-public"; // builds https://uploads.adapnow.com/<key>
+import { r2PublicUrl } from "@/lib/r2Public"; // builds https://uploads.adapnow.com/<key>
 
 /** Next 15: cookies() is async-ish; always await. */
 async function getSid(): Promise<string | null> {

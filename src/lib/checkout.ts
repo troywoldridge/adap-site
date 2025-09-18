@@ -3,11 +3,11 @@ import { db } from "@/lib/db";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
-import { cartCredits } from "@/db/schema/cartCredits"; // <- your existing singular file
+import { cartCredits } from "@/db/schema/cartCredits";
 import { orders } from "@/db/schema/orders";
-import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty"; // <- add this
+import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
 
-// Load an open cart by cartId or sid
+// ------------ helpers ------------
 async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | null }) {
   if (ref.cartId) {
     const [row] =
@@ -18,7 +18,7 @@ async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | n
           currency: carts.currency,
           selectedShipping: carts.selectedShipping,
           sid: carts.sid,
-          // If you have carts.userId in your schema, include it (otherwise it's fine)
+          // if your schema has carts.userId, project it; otherwise this stays undefined
           // @ts-ignore
           userId: (carts as any).userId,
         })
@@ -27,6 +27,7 @@ async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | n
         .limit(1)) ?? [];
     if (row) return row;
   }
+
   if (ref.sid) {
     const [row] =
       (await db
@@ -44,10 +45,10 @@ async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | n
         .limit(1)) ?? [];
     if (row) return row;
   }
+
   return null;
 }
 
-// Recompute authoritative totals for a cart (incl. loyalty credits)
 async function computeCartTotalsCents(cartRow: {
   id: string;
   currency: "USD" | "CAD" | string | null;
@@ -70,7 +71,7 @@ async function computeCartTotalsCents(cartRow: {
   }, 0);
 
   const shipCents = Math.round(Number(cartRow?.selectedShipping?.cost ?? 0) * 100) || 0;
-  const taxCents = 0; // add tax calc later
+  const taxCents = 0;
 
   // applied loyalty credits (cents)
   const { getCartCreditsCents } = await import("@/lib/cartCredits");
@@ -82,12 +83,10 @@ async function computeCartTotalsCents(cartRow: {
   return { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency };
 }
 
+// ------------ public API ------------
 /**
  * Create a PAID order for the given cart ref (Stripe success path).
  * Idempotent by providerId (PI id) and by cartId→order guard.
- *
- * NOTE: Shipments/status are synced via your backend against the SinaLite API
- * documentation. This function focuses on local order creation + loyalty earn.
  */
 export async function finalizePaidOrderFromCartRef(ref: {
   piId?: string;
@@ -125,13 +124,12 @@ export async function finalizePaidOrderFromCartRef(ref: {
 
   // 4) Insert order, LOYALTY EARN, close cart, clear credits — all atomic
   const result = await db.transaction(async (tx) => {
-    // Prefer a real userId if your carts table has it; fallback to sid for guest
     const safeUserId: string | null = (cart as any).userId || cart.sid || null;
 
     const [order] = await tx
       .insert(orders)
       .values({
-        userId: safeUserId ?? "", // keep non-null
+        userId: safeUserId ?? "",
         cartId: cart.id,
         status: "placed",
         paymentStatus: "paid",
@@ -142,8 +140,8 @@ export async function finalizePaidOrderFromCartRef(ref: {
         subtotalCents,
         shippingCents: shipCents,
         taxCents,
-        discountCents: creditsCents, // roll-up discount
-        creditsCents,                // explicit loyalty bucket
+        discountCents: creditsCents,
+        creditsCents,
         totalCents,
 
         placedAt: new Date().toISOString(),
@@ -151,13 +149,11 @@ export async function finalizePaidOrderFromCartRef(ref: {
       .returning();
 
     // 🎁 LOYALTY EARN — 100 pts = $1 → 1 pt per $1
-    // Keep this aligned with your redemption ratio & SinaLite flow.
     const EARN_RATE_POINTS_PER_DOLLAR = 1;
     const earnableCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
     const earnPoints = Math.floor(earnableCents / 100) * EARN_RATE_POINTS_PER_DOLLAR;
 
     if (earnPoints > 0 && safeUserId) {
-      // Upsert the wallet by customerId (TEXT)
       await tx
         .insert(loyaltyWallets)
         .values({ customerId: safeUserId, pointsBalance: 0 })
@@ -170,7 +166,6 @@ export async function finalizePaidOrderFromCartRef(ref: {
           .where(eq(loyaltyWallets.customerId, safeUserId))
           .limit(1)) ?? [];
 
-      // Insert the earn transaction
       await tx.insert(loyaltyTransactions).values({
         walletId,
         customerId: safeUserId,
@@ -180,7 +175,6 @@ export async function finalizePaidOrderFromCartRef(ref: {
         note: "Order placed",
       } as any);
 
-      // Increment the wallet
       await tx
         .update(loyaltyWallets)
         .set({
@@ -191,10 +185,8 @@ export async function finalizePaidOrderFromCartRef(ref: {
         .where(eq(loyaltyWallets.id, walletId));
     }
 
-    // Close cart
     await tx.update(carts).set({ status: "closed" }).where(eq(carts.id, cart.id));
 
-    // Clear any per-cart credits rows (if table exists in your app)
     try {
       await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
     } catch {
@@ -204,5 +196,110 @@ export async function finalizePaidOrderFromCartRef(ref: {
     return { orderId: order.id, earned: earnPoints || 0 };
   });
 
-  return result; // { orderId, earned }
+  return result; // { orderId, earned, already? }
+}
+
+/**
+ * Finalize a $0 cart by SID (no Stripe). Idempotent by cartId→order.
+ */
+export async function finalizeFreeOrderBySid(sid: string) {
+  if (!sid) return null;
+
+  // 1) Resolve open cart by SID
+  const cart = await loadOpenCartByRef({ sid });
+  if (!cart) return null;
+
+  // 2) Compute totals
+  const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
+    await computeCartTotalsCents(cart);
+
+  if (totalCents > 0) {
+    throw new Error("Cart total is not zero. Use paid checkout.");
+  }
+
+  // 3) If an order already exists for this cart, return it
+  const existing = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .where(eq(orders.cartId, cart.id))
+    .limit(1);
+  if (existing.length) {
+    return { orderId: existing[0].id, already: true };
+  }
+
+  // 4) Create order + loyalty earn + close cart + clear credits (atomic)
+  const result = await db.transaction(async (tx) => {
+    const safeUserId: string | null = (cart as any).userId || cart.sid || null;
+
+    const [order] = await tx
+      .insert(orders)
+      .values({
+        userId: safeUserId ?? "",
+        cartId: cart.id,
+        status: "placed",
+        paymentStatus: "paid",
+        provider: "free",
+        providerId: null,
+
+        currency: ordersCurrency,
+        subtotalCents,
+        shippingCents: shipCents,
+        taxCents,
+        discountCents: creditsCents,
+        creditsCents,
+        totalCents,
+
+        placedAt: new Date().toISOString(),
+      } as any)
+      .returning();
+
+    // Loyalty earn mirrors paid flow
+    const EARN_RATE_POINTS_PER_DOLLAR = 1;
+    const earnableCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
+    const earnPoints = Math.floor(earnableCents / 100) * EARN_RATE_POINTS_PER_DOLLAR;
+
+    if (earnPoints > 0 && safeUserId) {
+      await tx
+        .insert(loyaltyWallets)
+        .values({ customerId: safeUserId, pointsBalance: 0 })
+        .onConflictDoNothing({ target: loyaltyWallets.customerId });
+
+      const [{ id: walletId }] =
+        (await tx
+          .select({ id: loyaltyWallets.id })
+          .from(loyaltyWallets)
+          .where(eq(loyaltyWallets.customerId, safeUserId))
+          .limit(1)) ?? [];
+
+      await tx.insert(loyaltyTransactions).values({
+        walletId,
+        customerId: safeUserId,
+        type: "earn",
+        pointsDelta: earnPoints,
+        orderId: String(order.id),
+        note: "Order placed (free)",
+      } as any);
+
+      await tx
+        .update(loyaltyWallets)
+        .set({
+          pointsBalance: sql`${loyaltyWallets.pointsBalance} + ${earnPoints}`,
+          lifetimeEarned: sql`${loyaltyWallets.lifetimeEarned} + ${earnPoints}`,
+          updatedAt: new Date(),
+        } as any)
+        .where(eq(loyaltyWallets.id, walletId));
+    }
+
+    await tx.update(carts).set({ status: "closed" }).where(eq(carts.id, cart.id));
+
+    try {
+      await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
+    } catch {
+      // ignore if you don’t maintain a cartCredits table
+    }
+
+    return { orderId: order.id, earned: earnPoints || 0 };
+  });
+
+  return result; // { orderId, earned, already? }
 }

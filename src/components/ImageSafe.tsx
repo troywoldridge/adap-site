@@ -1,38 +1,33 @@
+// src/components/ImageSafe.tsx
 "use client";
 
-import NextImage, { type ImageProps as NextImageProps } from "next/image";
+import NextImage, { type ImageProps } from "next/image";
+import { getR2PublicHost } from "@/lib/r2Public";
 
-type ImageProps = NextImageProps & { src: NextImageProps["src"] };
+// Build a dynamic bypass list for already-optimized CDNs
+const byPassHosts = new Set<string>(
+  ["imagedelivery.net", getR2PublicHost() || ""].filter(Boolean),
+);
 
-const CDN_HOSTS = new Set(["cdn.adap.com"]);
+type Props = ImageProps & { src: ImageProps["src"] };
 
-function getHostname(src: string | URL) {
+function hostnameOf(src: string | URL) {
   try {
     const u = new URL(typeof src === "string" ? src : String(src));
     return u.hostname.toLowerCase();
   } catch {
-    return ""; // relative paths ok
+    return "";
   }
 }
 
-export type { ImageProps as NextImageProps } from "next/image";
-
-export default function ImageSafe(props: ImageProps) {
-  const { src, unoptimized, ...rest } = props as ImageProps & { src: any };
-  const host = typeof src === "string" ? getHostname(src) : "";
-
-  // If it's our R2 Cloudflare CDN host, bypass Next optimizer
-  const isCdn = host && CDN_HOSTS.has(host);
-  const finalUnoptimized = isCdn ? true : unoptimized;
-
-  if (process.env.NODE_ENV !== "production" && isCdn) {
-    console.warn(
-      `[ImageSafe] next/image received CDN host '${host}'. ` +
-      `Auto-setting unoptimized to avoid server-side fetch/ENOTFOUND.`
-    );
-  }
-
-  
+/** Safe wrapper that bypasses Next optimizer for Cloudflare Images + your R2 CDN */
+export default function ImageSafe({ src, unoptimized, ...rest }: Props) {
+  const host = typeof src === "string" ? hostnameOf(src) : "";
+  const finalUnoptimized = host && byPassHosts.has(host) ? true : unoptimized;
 
   return <NextImage src={src} unoptimized={finalUnoptimized} {...(rest as any)} />;
 }
+
+// Optional: re-export an alias to keep older imports happy
+export type NextImageProps = ImageProps;
+export type { ImageProps as DefaultImageProps } from "next/image";

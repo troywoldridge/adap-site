@@ -10,7 +10,6 @@ import {
   index,
   customType,
 } from "drizzle-orm/pg-core";
-import { customerAddresses } from "@/db/schema/customerAddresses";
 
 /** enums */
 export const orderStatus = pgEnum("order_status", [
@@ -60,6 +59,20 @@ export const customers = pgTable(
     byEmail: index("idx_customers_email").on(t.email),
   })
 );
+
+export const customerAddresses = pgTable("customer_addresses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerId: uuid("customer_id").notNull(),
+  name: text("name").notNull(),          // or whatever your columns are
+  line1: text("line1").notNull(),
+  line2: text("line2"),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  postalCode: text("postal_code").notNull(),
+  country: text("country").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 /** orders */
 export const orders = pgTable(
@@ -157,3 +170,4 @@ export const loyaltyTransactions = pgTable(
     byWallet: index("idx_loyalty_wallet").on(t.walletId, t.createdAt),
   })
 );
+

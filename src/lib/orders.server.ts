@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
 
 // Use your barrel re-exports (adjust if your paths differ)
-import { carts, cartLines, orders, orderItems } from "@/db/schema";
+import { carts, cartLines, orders, orderItems } from "@/lib/db/schema";
 
 const STRIPE_KEY =
   process.env.STRIPE_SECRET_KEY ??

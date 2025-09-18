@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "@/components/ImageSafe";
 
 import { db } from "@/lib/db";
-import { cartArtwork } from "@/db/schema"; // barrel re-export
+import { cartArtwork } from "@/lib/db/schema"; // barrel re-export
 import { artworkThumbUrl, isPdfMime, safeText } from "@/lib/cdn";
 import { getProductDetails } from "@/lib/sinalite.client";
 import { getOrderSession } from "@/lib/session"; // returns { id, productId, totals, shipping, ... }

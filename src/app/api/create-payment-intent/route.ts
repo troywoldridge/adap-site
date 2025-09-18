@@ -1,8 +1,9 @@
+// src/app/api/create-payment-intent/route.ts
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, ne } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server"; // 👈 add this
+import { auth } from "@clerk/nextjs/server";
 
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
@@ -17,8 +18,10 @@ export const revalidate = 0;
 export async function POST(_req: NextRequest) {
   try {
     const jar = await cookies();
-    const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
-    if (!sid) return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
+    const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
+    if (!sid) {
+      return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
+    }
 
     const [cart] =
       (await db
@@ -31,7 +34,10 @@ export async function POST(_req: NextRequest) {
         .from(carts)
         .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
         .limit(1)) ?? [];
-    if (!cart) return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
+
+    if (!cart) {
+      return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
+    }
 
     const rows = await db
       .select({
@@ -55,10 +61,24 @@ export async function POST(_req: NextRequest) {
     const totalCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
     const currency = (cart.currency === "CAD" ? "cad" : "usd") as "usd" | "cad";
 
-    // ✅ FREE PATH
+    // ✅ FREE CHECKOUT PATH
     if (totalCents <= 0) {
-      const { userId } = await auth(); // 👈 pass through for orders.userId
-      const result = await finalizeFreeOrderBySid({ sid, userId });
+      // optional: associate Clerk userId with the cart before finalizing (if your schema has carts.userId)
+      const { userId } = await auth();
+      if (userId) {
+        try {
+          // Best-effort; safe to ignore if your carts table doesn't have userId
+          await db.update(carts as any).set({ userId }).where(eq(carts.id, cart.id));
+        } catch {
+          // ignore if column doesn't exist
+        }
+      }
+
+      const result = await finalizeFreeOrderBySid(sid); // <- pass just the SID (string)
+      if (!result) {
+        return NextResponse.json({ ok: false, error: "finalize_failed" }, { status: 500 });
+      }
+
       return NextResponse.json({
         ok: true,
         free: true,
@@ -68,7 +88,7 @@ export async function POST(_req: NextRequest) {
       });
     }
 
-    // Stripe PI path
+    // 🔔 Stripe PaymentIntent path
     const intent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency,

@@ -1,8 +1,10 @@
 // src/app/api/cart/lines/reprice/route.ts
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { cartLines, carts } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { carts } from "@/db/schema/cart";
+import { cartLines } from "@/db/schema/cartLines";
 import { priceSinaliteProduct } from "@/lib/sinalite.pricing";
 
 export const runtime = "nodejs";
@@ -21,7 +23,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: false, error: "cart not found" }, { status: 404 });
     }
 
-    const lines = await db.query.cartLines.findMany({ where: eq(cartLines.cartId, cartId) });
+    const lines = await db.query.cartLines.findMany({
+      where: eq(cartLines.cartId, cartId),
+    });
+
     const store = cart.currency === "CAD" ? "CA" : "US";
 
     for (const l of lines) {
@@ -33,7 +38,7 @@ export async function POST(req: NextRequest) {
         store,
       });
 
-      // SinaLite /price returns TOTAL for the selected combo (Quantity is part of options).
+      // SinaLite /price is the full line total (quantity is part of optionIds)
       const total =
         Number((priced as any)?.lineTotal) ||
         Number((priced as any)?.total) ||
@@ -45,15 +50,12 @@ export async function POST(req: NextRequest) {
       const unitPriceCents =
         lineTotalCents > 0 ? Math.round(lineTotalCents / Math.max(1, qty)) : 0;
 
-      // Only set columns that exist on cartLines in your schema
       await db
         .update(cartLines)
         .set({
           unitPriceCents,
-          lineTotalCents, // already the full total from SinaLite — do not multiply by qty again
-          // NOTE: intentionally NOT setting optionsByGroup because this column doesn't exist here
-          // If you have a JSONB meta column, we keep it below:
-          pricingMeta: (priced as any)?.pricingMeta ?? undefined,
+          lineTotalCents,     // do not multiply by qty again
+          updatedAt: new Date(),
         })
         .where(eq(cartLines.id, l.id));
     }

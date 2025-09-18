@@ -1,7 +1,7 @@
 // src/lib/customer.ts
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/db";
-import { customers, loyaltyWallets } from "@/db/schema/customer";
+import { db } from "@/lib/db";
+import { customers, loyaltyWallets } from "@/lib/db/schema/customer";
 import { eq } from "drizzle-orm";
 
 export async function ensureCustomer() {

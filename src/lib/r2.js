@@ -1,3 +1,7 @@
+// src/lib/r2.js
+// Cloudflare R2 S3-compatible client (server-only). Used for uploads and server tasks.
+// Public delivery to users should go through r2PublicUrl (CDN), not presigned S3 links.
+
 import { S3Client } from "@aws-sdk/client-s3";
 
 if (!process.env.R2_ACCOUNT_ID) throw new Error("R2_ACCOUNT_ID missing");

@@ -1,7 +1,7 @@
 // src/app/api/cart/update/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { cartLines } from "@/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cart";
 import { eq } from "drizzle-orm";
 import { priceByOptionIds, resolveStoreCode } from "@/lib/sinalite.server";
 

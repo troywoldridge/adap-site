@@ -1,31 +1,44 @@
 // src/lib/cfImages.ts
-export const CF_HASH = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH ?? "";
+// Cloudflare Images helpers (served by Cloudflare CDN).
+// Supports multiple env var names so legacy builds still work.
 
-// Toggle runtime variant warnings (on by default).
-// Set NEXT_PUBLIC_CF_VARIANT_WARN="false" to silence in dev.
+// src/lib/cfImages.ts (top of file)
+function readFirst(keys: string[]): string {
+  for (const k of keys) {
+    const v = (process.env as Record<string, string | undefined>)[k];
+    if (v && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+export const CF_HASH = readFirst([
+  "NEXT_PUBLIC_CF_ACCOUNT_HASH",          // preferred
+  "NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH",   // legacy alt
+  "NEXT_PUBLIC_CLOUDFLARE_IMAGES_ACCOUNT_HASH",
+  "NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_HASH",
+  "CF_IMAGES_ACCOUNT_HASH",
+]);
+
+
 const WARN_VARIANTS =
   (process.env.NEXT_PUBLIC_CF_VARIANT_WARN ?? "true").toLowerCase() !== "false";
 
-// Keep in sync with your Cloudflare Images dashboard variants
 export type Variant =
   | "hero"
-  | "hero2x"            // e.g. width ~2560, q=85
+  | "hero2x"
   | "saleCard"
   | "category"
   | "categoryThumb"
   | "subcategoryThumb"
   | "productHero"
   | "productThumb"
-  | "productCard"       // alias -> productThumb
+  | "productCard" // alias → productThumb
   | "public";
 
-/** Alias map: normalize outgoing variant names to real CF variants */
 const OUT_VARIANT_MAP: Partial<Record<Variant, Variant>> = {
-  // Your real variant is productThumb; map old/productCard calls to it:
   productCard: "productThumb",
 };
 
-/** Registry used for runtime checks */
 const VALID_VARIANTS: ReadonlySet<Variant> = new Set<Variant>([
   "hero",
   "hero2x",
@@ -35,11 +48,10 @@ const VALID_VARIANTS: ReadonlySet<Variant> = new Set<Variant>([
   "subcategoryThumb",
   "productHero",
   "productThumb",
-  "productCard", // allowed as an input (gets normalized)
+  "productCard",
   "public",
 ]);
 
-/** Simple warn-once cache */
 const warned = new Set<string>();
 function warnOnce(key: string, message: string) {
   if (!WARN_VARIANTS) return;
@@ -50,7 +62,6 @@ function warnOnce(key: string, message: string) {
   console.warn(message);
 }
 
-/** True if string is an imagedelivery.net URL */
 function isCFUrl(s: string) {
   try {
     const u = new URL(s);
@@ -59,8 +70,6 @@ function isCFUrl(s: string) {
     return false;
   }
 }
-
-/** Extract the last path segment (Cloudflare variant) from a CF URL, if any */
 function extractVariantFromCfUrl(url: string): string | null {
   try {
     const u = new URL(url);
@@ -70,58 +79,35 @@ function extractVariantFromCfUrl(url: string): string | null {
     return null;
   }
 }
-
-/** Assert our outgoing target variant exists; warn in dev if not */
 function assertVariant(variant: string) {
   if (!VALID_VARIANTS.has(variant as Variant)) {
     warnOnce(
       `cf-variant:${variant}`,
-      `[cfImages] Variant "${variant}" isn't in VALID_VARIANTS. ` +
-        `Add it to your Cloudflare Images dashboard & the Variant union to avoid 404s.`
+      `[cfImages] Variant "${variant}" is not in VALID_VARIANTS; add it in CF Images & update the union here.`,
     );
   }
 }
-
-/** If caller passes a full CF URL with an unknown variant, warn (non-blocking) */
 function maybeWarnIncomingVariant(url: string) {
   const v = extractVariantFromCfUrl(url);
   if (v && !VALID_VARIANTS.has(v as Variant)) {
     warnOnce(
       `incoming-cf-variant:${v}`,
-      `[cfImages] Incoming Cloudflare URL uses unknown variant "${v}". ` +
-        `We will still swap to your requested variant, but you may want to align dashboards & code.`
+      `[cfImages] Incoming CF URL used unknown variant "${v}". We'll still swap to your requested variant.`,
     );
   }
-}
-
-/** Build Cloudflare Images URL from ID or full imagedelivery URL. */
-export function cfFirst(
-  idOrUrl: string | null | undefined,
-  variants: Variant[] = ["public"],
-  params?: Record<string, string | number>
-): string {
-  if (!idOrUrl) return "";
-  for (const v of variants) {
-    const url = cfImage(idOrUrl, v, params);
-    if (url) return url;
-  }
-  return "";
 }
 
 export function cfImage(
   idOrUrl: string,
   variant: Variant = "public",
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
 ): string {
   if (!idOrUrl) return "";
 
-  // Normalize to a real CF variant (alias support)
   const outVariant = (OUT_VARIANT_MAP[variant] ?? variant) as Variant;
-
-  // Warn if outgoing variant isn't declared
   assertVariant(outVariant);
 
-  // Case 1: already a full Cloudflare URL -> swap last segment to our output variant
+  // Full CF URL → swap variant
   if (idOrUrl.startsWith("http") && isCFUrl(idOrUrl)) {
     maybeWarnIncomingVariant(idOrUrl);
     const u = new URL(idOrUrl);
@@ -130,7 +116,7 @@ export function cfImage(
     return u.toString();
   }
 
-  // Case 2: other remote URL (S3/R2/whatever) -> passthrough (add params if any)
+  // Other absolute URL → pass-through
   if (idOrUrl.startsWith("http")) {
     if (!params) return idOrUrl;
     const pass = new URL(idOrUrl);
@@ -138,11 +124,11 @@ export function cfImage(
     return pass.toString();
   }
 
-  // Case 3: treat as Cloudflare image ID
+  // CF image ID → build
   if (!CF_HASH) {
     warnOnce(
       "cf-hash-missing",
-      "[cfImages] NEXT_PUBLIC_CF_ACCOUNT_HASH is missing; cannot build Cloudflare URL from ID."
+      "[cfImages] Missing Cloudflare account hash. Set NEXT_PUBLIC_CF_ACCOUNT_HASH (or a compatible alias).",
     );
     return "";
   }
@@ -153,21 +139,30 @@ export function cfImage(
   return `${base}?${q.toString()}`;
 }
 
-/* ----------------------------- Loader presets ----------------------------- */
+export function cfFirst(
+  idOrUrl: string | null | undefined,
+  variants: Variant[] = ["public"],
+  params?: Record<string, string | number>,
+): string {
+  if (!idOrUrl) return "";
+  for (const v of variants) {
+    const u = cfImage(idOrUrl, v, params);
+    if (u) return u;
+  }
+  return "";
+}
+
+/* ----------------------------- Next.js loaders ----------------------------- */
 
 type LoaderPreset = "default" | "categoryCard" | "subcategoryCard" | "productCard";
 
-/**
- * Threshold tables: [maxWidthInclusive, variant]
- * Ensure these variants exist in your Cloudflare Images dashboard.
- */
 const TABLES: Record<LoaderPreset, Array<[number, Variant]>> = {
   default: [
     [360, "productThumb"],
     [640, "saleCard"],
     [900, "category"],
-    [1400, "hero"],     // desktop
-    [99999, "hero2x"],  // very large / retina
+    [1400, "hero"],
+    [99999, "hero2x"],
   ],
   categoryCard: [
     [240, "categoryThumb"],
@@ -189,15 +184,8 @@ const TABLES: Record<LoaderPreset, Array<[number, Variant]>> = {
   ],
 };
 
-/**
- * Create a Next.js <Image> loader that:
- * - Accepts either CF image IDs or full URLs in `src`
- * - Maps the requested width to your Cloudflare variant
- * - Falls back to the original URL unchanged if `src` is already a full URL
- */
 export function makeCloudflareLoader(preset: LoaderPreset = "default") {
   const table = TABLES[preset];
-
   return function cloudflareLoader({
     src,
     width,
@@ -206,22 +194,13 @@ export function makeCloudflareLoader(preset: LoaderPreset = "default") {
     width: number;
     quality?: number;
   }) {
-    if (!src) return ""; // Nothing to load
-
-    // If src is already a full URL, just return it untouched
-    if (src.startsWith("http")) return src;
-
-    // Map width -> variant
+    if (!src) return "";
+    if (src.startsWith("http")) return src; // absolute (e.g., R2) – pass-through
     const row = table.find(([max]) => width <= max) ?? table[table.length - 1];
     const variant = row[1];
-
-    // Build Cloudflare URL from image ID (cfImage also asserts variant at runtime)
     const url = cfImage(src, variant);
-
-    // If CF hash was missing or we somehow made an empty URL, better to return src
     return url || src;
   };
 }
 
-/** Site-wide default loader if you don't need a specific preset */
 export const cloudflareImagesLoader = makeCloudflareLoader("default");
