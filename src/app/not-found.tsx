@@ -4,7 +4,13 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Page Not Found • ADAP",
   description: "We couldn’t find that page.",
-  // ❌ remove themeColor from here
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+  ],
 };
 
 export default function NotFound() {

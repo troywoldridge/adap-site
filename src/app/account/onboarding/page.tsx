@@ -1,18 +1,26 @@
-"use client";
-import { SignUp } from "@clerk/nextjs";
+// src/app/account/onboarding/page.tsx
+import { Suspense } from "react";
+import OnboardingClient from "./OnboardingClient";
+import type { Metadata, Viewport } from "next";
 
-export default function SignUpPage() {
+export const metadata: Metadata = {
+  title: "Account Onboarding • ADAP",
+  description: "Finish setting up your account to unlock faster checkout.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+  ],
+};
+
+export const dynamic = "force-dynamic";
+
+export default function OnboardingPage() {
   return (
-    <div style={{ display: "grid", placeItems: "center", minHeight: "70vh", padding: 24 }}>
-      <SignUp
-        routing="path"
-        path="/sign-up"
-        signInUrl="/sign-in"
-        afterSignUpUrl="/account/onboarding"
-        afterSignInUrl="/account/onboarding"
-        fallbackRedirectUrl="/account/onboarding"
-        appearance={{ variables: { colorPrimary: "#c62828" } }}
-      />
-    </div>
+    <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading…</div>}>
+      <OnboardingClient />
+    </Suspense>
   );
 }
