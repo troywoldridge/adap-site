@@ -16,7 +16,6 @@ type LocalCategory = {
 };
 
 export default function HomePage() {
-  // Local categories (mapped to your SinaLite catalog per your data layer)
   const categories = getLocalCategories() as LocalCategory[];
 
   const featuredSlugs = ["business-cards", "large-format", "print-products"];
@@ -26,7 +25,7 @@ export default function HomePage() {
     .map((c) => ({
       slug: c.slug,
       name: c.name,
-      imageUrl: c.image ?? "", // ✅ matches FeaturedCategoryCard (Cloudflare CDN URLs)
+      imageUrl: c.image ?? "", // ✅ matches FeaturedCategoryCard; delivered via Cloudflare CDN
       href: `/categories/${c.slug}`,
       description: c.description ?? undefined,
     }));
@@ -60,39 +59,17 @@ export default function HomePage() {
 
   return (
     <main>
-      {/* Floating “sign up & save” card for signed-out users */}
-      <Suspense fallback={<div className="sr-only">Loading promo…</div>}>
+      {/* Wrap anything that could call useSearchParams() in Suspense.
+         This satisfies Next’s CSR-bailout rule for /page. */}
+      <Suspense fallback={null}>
         <SignupPromoCard />
       </Suspense>
 
-      {/* Hero */}
-      <Suspense
-        fallback={
-          <div
-            className="mx-auto max-w-7xl px-4 py-10"
-            aria-label="Loading hero"
-          >
-            <div className="h-[280px] rounded-2xl bg-gray-100 animate-pulse" />
-          </div>
-        }
-      >
+      <Suspense fallback={<div className="h-20" />}>
         <Hero />
       </Suspense>
 
-      {/* Sales Cards */}
-      <Suspense
-        fallback={
-          <div className="mx-auto max-w-7xl px-4 pt-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-40 rounded-xl bg-gray-100 animate-pulse" />
-              ))}
-            </div>
-          </div>
-        }
-      >
-        <SalesCards items={promos} />
-      </Suspense>
+      <SalesCards items={promos} />
 
       {/* Featured Category Cards */}
       <section className="pt-10">
@@ -100,18 +77,7 @@ export default function HomePage() {
           <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
             Shop by Category
           </h2>
-
-          <Suspense
-            fallback={
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-56 rounded-xl bg-gray-100 animate-pulse" />
-                ))}
-              </div>
-            }
-          >
-            <FeaturedCategories categories={featured} limit={3} />
-          </Suspense>
+          <FeaturedCategories categories={featured} limit={3} />
         </div>
       </section>
 
@@ -186,7 +152,7 @@ export default function HomePage() {
           <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
             Our promise to you:
           </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
             <div className="flex items-center">
               <span aria-hidden className="text-green-700 mr-2">✔</span>
               <p>On time delivery anywhere in USA</p>

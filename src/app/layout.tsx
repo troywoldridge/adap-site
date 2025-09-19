@@ -8,15 +8,13 @@ import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cfUrl } from "@/lib/data";
 import RouteProgress from "@/components/RouteProgress";
+import { Suspense } from "react";
 
-// const NAV_ITEMS if you enable client nav later
-// import Navigation, { type NavItem } from "@/client/components/navigation";
+// Move themeColor to the viewport export (Next.js 15+)
 export const viewport: Viewport = {
-  // one color OR light/dark variants:
-  // themeColor: "#0047ab",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
   ],
 };
 
@@ -56,7 +54,6 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      // ✅ use hyphenated keys (and quote them)
       "max-video-preview": -1,
       "max-image-preview": "large",
       "max-snippet": -1,
@@ -82,11 +79,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#0047ab" }],
   },
-  // 🔧 removed the duplicate `manifest` here
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
-  ],
+  // 🔕 Removed themeColor here (kept in `export const viewport` to silence warnings)
   // ✅ Helpful keywords (kept concise)
   keywords: [
     "trade printing",
@@ -274,12 +267,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Keep your subtle premium background; all images via Cloudflare CDN */}
         <body className="min-h-screen bg-amber-50 text-slate-900 antialiased [background:radial-gradient(1200px_600px_at_120%_-10%,rgba(0,71,171,.25),transparent),radial-gradient(1200px_600px_at_-10%_110%,rgba(0,71,171,.18),transparent)]">
-          <RouteProgress />
-          <NotificationBar />
-          <Header />
-          {/* <Navigation items={NAV_ITEMS} /> */}
-          <SupportBanner />
-          <main>{children}</main>
+          <Suspense fallback={null}>
+            <RouteProgress />
+          </Suspense>
+
+          <Suspense fallback={null}>
+            <NotificationBar />
+          </Suspense>
+
+          <Suspense fallback={null}>
+            <Header />
+          </Suspense>
+
+          <Suspense fallback={null}>
+            <SupportBanner />
+          </Suspense>
+
+          {/* Wrap children in Suspense to avoid CSR bailout warnings from pages using useSearchParams */}
+          <main>
+            <Suspense fallback={null}>{children}</Suspense>
+          </main>
+
           <Footer />
         </body>
       </html>
