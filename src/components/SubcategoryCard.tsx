@@ -1,33 +1,46 @@
 "use client";
+
 import Link from "next/link";
 import Image from "@/components/ImageSafe";
 import { useInView } from "react-intersection-observer";
-import type { SubcategoryAsset } from "@/lib/mergeUtils"; // or from "@/types/subcategory" if centralized
+import type { SubcategoryAsset } from "@/lib/mergeUtils"; // name may be string | null
 
 interface Props {
   subcategory: SubcategoryAsset;
 }
 
+const CF = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH || "pJ0fKvjCAbyoF8aD0BGu8Q"; // Cloudflare Images account hash
+
 export default function SubcategoryCard({ subcategory }: Props) {
   const { ref, inView } = useInView({ threshold: 0.13, triggerOnce: true });
+
+  // Defensive coercions (TS + runtime safety)
+  const nameStr = (subcategory.name ?? "").toString().trim();
+  const ariaLabel: string | undefined = nameStr || undefined; // li aria-label cannot be null
+  const titleText = nameStr ? `View all products in ${nameStr}` : "View products";
+
+  const idStr =
+    subcategory.id != null ? String(subcategory.id) : ""; // avoid "null" in URL
+  const href = idStr ? `/subcategories/${encodeURIComponent(idStr)}` : "#";
+
+  const cfId = subcategory.cloudflare_image_id ?? "";
+  const imgUrl = cfId
+    ? `https://imagedelivery.net/${CF}/${cfId}/public`
+    : "";
 
   return (
     <li
       ref={ref}
       className={`subcategory-card fade-in${inView ? " is-visible" : ""}`}
       tabIndex={0}
-      aria-label={subcategory.name}
+      aria-label={ariaLabel}
     >
-      <Link
-        href={`/subcategories/${subcategory.id}`}
-        className="block focus:outline-none"
-        title={`View all products in ${subcategory.name}`}
-      >
+      <Link href={href} className="block focus:outline-none" title={titleText}>
         <div className="subcategory-card__image-wrap">
-          {subcategory.cloudflare_image_id && (
+          {imgUrl && (
             <Image
-              src={`https://imagedelivery.net/<YOUR_CLOUDFLARE_HASH>/${subcategory.cloudflare_image_id}/public`}
-              alt={subcategory.name}
+              src={imgUrl}
+              alt={nameStr || "Subcategory image"}
               fill
               className="subcategory-card__image"
               unoptimized
@@ -36,13 +49,16 @@ export default function SubcategoryCard({ subcategory }: Props) {
             />
           )}
         </div>
-        <div className="subcategory-card__title">{subcategory.name}</div>
+
+        <div className="subcategory-card__title">
+          {nameStr || "Untitled subcategory"}
+        </div>
+
         {subcategory.description && (
           <div className="subcategory-card__desc">{subcategory.description}</div>
         )}
-        <span className="subcategory-card__btn">
-          Browse &rarr;
-        </span>
+
+        <span className="subcategory-card__btn">Browse &rarr;</span>
       </Link>
     </li>
   );

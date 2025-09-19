@@ -10,6 +10,7 @@ import { enc } from "@/lib/pii";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function PUT(req: Request) {
   const { userId } = await auth();
@@ -23,7 +24,6 @@ export async function PUT(req: Request) {
     marketingOptIn?: boolean;
   };
 
-  // Build an update object that matches the table’s insert type
   const update: Partial<typeof customers.$inferInsert> & Record<string, unknown> = {};
 
   if (typeof body.displayName === "string" && body.displayName.trim()) {
@@ -35,11 +35,17 @@ export async function PUT(req: Request) {
   if (typeof body.phone === "string") {
     const phone = body.phone.trim();
     if (phone) {
-      // enc() returns a Drizzle SQL chunk (or Buffer) — allow it
-      update.phoneEnc = enc(phone) as any;
+      try {
+        update.phoneEnc = enc(phone) as any; // bytea-friendly Buffer
+      } catch (e: any) {
+        // Missing/invalid key → return a clear 500 instead of crashing build
+        return NextResponse.json(
+          { ok: false, error: "pii_misconfigured", detail: e?.message ?? "PII_KEY invalid" },
+          { status: 500 }
+        );
+      }
     } else {
-      // Optional: clear the phone if client sends empty string
-      // If your column is nullable, set to null; otherwise omit.
+      // clear if you want (phoneEnc is nullable in your schema)
       update.phoneEnc = null as any;
     }
   }

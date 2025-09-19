@@ -1,40 +1,64 @@
-import rawAssets from "@/data/categoryAssets.json";
+// src/lib/customer.ts
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { customers } from "@/db/schema/customer"; // <- matches your path
+import { eq } from "drizzle-orm";
 
-type CategoryAsset = {
-  imageId?: string;
-  variant?: string;
-  imageUrl?: string;
-  description?: string;
-};
+/**
+ * Ensure there's a customers row for the current Clerk user.
+ * - Requires a non-null email per your table.
+ * - Upserts by unique clerkUserId.
+ */
+export async function ensureCustomer() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Not authenticated");
 
-const assets = rawAssets as Record<string, CategoryAsset>;
+  const user = await currentUser();
 
-/** normalize a label/slug into dashed-lowercase */
-function norm(input: string) {
-  return input
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-/** try common alternates (e.g., labels-and-packaging vs labels-packaging) */
-function alternates(base: string) {
-  const set = new Set<string>([base]);
-  if (base.includes("-and-")) set.add(base.replace("-and-", "-"));
-  if (!base.includes("-and-")) set.add(base.replace("-", "-and-"));
-  return Array.from(set);
-}
-
-/** get an asset by any reasonable slug/title input */
-export function getCategoryAsset(key: string): CategoryAsset | null {
-  const normalized = norm(key);
-  const tries = [normalized, ...alternates(normalized)];
-  for (const k of tries) {
-    const hit = assets[k];
-    if (hit) return hit;
+  // email is required by your schema (NOT NULL)
+  const email =
+    user?.primaryEmailAddress?.emailAddress ??
+    user?.emailAddresses?.[0]?.emailAddress ??
+    null;
+  if (!email) {
+    throw new Error("Authenticated user has no email address");
   }
-  return null;
+
+  // Build a friendly display name:
+  const fallbackName = [user?.firstName, user?.lastName].filter(Boolean).join(" ");
+  const display =
+    (user?.fullName ?? user?.username) ??
+    (fallbackName ? fallbackName : undefined);
+
+  // Build insert payload (avoid undefined props unless allowed)
+  const toInsert = {
+    clerkUserId: userId,
+    email, // NOT NULL in your schema
+    ...(display ? { displayName: display } : {}),
+    // phoneEnc / marketingOptIn can be set later via profile flows
+  };
+
+  const [cust] = await db
+    .insert(customers)
+    .values(toInsert)
+    .onConflictDoUpdate({
+      target: customers.clerkUserId,
+      set: {
+        email, // keep email current with Clerk
+        ...(display ? { displayName: display } : {}),
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  return cust;
+}
+
+export async function getCustomerByClerk(userId: string) {
+  const rows = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.clerkUserId, userId))
+    .limit(1);
+  return rows[0] ?? null;
 }

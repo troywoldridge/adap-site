@@ -1,18 +1,23 @@
+// src/components/Categories/SubcategoryTileImage.tsx
 "use client";
 
 import * as React from "react";
 import { cfImage } from "@/lib/cfImages";
 
+// Infer the precise union for cfImage's variant arg
+type Variant = Parameters<typeof cfImage>[1];
+
 /**
  * SubcategoryTileImage
  * - SAME behavior as CategoryCardImage, name kept for existing imports
  * - Absolutely NO index/id captions or overlays
+ * - Images delivered via Cloudflare Images CDN
  */
 type Props = {
-  src: string;
-  kind?: "id" | "url";
+  src: string;                 // Cloudflare image id when kind="id", or absolute/relative URL when kind="url"
+  kind?: "id" | "url";         // "id" = Cloudflare Images ID (recommended), "url" = already-built URL
   alt?: string;
-  variant?: string;
+  variant?: Variant;           // e.g. "productCard" | "subcategoryThumb" | "public" | ...
   className?: string;
   sizes?: string;
   loading?: "lazy" | "eager";
@@ -25,7 +30,7 @@ export default function SubcategoryTileImage({
   src,
   kind = "id",
   alt = "",
-  variant = "productCard",
+  variant,
   className = "w-full h-full object-cover",
   sizes = "(max-width: 768px) 100vw, 25vw",
   loading = "lazy",
@@ -33,7 +38,10 @@ export default function SubcategoryTileImage({
   draggable = false,
   fetchPriority = "auto",
 }: Props) {
-  const url = kind === "id" ? cfImage(src, variant) : src;
+  // Provide a safe default variant that exists in your cfImage variants
+  const v: Variant | undefined = variant ?? ("productCard" as Variant);
+
+  const url = kind === "id" ? cfImage(src, v) : src;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element

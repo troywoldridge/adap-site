@@ -23,20 +23,27 @@ export default function OrderConfirmationEmail({
   orderTotal,
   trackingUrl,
 }: OrderConfirmationEmailProps) {
+  // Preview MUST be a string — coerce the id
+  const orderIdStr = String(orderId);
+  const previewText = `Thank you for your order! #${orderIdStr}`;
+
   return (
     <Html>
       <Head />
-      <Preview>Thank you for your order! #{orderId}</Preview>
+      <Preview>{previewText}</Preview>
       <Body style={{ background: "#f9fafb", color: "#181818", fontFamily: "sans-serif" }}>
         <Container style={{ maxWidth: 600, margin: "24px auto", background: "#fff", borderRadius: 8, padding: 24 }}>
           <Section>
-            <Text style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>Thank you for your order, {name}!</Text>
+            <Text style={{ fontSize: 24, fontWeight: 700, marginBottom: 10 }}>
+              Thank you for your order, {name}!
+            </Text>
             <Text style={{ fontSize: 18, marginBottom: 12 }}>
-              Your order <b>#{orderId}</b> has been received.
+              Your order <b>#{orderIdStr}</b> has been received.
             </Text>
             <Text style={{ fontSize: 16, marginBottom: 10 }}>
               <b>Total:</b> {orderTotal}
             </Text>
+
             {trackingUrl && (
               <Button
                 href={trackingUrl}
@@ -55,7 +62,9 @@ export default function OrderConfirmationEmail({
                 Track Your Order
               </Button>
             )}
+
             <Hr />
+
             <Text style={{ fontSize: 14, color: "#5f6368" }}>
               If you have any questions, reply to this email or call us at 555-555-5555.
             </Text>

@@ -1,8 +1,8 @@
 // src/lib/loyaltyEarn.ts
 import { db } from "@/lib/db";
-import * as schema from "@/lib/db/schema";
+import * as schema from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { loyaltyTransactions, loyaltyWallets } from "@/lib/db/schema/loyalty";
+import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
 import { LOYALTY, computeLoyalty } from "./loyalty";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { PgTransaction } from "drizzle-orm/pg-core";

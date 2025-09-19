@@ -1,3 +1,4 @@
+// src/components/ProductTabs.tsx
 "use client";
 import { useState } from "react";
 import type { Product } from "@/types/product";
@@ -9,15 +10,38 @@ interface Props {
 const tabs = [
   { key: "details", label: "Details" },
   { key: "fileprep", label: "File Prep" },
-  { key: "reviews", label: "Reviews" }
+  { key: "reviews", label: "Reviews" },
 ];
+
+// tiny helpers so we don’t poke unknown keys on the Product type
+function getString(obj: unknown, key: string): string | undefined {
+  const v = (obj as Record<string, unknown> | null)?.[key];
+  return typeof v === "string" && v.trim() ? v : undefined;
+}
+function getStringArray(obj: unknown, key: string): string[] | undefined {
+  const v = (obj as Record<string, unknown> | null)?.[key];
+  return Array.isArray(v) ? (v.filter((x) => typeof x === "string") as string[]) : undefined;
+}
 
 export default function ProductTabs({ product }: Props) {
   const [tab, setTab] = useState("details");
+
+  // Read optional fields defensively (works whether they exist or not)
+  const pAny = product as unknown;
+  const paperType = getString(pAny, "paperType");
+  const coating = getString(pAny, "coating");
+  const color = getString(pAny, "color");
+  const sizes =
+    getStringArray(pAny, "sizes") ||
+    getStringArray(pAny, "sizeOptions"); // allow either, if present
+  const finishing = getString(pAny, "finishing");
+  const fileType = getString(pAny, "fileType");
+  const specialInstructions = getString(pAny, "specialInstructions");
+
   return (
     <div className="product-tabs">
       <div className="flex border-b gap-6 mb-3">
-        {tabs.map(t => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             className={`px-3 py-2 border-b-2 font-medium transition ${
@@ -29,33 +53,36 @@ export default function ProductTabs({ product }: Props) {
           </button>
         ))}
       </div>
+
       <div className="mt-5">
         {tab === "details" && (
           <div>
             <h3 className="font-semibold mb-2">Product Specs</h3>
             <ul className="text-sm space-y-2">
-              <li><strong>Paper Type:</strong> {product.paperType || "See options above"}</li>
-              <li><strong>Coating:</strong> {product.coating || "—"}</li>
-              <li><strong>Color:</strong> {product.color || "Full color"}</li>
-              <li><strong>Sizes:</strong> {product.sizes?.join(", ") || "See options above"}</li>
-              <li><strong>Finishing:</strong> {product.finishing || "—"}</li>
-              <li><strong>File Type:</strong> {product.fileType || "Print Ready PDF"}</li>
-              {/* ...other product details */}
+              <li><strong>Paper Type:</strong> {paperType || "See options above"}</li>
+              <li><strong>Coating:</strong> {coating || "—"}</li>
+              <li><strong>Color:</strong> {color || "Full color"}</li>
+              <li><strong>Sizes:</strong> {sizes?.length ? sizes.join(", ") : "See options above"}</li>
+              <li><strong>Finishing:</strong> {finishing || "—"}</li>
+              <li><strong>File Type:</strong> {fileType || "Print Ready PDF"}</li>
             </ul>
-            {product.specialInstructions && (
-              <div className="mt-3 text-red-700 text-sm">{product.specialInstructions}</div>
+
+            {specialInstructions && (
+              <div className="mt-3 text-red-700 text-sm">{specialInstructions}</div>
             )}
           </div>
         )}
+
         {tab === "fileprep" && (
           <div>
             <h3 className="font-semibold mb-2">File Prep</h3>
             <p>
-              {/* You can customize or pull this info from your assets or API */}
-              Contains everything you need to know about file prep for this product.
+              Prepare a print-ready PDF with correct bleed and safe margins.
+              (You can also surface product-specific guidance you fetch from SinaLite.)
             </p>
           </div>
         )}
+
         {tab === "reviews" && (
           <div>
             <h3 className="font-semibold mb-2">Reviews</h3>

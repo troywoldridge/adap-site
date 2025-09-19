@@ -50,18 +50,18 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
   // 🚀 Robots & Googlebot directives
   robots: {
-  index: true,
-  follow: true,
-  nocache: false,
-  googleBot: {
     index: true,
     follow: true,
-    // ✅ use hyphenated keys (and quote them)
-    "max-video-preview": -1,
-    "max-image-preview": "large",
-    "max-snippet": -1,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      // ✅ use hyphenated keys (and quote them)
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
-},
   // ✅ Verification (set envs as needed)
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#0047ab" }],
   },
-  manifest: "/site.webmanifest",
+  // 🔧 removed the duplicate `manifest` here
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
@@ -231,7 +231,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             "!h-12 !rounded-xl !border-white/15 !bg-white/5 hover:!bg-white/10 !justify-center !gap-3 !w-full",
           socialButtonsProviderIcon: "!w-5 !h-5",
           socialButtonsBlockButtonText: "!text-[15px] !font-medium !text-white",
-          footer: "opacity-60 text-xs", // change to "hidden" if you want it gone
+          footer: "opacity-60 text-xs",
         },
       }}
     >
@@ -273,8 +273,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </head>
 
         {/* Keep your subtle premium background; all images via Cloudflare CDN */}
-       <body className="min-h-screen bg-amber-50 text-slate-900 antialiased [background:radial-gradient(1200px_600px_at_120%_-10%,rgba(0,71,171,.25),transparent),radial-gradient(1200px_600px_at_-10%_110%,rgba(0,71,171,.18),transparent)]">
-
+        <body className="min-h-screen bg-amber-50 text-slate-900 antialiased [background:radial-gradient(1200px_600px_at_120%_-10%,rgba(0,71,171,.25),transparent),radial-gradient(1200px_600px_at_-10%_110%,rgba(0,71,171,.18),transparent)]">
           <RouteProgress />
           <NotificationBar />
           <Header />

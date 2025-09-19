@@ -1,3 +1,4 @@
+// src/app/categories/[categorySlug]/[subcategorySlug]/page.tsx
 import "server-only";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -280,7 +281,8 @@ export default async function SubcategoryPage(
                 >
                   <div className="relative w-full aspect-[4/3] bg-gray-50">
                     {p.cf_image_1_id ? (
-                      <SubcategoryTileImage src={p.cf_image_1_id} kind="id" alt={displayName} />
+                      /* 🔧 FIX: pass the correct props for SubcategoryTileImage */
+                      <SubcategoryTileImage idOrUrl={p.cf_image_1_id} alt={displayName} />
                     ) : (
                       <div className="absolute inset-0 grid place-items-center text-gray-400 text-sm">
                         No image

@@ -2,7 +2,7 @@
 
 // ── Customers & addresses
 export * from "./customer";            // includes orders + orderItems today
-export * from "./customerAddresses";   // remove if you kept addresses inside customer.ts
+// export * from "./customerAddresses";   // remove if you kept addresses inside customer.ts
 
 // ── Cart core
 export * from "./cart";

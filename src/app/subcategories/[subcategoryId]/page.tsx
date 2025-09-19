@@ -1,8 +1,9 @@
+// src/app/subcategories/[subcategoryId]/page.tsx
 import "server-only";
 import Image from "@/components/ImageSafe";
 import ProductGrid from "@/components/ProductGrid";
 import { mergeProduct, mergeSubcategory } from "@/lib/mergeUtils";
-// ⬇️ switch to the server client we just finalized
+// ⬇️ server-side SinaLite client per docs
 import { getProductsBySubcategory, getSubcategoryDetails } from "@/lib/sinalite.server";
 import type { Metadata } from "next";
 
@@ -10,6 +11,13 @@ function toInt(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
+
+/** Minimal storefront product shape from SinaLite — id may be string or number */
+type StorefrontProduct = {
+  id: string | number;
+  sku?: string;
+  [k: string]: any;
+};
 
 /* ----------------------------- SEO ----------------------------- */
 export async function generateMetadata({
@@ -67,8 +75,18 @@ export default async function SubcategoryProductsPage({
   const subImage = local?.image ?? sina?.image;
 
   // Products from SinaLite, then merged for local image ids/attrs if any
-  const rawProducts = await getProductsBySubcategory(subId, storeCode);
-  const products = rawProducts.map(mergeProduct);
+  const rawProducts = (await getProductsBySubcategory(subId, storeCode)) as StorefrontProduct[];
+
+  // ✅ Fix: wrap the callback and normalize id -> number for mergeProduct
+  const products = rawProducts.map((apiProd: StorefrontProduct) => {
+    const idNum =
+      typeof apiProd.id === "string" ? Number(apiProd.id) : Number(apiProd.id);
+    const safeProd = {
+      ...apiProd,
+      id: Number.isFinite(idNum) ? idNum : undefined, // mergeProduct expects numeric id | undefined
+    };
+    return mergeProduct(safeProd as any);
+  });
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
@@ -76,7 +94,7 @@ export default async function SubcategoryProductsPage({
       <section className="mb-8 rounded-2xl border bg-white p-6 shadow-sm ring-1 ring-black/5">
         {subImage && (
           <div className="overflow-hidden rounded-xl border">
-            {/* subImage is a URL from SinaLite or local assets — delivered via Cloudflare CDN in your stack */}
+            {/* subImage is a URL from SinaLite or local assets — delivered via Cloudflare CDN */}
             <Image
               src={subImage}
               alt={subName}

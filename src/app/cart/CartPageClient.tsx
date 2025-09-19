@@ -164,14 +164,14 @@ export default function CartPageClient({ initialItems, currency, store, initialS
 
   // Minimal lines to feed shipping estimator
   const miniLines = useMemo(
-    () =>
-      (items || []).map((it) => ({
-        productId: it.productId,
-        optionIds: it.optionIds || [],
-        quantity: it.quantity || 1,
-      })),
-    [items],
-  );
+  () =>
+    (items || []).map((it) => ({
+      productId: it.productId,
+      optionIds: it.optionIds || [],
+      qty: it.quantity || 1,           // ← changed from `quantity` to `qty`
+    })),
+  [items],
+);
 
   /** Try to load enriched cart from /api/cart/current first:
    *  Expecting fields:

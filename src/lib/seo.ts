@@ -27,6 +27,11 @@ export function baseMetadata(): Metadata {
 
 /** Organization + Website JSON-LD */
 export function orgAndSiteJsonLd() {
+  const ogId = process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID; // may be undefined
+  // Prefer Cloudflare Images URL; fall back to a local absolute logo (make sure it exists)
+  const fallbackLogo = `${SITE}/favicon-32x32.png`;
+  const logoUrl = ogId ? cfUrl(ogId) : fallbackLogo;
+
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -35,7 +40,8 @@ export function orgAndSiteJsonLd() {
         "@id": `${SITE}#org`,
         "name": "ADAP Print",
         "url": SITE,
-        "logo": cfUrl(process.env.DEFAULT_SOCIAL_SHARE_IMAGE_ID || null),
+        // JSON.stringify drops undefined, but we provide a string either way
+        "logo": logoUrl,
       },
       {
         "@type": "WebSite",
