@@ -10,6 +10,10 @@ type Shipment = {
   events?: { time: string; description: string; location?: string }[];
 };
 
+type ShipmentsResponse =
+  | { shipments: Shipment[] }
+  | { error: string; shipments?: Shipment[] };
+
 export default function ShipmentTimeline({ orderId }: { orderId: string }) {
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
@@ -17,37 +21,41 @@ export default function ShipmentTimeline({ orderId }: { orderId: string }) {
 
   React.useEffect(() => {
     let cancel = false;
+
     (async () => {
       try {
         setLoading(true);
         setErr(null);
-        const res = await fetch(`/api/me/shipments?orderId=${encodeURIComponent(orderId)}`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load tracking");
-        if (!cancel) setShipments(data.shipments || []);
-      } catch (e: any) {
-        if (!cancel) setErr(e?.message || "Failed to load tracking");
+
+        const res = await fetch(
+          `/api/me/shipments?orderId=${encodeURIComponent(orderId)}`,
+          { credentials: "include", cache: "no-store" }
+        );
+
+        const data: ShipmentsResponse = await res.json();
+
+        if (!res.ok) {
+          const message = "error" in data && data.error ? data.error : "Failed to load tracking";
+          throw new Error(message);
+        }
+
+        if (!cancel) setShipments(("shipments" in data && data.shipments) ? data.shipments : []);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Failed to load tracking";
+        if (!cancel) setErr(message);
       } finally {
         if (!cancel) setLoading(false);
       }
     })();
+
     return () => {
       cancel = true;
     };
   }, [orderId]);
 
-  if (loading) {
-    return <div className="text-sm text-gray-600">Loading…</div>;
-  }
-  if (err) {
-    return <div className="text-sm text-rose-700">{err}</div>;
-  }
-  if (!shipments.length) {
-    return <div className="text-sm text-gray-600">No tracking yet.</div>;
-  }
+  if (loading) return <div className="text-sm text-gray-600">Loading…</div>;
+  if (err) return <div className="text-sm text-rose-700">{err}</div>;
+  if (!shipments.length) return <div className="text-sm text-gray-600">No tracking yet.</div>;
 
   return (
     <div className="space-y-4">

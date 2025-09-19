@@ -54,6 +54,7 @@ type ProductRow = {
   cf_image_4_id?: string | null;
   [k: string]: any;
 };
+type BBGroup = { name: string; options: { id: number; name: string }[] };
 
 /* ---------------- Utils ---------------- */
 const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://adapnow.com";
@@ -257,14 +258,13 @@ export default async function ProductPage(
   const normalized: any[] = Array.isArray(optionsArray) ? (normalizeOptionGroups(optionsArray) as any[]) : [];
 
 // === buyBoxGroups with NUMERIC IDs + normalized group names (SinaLite-ready) ===
-const buyBoxGroups = (() => {
-  const out: { name: string; options: { id: number; name: string }[] }[] = [];
+const buyBoxGroups: BBGroup[] = (() => {
+  const out: BBGroup[] = [];
 
   for (const g of normalized) {
     const rawName = String(g?.name ?? g?.groupName ?? g?.label ?? g?.title ?? "").trim();
     if (!rawName) continue;
 
-    // Normalize so the Buy Box can find the Quantity group reliably
     const lname = rawName.toLowerCase();
     const gName = lname.includes("qty") || lname.includes("quantity") ? "Quantity" : rawName;
 
@@ -275,18 +275,18 @@ const buyBoxGroups = (() => {
 
     const options = raw
       .map((o: any) => {
-        // Per SinaLite API docs, these are numeric IDs (valueId/optionId most commonly)
         const idNum = Number(o?.valueId ?? o?.optionId ?? o?.id ?? o?.value ?? o?.code);
         const label = String(o?.name ?? o?.label ?? o?.valueName ?? o?.title ?? idNum).trim();
         return Number.isFinite(idNum) && idNum > 0 ? { id: idNum, name: label } : null;
       })
-      .filter(Boolean) as { id: number; name: string }[];
+      .filter(Boolean) as BBGroup["options"];
 
     if (options.length) out.push({ name: gName, options });
   }
 
   return out;
 })();
+
 
   /* === Meta for Details/File Prep === */
   let meta: any = null;
@@ -491,10 +491,12 @@ const buyBoxGroups = (() => {
         <div>
           <ProductGallery images={gallery} productName={productName} />
           <ProductInfoTabs
-            details={detailsPanel}
-            filePrep={filePrepPanel}
-            reviewsSlot={<ProductReviews productId={String(sinaliteIdNum)} productName={productName} />}
-          />
+  details={detailsPanel}
+  filePrep={filePrepPanel}
+  reviewsProductId={sinaliteIdNum}          // number is fine; your prop is string | number
+  reviewsProductName={productName}
+/>
+
         </div>
 
         {/* RIGHT: Buy Box */}

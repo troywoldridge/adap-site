@@ -34,8 +34,8 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "scripts/**/*.ts",
-    "scripts/**/*.js",
+    "_archive/scripts/**/*.ts",
+    "_archive/scripts/**/*.js",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules", ".next", "drizzle", "src/db/schema/__introspect.ts", "dist", "_archive"]

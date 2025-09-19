@@ -1,6 +1,8 @@
+// src/app/admin/images/ClientSearch.tsx
 "use client";
 
 import { useState, useMemo } from "react";
+import Image, { type ImageLoader } from "next/image";
 import Fuse from "fuse.js";
 
 type ImageRecord = {
@@ -26,56 +28,65 @@ export default function ClientSearch({
   const fuse = useMemo(() => {
     return new Fuse(imageArray, {
       keys: ["filename", "id"],
-      threshold: 0.4,      // adjust for more/less fuzziness
+      threshold: 0.4, // adjust for more/less fuzziness
       minMatchCharLength: 2,
     });
   }, [imageArray]);
 
   // Perform fuzzy search or show all if empty
-  const filtered = q
-    ? fuse.search(q).map(result => result.item)
-    : imageArray;
+  const filtered = q ? fuse.search(q).map((r) => r.item) : imageArray;
 
-  const cfHash  = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH!;
-  const base    = process.env.NEXT_PUBLIC_IMAGE_DELIVERY_BASE!;
+  // Cloudflare Images settings
+  const cfHash = process.env.NEXT_PUBLIC_CF_ACCOUNT_HASH!;
+  const base = process.env.NEXT_PUBLIC_IMAGE_DELIVERY_BASE!; // e.g. "https://imagedelivery.net"
   const variant = "public";
 
+  // Minimal Cloudflare loader for next/image
+  const cfLoader: ImageLoader = ({ src, quality }) => {
+    // `src` will be the image id (we pass id as src below)
+    const q = quality ? `?q=${quality}` : "";
+    return `${base}/${cfHash}/${src}/${variant}${q}`;
+  };
+
   return (
-    <main className="p-8 container mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Image Admin</h1>
+    <main className="container mx-auto p-8">
+      <h1 className="mb-4 text-2xl font-bold">Image Admin</h1>
 
       <input
         autoFocus
-        className="border p-2 w-full mb-6"
+        className="mb-6 w-full border p-2"
         placeholder="Search filename or ID…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
 
       {filtered.length === 0 ? (
-        <p>No images match “{q}”.</p>
+        <p>
+          No images match “<span className="font-medium">{q}</span>”.
+        </p>
       ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filtered.map((img) => {
-            const id   = String(img.id);
+            const id = String(img.id);
             const name = img.filename || id;
-            const src  = `${base}/${cfHash}/${id}/${variant}`;
 
             return (
-              <li key={id} className="border rounded overflow-hidden">
-                <div className="w-full h-48 bg-gray-100">
-                  <img
-                    src={src}
-                    alt={name}
-                    className="object-cover w-full h-full"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
+              <li key={id} className="overflow-hidden rounded border">
+                {/* Use `fill` so we get an easy cover crop */}
+                <div className="relative h-48 w-full bg-gray-100">
+                  <Image
+                    loader={cfLoader}
+                    src={id}
+                    alt={String(name)}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 360px"
+                    style={{ objectFit: "cover" }}
+                    // No need for `unoptimized` because we provide a custom loader.
                   />
                 </div>
                 <div className="p-2">
-                  <p className="text-sm font-medium break-all">{name}</p>
-                  <p className="text-xs text-gray-500 break-all">{id}</p>
+                  <p className="break-all text-sm font-medium">{name}</p>
+                  <p className="break-all text-xs text-gray-500">{id}</p>
                 </div>
               </li>
             );

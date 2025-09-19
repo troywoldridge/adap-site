@@ -90,13 +90,25 @@ const STATUS_STYLES: Record<string, string> = {
   default: "bg-gray-50 text-gray-700 ring-gray-200",
 };
 
+/* ------------------------------ types for selects ------------------------------ */
+type OrderRow = typeof orders.$inferSelect;
+
+type LineRow = {
+  id: string;
+  productId: number | string;
+  quantity: number | string;
+  unitPriceCents: number | string | null;
+  lineTotalCents: number | string | null;
+  optionIds: (number | string)[] | null;
+};
+
 /* ------------------------------ loader ------------------------------ */
 async function loadOrder(orderId: string) {
   const { userId } = await auth();
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
-  const [o] = (await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)) ?? [];
+  const [o] = (await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)) as OrderRow[]; // typed
   if (!o) return null;
 
   // ownership (guest → user claim)
@@ -104,7 +116,7 @@ async function loadOrder(orderId: string) {
   if (!candidates.includes(o.userId)) {
     if (userId && o.userId === sid) {
       await db.update(orders).set({ userId }).where(eq(orders.id, orderId));
-      o.userId = userId;
+      o.userId = userId; // ok to update in-memory copy for this request
     } else {
       return null;
     }
@@ -112,7 +124,7 @@ async function loadOrder(orderId: string) {
 
   // lines
   const cartId = o.cartId;
-  const lineRows = cartId
+  const lineRows: LineRow[] = cartId
     ? await db
         .select({
           id: cartLines.id,
@@ -127,7 +139,7 @@ async function loadOrder(orderId: string) {
     : [];
 
   // artwork by line
-  let artMap = new Map<string, string[]>();
+  const artMap = new Map<string, string[]>();
   if (lineRows.length) {
     const ids = lineRows.map((l) => l.id);
     const arts = await db
@@ -155,7 +167,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   const subtotal = Number(o.subtotalCents) || 0;
   const ship = Number(o.shippingCents) || 0;
   const tax = Number(o.taxCents) || 0;
-  const credits = Number((o as any).creditsCents || 0);
+  const credits = Number(o.creditsCents ?? 0); // ✅ no 'any'
   const total = Number(o.totalCents) || 0;
 
   return (

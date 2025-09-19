@@ -1,7 +1,9 @@
+// src/app/account/AccountClient.tsx
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 /**
  * IMPORTANT INTEGRATION NOTES
@@ -88,14 +90,23 @@ type LoyaltySnapshot = {
   tier: "Bronze" | "Silver" | "Gold" | "Platinum";
   nextTierAt: number | null;
 };
-type LoyaltyAPI = { wallet: LoyaltySnapshot; transactions: any[] };
+type LoyaltyAPI = { wallet: LoyaltySnapshot; transactions: Array<Record<string, unknown>> };
+
+type TabKey =
+  | "overview"
+  | "orders"
+  | "tracking"
+  | "rewards"
+  | "addresses"
+  | "profile"
+  | "security";
 
 /* ───────────────────────── fetchers ───────────────────────── */
 
 async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, credentials: "include" });
   if (!res.ok) throw new Error(`Request failed: ${res.status} ${url}`);
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 function money(amount: number, currency: "USD" | "CAD") {
@@ -109,43 +120,18 @@ function cls(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
 }
 
-const STATUS_STYLES: Record<
-  string,
-  { bg: string; ring: string; text: string }
-> = {
-  fulfilled: {
-    bg: "bg-emerald-50",
-    ring: "ring-emerald-200",
-    text: "text-emerald-700",
-  },
-  processing: {
-    bg: "bg-amber-50",
-    ring: "ring-amber-200",
-    text: "text-amber-800",
-  },
-  cancelled: {
-    bg: "bg-rose-50",
-    ring: "ring-rose-200",
-    text: "text-rose-700",
-  },
-  placed: {
-    bg: "bg-indigo-50",
-    ring: "ring-indigo-200",
-    text: "text-indigo-700",
-  },
-  default: {
-    bg: "bg-gray-50",
-    ring: "ring-gray-200",
-    text: "text-gray-700",
-  },
+const STATUS_STYLES: Record<string, { bg: string; ring: string; text: string }> = {
+  fulfilled: { bg: "bg-emerald-50", ring: "ring-emerald-200", text: "text-emerald-700" },
+  processing: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-800" },
+  cancelled: { bg: "bg-rose-50", ring: "ring-rose-200", text: "text-rose-700" },
+  placed: { bg: "bg-indigo-50", ring: "ring-indigo-200", text: "text-indigo-700" },
+  default: { bg: "bg-gray-50", ring: "ring-gray-200", text: "text-gray-700" },
 };
 
 /* ───────────────────────── UI ───────────────────────── */
 
 export default function AccountClient() {
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "orders" | "tracking" | "rewards" | "addresses" | "profile" | "security"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
   // Core data
   const [me, setMe] = useState<Me | null>(null);
@@ -171,7 +157,7 @@ export default function AccountClient() {
       setMe(m);
       setOrders(o.orders);
 
-      // map API view model → UI rewards shape (and fix type complaint)
+      // map API view model → UI rewards shape
       setRewards({
         points: l.wallet.points,
         tier: l.wallet.tier,
@@ -179,8 +165,9 @@ export default function AccountClient() {
       });
 
       setAddresses(a.addresses);
-    } catch (e: any) {
-      setErr(e?.message || "Failed to load account data");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to load account data";
+      setErr(msg);
     } finally {
       setLoading(false);
     }
@@ -274,12 +261,14 @@ function HeroHeader(props: {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           {/* Left: identity */}
           <div className="flex items-center gap-4">
-            <img
+            <Image
               src={avatarUrl}
               alt="Avatar"
+              width={64}
+              height={64}
               className="h-16 w-16 rounded-2xl border border-gray-200 object-cover shadow-sm"
-              loading="lazy"
-              decoding="async"
+              priority={false}
+              sizes="64px"
             />
             <div>
               <div className="flex items-center gap-2">
@@ -293,14 +282,9 @@ function HeroHeader(props: {
             </div>
           </div>
 
-          {/* Right: KPIs */}
+        {/* Right: KPIs */}
           <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:grid-cols-3">
-            <Kpi
-              title="Orders"
-              value={ordersCount}
-              hint="All-time"
-              gradient
-            />
+            <Kpi title="Orders" value={ordersCount} hint="All-time" gradient />
             <Kpi
               title="Rewards"
               value={points.toLocaleString()}
@@ -309,11 +293,7 @@ function HeroHeader(props: {
             />
             <Kpi
               title="Default Ship To"
-              value={
-                defaultAddress
-                  ? `${defaultAddress.city}, ${defaultAddress.state}`
-                  : "Add one"
-              }
+              value={defaultAddress ? `${defaultAddress.city}, ${defaultAddress.state}` : "Add one"}
               hint={defaultAddress?.country || ""}
             />
           </div>
@@ -383,10 +363,10 @@ function Tabs({
   active,
   onChange,
 }: {
-  active: string;
-  onChange: (k: any) => void;
+  active: TabKey;
+  onChange: (k: TabKey) => void;
 }) {
-  const tabs = [
+  const tabs: readonly { key: TabKey; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "orders", label: "Orders" },
     { key: "tracking", label: "Tracking" },
@@ -394,7 +374,7 @@ function Tabs({
     { key: "addresses", label: "Addresses" },
     { key: "profile", label: "Profile" },
     { key: "security", label: "Security" },
-  ] as const;
+  ];
 
   return (
     <nav className="overflow-x-auto">
@@ -464,12 +444,12 @@ function OverviewPanel({
                 ) : null}
               </div>
             )}
-            <a
+            <Link
               className="mt-4 inline-flex items-center rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
               href="/rewards"
             >
               Redeem rewards
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -497,9 +477,9 @@ function SectionTitle({ title, href }: { title: string; href?: string }) {
     <div className="flex items-center justify-between">
       <h3 className="text-base font-semibold text-gray-900">{title}</h3>
       {href && (
-        <a className="text-sm font-medium text-indigo-700 hover:underline" href={href}>
+        <Link className="text-sm font-medium text-indigo-700 hover:underline" href={href}>
           View all
-        </a>
+        </Link>
       )}
     </div>
   );
@@ -530,20 +510,22 @@ function AddressCard({ a }: { a: Address }) {
 
 function OrdersPanel({ orders }: { orders: OrderRow[] | null }) {
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<
-    "all" | "placed" | "processing" | "fulfilled" | "cancelled"
-  >("all");
+  const [status, setStatus] = useState<"all" | "placed" | "processing" | "fulfilled" | "cancelled">(
+    "all",
+  );
   const [visible, setVisible] = useState(10);
 
   const rows = useMemo(() => {
-    let list = (orders ?? []).slice().sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    let list = (orders ?? [])
+      .slice()
+      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
     if (status !== "all") list = list.filter((r) => String(r.status).toLowerCase() === status);
     if (q.trim()) {
       const needle = q.trim().toLowerCase();
       list = list.filter((r) =>
         [String(r.id), r.name, r.sinaOrderId?.toString()]
           .filter(Boolean)
-          .some((s) => String(s).toLowerCase().includes(needle))
+          .some((s) => String(s).toLowerCase().includes(needle)),
       );
     }
     return list;
@@ -577,7 +559,7 @@ function OrdersPanel({ orders }: { orders: OrderRow[] | null }) {
                   onClick={() => setStatus(s)}
                   className={cls(
                     "rounded-lg px-3 py-1 text-xs font-medium",
-                    active ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-50"
+                    active ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-50",
                   )}
                 >
                   {s[0].toUpperCase() + s.slice(1)}
@@ -611,17 +593,9 @@ function OrdersPanel({ orders }: { orders: OrderRow[] | null }) {
   );
 }
 
-function OrdersTable({
-  rows,
-  emptyText,
-}: {
-  rows: OrderRow[];
-  emptyText?: string;
-}) {
+function OrdersTable({ rows, emptyText }: { rows: OrderRow[]; emptyText?: string }) {
   if (!rows || rows.length === 0) {
-    return (
-      <div className="p-10 text-center text-sm text-gray-600">{emptyText}</div>
-    );
+    return <div className="p-10 text-center text-sm text-gray-600">{emptyText}</div>;
   }
 
   return (
@@ -644,9 +618,7 @@ function OrdersTable({
                 <Td>
                   <div className="font-medium text-gray-900">#{r.id}</div>
                   {r.sinaOrderId && (
-                    <div className="text-xs text-gray-500">
-                      SinaLite Ref: {String(r.sinaOrderId)}
-                    </div>
+                    <div className="text-xs text-gray-500">SinaLite Ref: {String(r.sinaOrderId)}</div>
                   )}
                   {r.name && <div className="text-xs text-gray-600">{r.name}</div>}
                 </Td>
@@ -657,35 +629,33 @@ function OrdersTable({
                       "inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
                       style.bg,
                       style.ring,
-                      style.text
+                      style.text,
                     )}
                   >
                     {r.status}
                   </span>
                 </Td>
-                <Td className="text-right font-semibold text-gray-900">
-                  {money(r.total, r.currency)}
-                </Td>
+                <Td className="text-right font-semibold text-gray-900">{money(r.total, r.currency)}</Td>
                 <Td>
                   <div className="flex flex-wrap gap-2">
-                    <a
+                    <Link
                       href={`/account/orders/${r.id}`}
                       className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50"
                     >
                       View
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href={`/account/orders/${r.id}/invoice`}
                       className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 hover:bg-gray-50"
                     >
                       Invoice
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href={`/account/orders/${r.id}/reorder`}
                       className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
                     >
                       Reorder
-                    </a>
+                    </Link>
                   </div>
                 </Td>
               </tr>
@@ -697,29 +667,27 @@ function OrdersTable({
   );
 }
 
-function Th({ children, className = "" }: any) {
+function Th({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <th
       scope="col"
       className={cls(
         "px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600",
-        className
+        className,
       )}
     >
       {children}
     </th>
   );
 }
-function Td({ children, className = "" }: any) {
+function Td({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <td className={cls("px-4 py-3 align-top", className)}>{children}</td>;
 }
 
 /* Tracking Panel */
 
 function TrackingPanel({ orders }: { orders: OrderRow[] | null }) {
-  const [selectedOrder, setSelectedOrder] = useState<string | number | null>(
-    orders?.[0]?.id ?? null
-  );
+  const [selectedOrder, setSelectedOrder] = useState<string | number | null>(orders?.[0]?.id ?? null);
   const [shipments, setShipments] = useState<Shipment[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -730,12 +698,11 @@ function TrackingPanel({ orders }: { orders: OrderRow[] | null }) {
       setErr(null);
       setLoading(true);
       // Backend should fetch latest tracking from SinaLite as needed.
-      const data = await getJSON<{ shipments: Shipment[] }>(
-        `/api/me/shipments?orderId=${orderId}`
-      );
+      const data = await getJSON<{ shipments: Shipment[] }>(`/api/me/shipments?orderId=${orderId}`);
       setShipments(data.shipments);
-    } catch (e: any) {
-      setErr(e?.message || "Failed to load tracking");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to load tracking";
+      setErr(msg);
     } finally {
       setLoading(false);
     }
@@ -784,32 +751,26 @@ function TrackingPanel({ orders }: { orders: OrderRow[] | null }) {
 
       <div className="mt-6 grid grid-cols-1 gap-4">
         {(shipments ?? []).map((s, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border p-4 shadow-sm ring-1 ring-inset ring-gray-100"
-          >
+          <div key={i} className="rounded-2xl border p-4 shadow-sm ring-1 ring-inset ring-gray-100">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm font-semibold text-gray-900">
                 {s.carrier} • {s.trackingNumber}
               </div>
               <div className="text-xs text-gray-600">
-                Status:{" "}
-                <span className="rounded-md bg-gray-100 px-2 py-0.5">
-                  {s.status}
-                </span>
+                Status: <span className="rounded-md bg-gray-100 px-2 py-0.5">{s.status}</span>
                 {s.eta ? ` • ETA ${s.eta}` : ""}
               </div>
             </div>
             {s.events && s.events.length > 0 && (
               <ol className="mt-3 space-y-2 text-sm text-gray-700">
-                {s.events.map((e, j) => (
+                {s.events.map((evt, j) => (
                   <li key={j} className="flex items-start gap-2">
                     <span className="mt-1 h-2 w-2 rounded-full bg-gray-400" />
                     <div>
-                      <div className="text-gray-900">{e.description}</div>
+                      <div className="text-gray-900">{evt.description}</div>
                       <div className="text-xs text-gray-500">
-                        {new Date(e.time).toLocaleString()}
-                        {e.location ? ` • ${e.location}` : ""}
+                        {new Date(evt.time).toLocaleString()}
+                        {evt.location ? ` • ${evt.location}` : ""}
                       </div>
                     </div>
                   </li>
@@ -840,9 +801,7 @@ function RewardsPanel({ rewards }: { rewards: Rewards | null }) {
       <h3 className="text-base font-semibold text-gray-900">Loyalty rewards</h3>
       <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border p-6">
-          <div className="text-5xl font-bold text-indigo-700">
-            {points.toLocaleString()}
-          </div>
+          <div className="text-5xl font-bold text-indigo-700">{points.toLocaleString()}</div>
           <div className="mt-2 text-sm text-gray-600">Points available</div>
 
           <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
@@ -863,12 +822,12 @@ function RewardsPanel({ rewards }: { rewards: Rewards | null }) {
               Tier: <strong>{rewards.tier}</strong>
             </div>
           )}
-          <a
+          <Link
             href="/rewards"
             className="mt-5 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
           >
             Redeem rewards
-          </a>
+          </Link>
         </div>
 
         <div className="rounded-2xl border p-6">
@@ -925,8 +884,8 @@ function AddressesPanel({
         country: "US",
         phone: "",
       });
-    } catch (e) {
-      alert((e as Error).message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Failed to save address");
     } finally {
       setSaving(false);
     }
@@ -935,10 +894,7 @@ function AddressesPanel({
   const remove = async (id: string) => {
     const yes = confirm("Remove this address?");
     if (!yes) return;
-    const res = await fetch(`/api/me/addresses/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
+    const res = await fetch(`/api/me/addresses/${id}`, { method: "DELETE", credentials: "include" });
     if (res.ok) {
       const { addresses: updated } = (await res.json()) as { addresses: Address[] };
       onChange(updated);
@@ -1060,8 +1016,8 @@ function ProfilePanel({ me, onSaved }: { me: Me | null; onSaved: () => void }) {
       });
       if (!res.ok) throw new Error("Failed to save profile");
       onSaved();
-    } catch (e) {
-      alert((e as Error).message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Failed to save profile");
     } finally {
       setSaving(false);
     }
@@ -1097,14 +1053,12 @@ function SecurityPanel() {
       <div className="mt-4 rounded-2xl border p-6 text-sm text-gray-700">
         <p>
           For password, sessions, and 2-factor authentication, visit{" "}
-          <a className="text-indigo-700 underline" href="/account/security/manage">
+          <Link className="text-indigo-700 underline" href="/account/security/manage">
             Security Settings
-          </a>
+          </Link>
           .
         </p>
-        <p className="mt-2">
-          We strongly recommend enabling 2FA for enhanced account protection.
-        </p>
+        <p className="mt-2">We strongly recommend enabling 2FA for enhanced account protection.</p>
       </div>
     </div>
   );
@@ -1150,11 +1104,7 @@ function Select({
   return (
     <label className="grid gap-1 text-sm">
       <span className="text-gray-700">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.currentTarget.value)}
-        className="rounded-xl border px-3 py-2"
-      >
+      <select value={value} onChange={(e) => onChange(e.currentTarget.value)} className="rounded-xl border px-3 py-2">
         {options.map((o) => (
           <option value={o.value} key={o.value}>
             {o.label}
