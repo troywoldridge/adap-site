@@ -93,7 +93,11 @@ function nameFallback(productId?: number | string | null): string {
 
 function titleCase(s?: string | null) {
   if (!s) return "";
-  return s.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().replace(/\b\w/g, (c) => c.toUpperCase());
+  return s
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function moneyFmt(amount: number, currency: "USD" | "CAD") {
@@ -104,23 +108,28 @@ function moneyFmt(amount: number, currency: "USD" | "CAD") {
   }
 }
 
-/* ---------------------------- Fetch cart ------------------------- */
-// ✅ Next 15: headers() must be awaited
-async function getBaseUrl() {
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  if (host) return `${proto}://${host}`;
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/+$/, "");
-}
-
-/** Use the canonical cart API so cart + review always match */
+//* ---------------------------- Fetch cart (absolute + cookies) ---------------------------- */
 async function loadCart() {
-  const base = await getBaseUrl();
+  const h = await headers();
+  const cookie = h.get("cookie") ?? "";
+
+  // Build a safe absolute base URL for all envs (local/dev/prod)
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host =
+    h.get("x-forwarded-host") ??
+    h.get("host") ??
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/^https?:\/\//, "") ??
+    "localhost:3000";
+
+  const base = `${proto}://${host}`.replace(/\/+$/, "");
+
   const res = await fetch(`${base}/api/cart/current`, {
     cache: "no-store",
     next: { revalidate: 0 },
+    // Make sure your cart cookie (`sid`/`adap_sid`) rides along:
+    headers: cookie ? { cookie } : undefined,
   });
+
   if (!res.ok) return null;
   const json = await res.json();
 
@@ -134,9 +143,7 @@ async function loadCart() {
     name: r.productName || nameFallback(r.productId),
     unit: (Number(r.unitPriceCents ?? 0) || 0) / 100,
     total: (Number(r.lineTotalCents ?? 0) || 0) / 100,
-    artworkUrls: (json.attachments?.[String(r.id)] || [])
-      .map((a: any) => a?.url)
-      .filter(Boolean),
+    artworkUrls: (json.attachments?.[String(r.id)] || []).map((a: any) => a?.url).filter(Boolean),
     optionIds: Array.isArray(r.optionIds) ? r.optionIds : [],
   }));
 
@@ -148,6 +155,7 @@ async function loadCart() {
     lines,
   };
 }
+
 
 /* ------------------------------ Page ------------------------------ */
 export default async function ReviewCartPage() {
@@ -175,22 +183,19 @@ export default async function ReviewCartPage() {
 
   // Clerk auth() is async in Next 15
   const { userId } = await auth();
-  const defaultAddr = userId ? await import("@/lib/addresses").then(m => m.getDefaultAddress(userId)) : null;
+  const defaultAddr = userId ? await import("@/lib/addresses").then((m) => m.getDefaultAddress(userId)) : null;
   const initCountry = (defaultAddr?.country === "CA" ? "CA" : "US") as "US" | "CA";
   const initState = defaultAddr?.state ?? "";
   const initZip = defaultAddr?.postalCode ?? "";
 
-  // Dollars for UI math
   const subtotal = lines.reduce((acc, l) => acc + l.total, 0);
   const shipping = Number(cart.selectedShipping?.cost ?? 0);
   const tax = 0;
 
-  // Credits
   const creditsCents = await getCartCreditsCents(cart.id);
   const credits = Math.max(0, (creditsCents || 0) / 100);
   const grandTotal = Math.max(0, subtotal + shipping + tax - credits);
 
-  // ✅ Minimal lines for SinaLite rate estimator
   const miniLines = lines.map((l) => ({
     productId: l.productId,
     optionIds: Array.isArray(l.optionIds) ? l.optionIds : [],
@@ -205,9 +210,7 @@ export default async function ReviewCartPage() {
       <header className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Review your order</h1>
-          <p className="mt-1 text-sm text-neutral-600">
-            Make sure everything looks perfect before checkout.
-          </p>
+          <p className="mt-1 text-sm text-neutral-600">Make sure everything looks perfect before checkout.</p>
         </div>
         <Link
           href="/cart"
@@ -225,10 +228,7 @@ export default async function ReviewCartPage() {
             const hasArtwork = (line.artworkUrls?.length ?? 0) > 0;
 
             return (
-              <article
-                key={line.id}
-                className="rounded-2xl border bg-white p-4 shadow-sm ring-1 ring-black/5"
-              >
+              <article key={line.id} className="rounded-2xl border bg-white p-4 shadow-sm ring-1 ring-black/5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="flex items-start gap-4">
                     {/* Product image (Cloudflare CDN) */}
@@ -250,34 +250,19 @@ export default async function ReviewCartPage() {
                           Qty {line.quantity}
                         </span>
                       </div>
-                      <div className="mt-1 text-sm text-neutral-600">
-                        {moneyFmt(line.unit, currency)} each
-                      </div>
+                      <div className="mt-1 text-sm text-neutral-600">{moneyFmt(line.unit, currency)} each</div>
 
                       {/* Customer artwork thumbnails */}
                       {hasArtwork ? (
                         <div className="mt-3 flex flex-wrap gap-3">
                           {line.artworkUrls!.map((u, i) => (
-                            <CartArtworkThumb
-                              key={`${line.id}-art-${i}`}
-                              url={u}
-                              alt={`Artwork side ${i + 1}`}
-                            />
+                            <CartArtworkThumb key={`${line.id}-art-${i}`} url={u} alt={`Artwork side ${i + 1}`} />
                           ))}
-                          <AddAnotherSideButton
-                            productId={line.productId}
-                            lineId={line.id}
-                            currentSides={line.artworkUrls!.length}
-                          />
+                          <AddAnotherSideButton productId={line.productId} lineId={line.id} currentSides={line.artworkUrls!.length} />
                         </div>
                       ) : (
                         <div className="mt-3">
-                          <AddAnotherSideButton
-                            productId={line.productId}
-                            lineId={line.id}
-                            currentSides={0}
-                            label="Upload artwork"
-                          />
+                          <AddAnotherSideButton productId={line.productId} lineId={line.id} currentSides={0} label="Upload artwork" />
                         </div>
                       )}
                     </div>
@@ -295,7 +280,7 @@ export default async function ReviewCartPage() {
         {/* RIGHT: Summary */}
         <aside className="lg:col-span-4">
           <div className="rounded-2xl border bg-white p-5 shadow-sm ring-1 ring-black/5">
-            <h2 className="text-base font-semibold">Order summary</h2>
+            <h2 className="text/base font-semibold">Order summary</h2>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-neutral-600">Subtotal</span>
@@ -347,8 +332,7 @@ export default async function ReviewCartPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-gray-900">Selected shipping</span>
                     <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                      {cart.selectedShipping.days ?? "–"} business{" "}
-                      {cart.selectedShipping.days === 1 ? "day" : "days"}
+                      {cart.selectedShipping.days ?? "–"} business {cart.selectedShipping.days === 1 ? "day" : "days"}
                     </span>
                   </div>
                   <div className="mt-1 truncate text-sm text-gray-600">
@@ -356,9 +340,7 @@ export default async function ReviewCartPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold">
-                    {moneyFmt(Number(cart.selectedShipping.cost || 0), currency)}
-                  </div>
+                  <div className="text-base font-bold">{moneyFmt(Number(cart.selectedShipping.cost || 0), currency)}</div>
                   <ChangeShippingButton />
                 </div>
               </div>
@@ -381,4 +363,3 @@ export default async function ReviewCartPage() {
     </main>
   );
 }
-

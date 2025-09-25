@@ -1,48 +1,126 @@
 import "server-only";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const ACCOUNT_ID = process.env.R2_ACCOUNT_ID!;
-const ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!;
-const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!;
-const BUCKET = process.env.R2_BUCKET_NAME!;
-const PUBLIC_BASE = (process.env.R2_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
-const PREFIX = (process.env.R2_UPLOAD_PREFIX || "uploads").replace(/^\/+|\/+$/g, "");
-const EXPIRES = Number(process.env.R2_PRESIGN_EXPIRES_SECONDS || 900);
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// R2 uses region "auto" + account endpoint
+/* ───────── JSON helper ───────── */
+function j(body: any, status = 200) {
+  return new NextResponse(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store, no-cache, must-revalidate, max-age=0",
+    },
+  });
+}
+
+/* ───────── ENV (Cloudflare R2) ─────────
+   PUBLIC URL should be your CDN in front of R2 origin, e.g. https://uploads.example.com/
+*/
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID!;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!;
+const R2_BUCKET = process.env.R2_BUCKET!;
+const R2_PUBLIC_BASEURL =
+  process.env.R2_PUBLIC_BASEURL ?? process.env.R2_PUBLIC_BASE_URL ?? "";
+
+/* ───────── S3 client (R2) ───────── */
 const s3 = new S3Client({
   region: "auto",
-  endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: { accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY },
+  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
+  },
 });
 
-export async function POST(req: Request) {
-  try {
-    const { filename, contentType, lineId, side } = await req.json();
+/* ───────── utils ───────── */
+function cleanName(n?: string | null) {
+  return (n ?? "").toString().trim().replace(/[/\\]+/g, "-");
+}
+function extOf(name: string) {
+  const m = /\.[^.]+$/.exec(name || "");
+  return (m ? m[0] : "").toLowerCase();
+}
+function publicUrlFor(key: string) {
+  if (!R2_PUBLIC_BASEURL) return "";
+  const base = R2_PUBLIC_BASEURL.endsWith("/")
+    ? R2_PUBLIC_BASEURL
+    : R2_PUBLIC_BASEURL + "/";
+  return new URL(key.replace(/^\/+/, ""), base).toString();
+}
 
-    if (!filename || !contentType) {
-      return NextResponse.json({ error: "filename and contentType required" }, { status: 400 });
+/* ───────── POST /api/uploads/presign ───────── */
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json().catch(() => null)) as any;
+    // Handy to verify what's arriving in dev:
+    console.log("[uploads/presign] body:", body);
+
+    // Liberal alias handling
+    const filenameRaw =
+      body?.fileName ?? body?.filename ?? body?.name ?? "";
+    const contentTypeRaw =
+      body?.contentType ?? body?.content_type ?? body?.mime ?? body?.type ?? "";
+
+    // Clean filename; if absent, synthesize one
+    let filename = cleanName(filenameRaw);
+    if (!filename) filename = `upload-${crypto.randomUUID()}`;
+
+    // Ensure we have a contentType; if not, derive from extension (fallback to octet-stream)
+    let contentType = String(contentTypeRaw || "").trim();
+    const derivedExt = body?.ext && String(body.ext).startsWith(".") ? String(body.ext) : extOf(filename);
+    if (!contentType) {
+      // minimal map; extend if you need more
+      const map: Record<string, string> = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+        ".tif": "image/tiff",
+        ".tiff": "image/tiff",
+        ".pdf": "application/pdf",
+        ".ai": "application/postscript",
+        ".eps": "application/postscript",
+        ".psd": "image/vnd.adobe.photoshop",
+      };
+      contentType = map[derivedExt] || "application/octet-stream";
     }
 
-    const safeName = String(filename).replace(/[^\w.\-()+ ]+/g, "_");
-    const key = `${PREFIX}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+    // ✅ Do NOT 400 on naming differences anymore
+    // if (!filename || !contentType) { return j({ ok: false, error: "filename and contentType required" }, 400); }
 
-    // IMPORTANT: include ContentType in the command so the signature expects it
+    const meta = (body?.meta && typeof body.meta === "object") ? body.meta : {};
+    const isThumb = String(meta.kind || "").toLowerCase() === "thumb";
+
+    // Key layout: artwork/ or thumbs/ (Cloudflare CDN friendly)
+    const folder = isThumb ? "thumbs" : "artwork";
+    const key = `${folder}/${crypto.randomUUID()}${derivedExt || ""}`;
+
+    // Presign PUT to R2
     const cmd = new PutObjectCommand({
-      Bucket: BUCKET,
+      Bucket: R2_BUCKET,
       Key: key,
       ContentType: contentType,
-      // (Optional) you can add CacheControl, Metadata, etc.
-      // CacheControl: "private, max-age=31536000, immutable",
     });
+    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 15 * 60 });
 
-    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: EXPIRES });
-    const publicUrl = PUBLIC_BASE ? `${PUBLIC_BASE}/${key}` : uploadUrl; // fallback
+    const publicUrl = publicUrlFor(key);
 
-    return NextResponse.json({ uploadUrl, publicUrl, key });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "presign failed" }, { status: 500 });
+    return j({
+      ok: true,
+      key,
+      uploadUrl,
+      publicUrl,     // served via your Cloudflare CDN in front of R2
+      contentType,
+    });
+  } catch (err: any) {
+    console.error("[uploads/presign] error:", err?.message, err?.stack);
+    return j({ ok: false, error: err?.message || "presign failed" }, 500);
   }
 }

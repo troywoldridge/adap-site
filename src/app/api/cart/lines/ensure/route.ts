@@ -1,11 +1,42 @@
-import { NextResponse } from "next/server";
+// src/app/api/cart/lines/ensure/route.ts
+import "server-only";
+import crypto from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
-// ---------- utils ----------
+import { db } from "@/lib/db";
+import { carts } from "@/db/schema/cart";
+import { cartLines } from "@/db/schema/cartLines";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+/* ---------- cookie helpers ---------- */
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined; // e.g. ".adapnow.com"
+const COOKIE_OPTS = {
+  httpOnly: true as const,
+  sameSite: "lax" as const,
+  path: "/" as const,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 60 * 60 * 24 * 30,
+  domain: COOKIE_DOMAIN,
+};
+
+function attachSidCookie(res: NextResponse, sid: string) {
+  res.cookies.set("adap_sid", sid, COOKIE_OPTS);
+  res.cookies.set("sid", sid, COOKIE_OPTS);
+}
+
+async function readOrCreateSid(): Promise<{ sid: string; created: boolean }> {
+  const jar = await cookies();
+  const existing = jar.get("adap_sid")?.value ?? jar.get("sid")?.value;
+  if (existing) return { sid: existing, created: false };
+  return { sid: crypto.randomUUID(), created: true };
+}
+
 function toInt(u: unknown, fallback = 0) {
   const n = Number(u as any);
   return Number.isFinite(n) ? Math.trunc(n) : fallback;
@@ -14,13 +45,11 @@ function toInt(u: unknown, fallback = 0) {
 type EnsureInput = { productId: number; qty?: number };
 
 async function ensureCartIdForSid(sid: string): Promise<string> {
-  // find open cart
   const found = await db.query.carts.findFirst({
     where: and(eq(carts.sid, sid), eq(carts.status, "open")),
   });
   if (found?.id) return found.id;
 
-  // create new cart
   const [row] = await db
     .insert(carts)
     .values({ sid, status: "open" })
@@ -34,7 +63,7 @@ async function ensureLine(cartId: string, input: EnsureInput) {
   const qty = Math.max(1, toInt(input.qty, 1));
   if (!productId) return { ok: false as const, error: "Missing productId" };
 
-  // If you key lines by option chain/hash, include those columns in the where
+  // NOTE: if you key by option chain, include equality on those columns here.
   const existing = await db.query.cartLines.findFirst({
     where: and(eq(cartLines.cartId, cartId), eq(cartLines.productId, productId)),
   });
@@ -58,25 +87,8 @@ async function ensureLine(cartId: string, input: EnsureInput) {
   return { ok: true as const, lineId: inserted.id, quantity: inserted.quantity };
 }
 
-async function readOrCreateSid(): Promise<{ sid: string; created: boolean }> {
-  const jar = (await (typeof (cookies() as any)?.then === "function"
-    ? (cookies() as any)
-    : cookies())) as any;
-
-  const existing = jar.get?.("adap_sid")?.value ?? jar.get?.("sid")?.value;
-  if (existing) return { sid: existing, created: false };
-
-  return { sid: crypto.randomUUID(), created: true };
-}
-
-function attachSidCookie(res: NextResponse, sid: string) {
-  // set both keys for compatibility
-  res.cookies.set("adap_sid", sid, { httpOnly: true, sameSite: "lax", path: "/" });
-  res.cookies.set("sid", sid, { httpOnly: true, sameSite: "lax", path: "/" });
-}
-
-// ---------- handlers ----------
-export async function GET(req: Request) {
+/* ---------- handlers ---------- */
+export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const productId = toInt(url.searchParams.get("productId"));
@@ -86,16 +98,22 @@ export async function GET(req: Request) {
     const cartId = await ensureCartIdForSid(sid);
     const result = await ensureLine(cartId, { productId, qty });
 
-    const res = NextResponse.json(result, { status: result.ok ? 200 : 400 });
+    const res = NextResponse.json(result, {
+      status: result.ok ? 200 : 400,
+      headers: { "Cache-Control": "no-store" },
+    });
     if (created) attachSidCookie(res, sid);
     return res;
   } catch (err: any) {
-    console.error("[ensure GET] error:", err);
-    return NextResponse.json({ ok: false, error: "Server error creating line" }, { status: 500 });
+    console.error("[lines/ensure GET] error:", err);
+    return NextResponse.json(
+      { ok: false, error: "Server error creating line" },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = (await req.json().catch(() => ({}))) as Partial<EnsureInput>;
     const productId = toInt(body.productId);
@@ -105,11 +123,17 @@ export async function POST(req: Request) {
     const cartId = await ensureCartIdForSid(sid);
     const result = await ensureLine(cartId, { productId, qty });
 
-    const res = NextResponse.json(result, { status: result.ok ? 200 : 400 });
+    const res = NextResponse.json(result, {
+      status: result.ok ? 200 : 400,
+      headers: { "Cache-Control": "no-store" },
+    });
     if (created) attachSidCookie(res, sid);
     return res;
   } catch (err: any) {
-    console.error("[ensure POST] error:", err);
-    return NextResponse.json({ ok: false, error: "Server error creating line" }, { status: 500 });
+    console.error("[lines/ensure POST] error:", err);
+    return NextResponse.json(
+      { ok: false, error: "Server error creating line" },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }

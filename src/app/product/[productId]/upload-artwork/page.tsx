@@ -10,7 +10,7 @@ type Search = { lineId?: string; sides?: string; focusSide?: string };
 
 function coerceSides(v?: string) {
   const n = Number(v);
-  return Number.isFinite(n) && n > 0 && n <= 10 ? Math.floor(n) : 2; // default 2 sides
+  return Number.isFinite(n) && n > 0 && n <= 10 ? Math.floor(n) : 2;
 }
 
 export default async function UploadArtworkPage({
@@ -27,8 +27,7 @@ export default async function UploadArtworkPage({
     (sp.lineId && /^[a-zA-Z0-9_-]{2,64}$/.test(sp.lineId)
       ? sp.lineId
       : null) ||
-    (globalThis.crypto?.randomUUID?.() ??
-      Math.random().toString(36).slice(2));
+    (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
 
   const sides = coerceSides(sp.sides);
 
@@ -38,23 +37,16 @@ export default async function UploadArtworkPage({
         <ol className="flex flex-wrap items-center gap-1">
           <li><Link className="hover:underline" href="/">Home</Link></li>
           <li>/</li>
-          <li>
-            <Link className="hover:underline" href="/categories">
-              Products
-            </Link>
-          </li>
+          <li><Link className="hover:underline" href="/categories">Products</Link></li>
           <li>/</li>
-          <li aria-current="page" className="text-gray-900 font-medium">
-            Upload Artwork
-          </li>
+          <li aria-current="page" className="text-gray-900 font-medium">Upload Artwork</li>
         </ol>
       </nav>
 
       <h1 className="mb-4 text-2xl font-semibold">Upload Artwork</h1>
 
-      {/* Client component — pass only primitives */}
-      <ArtworkUploadBoxes lineId={lineId} sides={sides} />
+      {/* Pass productId so the client can ensure a real DB line if it wants */}
+      <ArtworkUploadBoxes lineId={lineId} sides={sides} productId={Number(productId)} />
     </main>
   );
 }
-
