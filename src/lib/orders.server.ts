@@ -1,6 +1,7 @@
 // src/lib/orders.server.ts
 import "server-only";
 import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
 
@@ -12,8 +13,6 @@ const STRIPE_KEY =
   (() => {
     throw new Error("Missing STRIPE_SECRET_KEY");
   })();
-
-const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-07-30.basil" });
 
 type ShippingSelection = {
   country?: "US" | "CA";

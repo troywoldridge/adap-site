@@ -1,184 +1,145 @@
 // src/app/api/cart/current/route.ts
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
-import crypto from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { and, eq, inArray } from "drizzle-orm";
-
+import { randomUUID } from "node:crypto";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartAttachments } from "@/db/schema/cartAttachments";
+import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 const COOKIE_OPTS = {
   httpOnly: true as const,
   sameSite: "lax" as const,
   path: "/" as const,
   secure: process.env.NODE_ENV === "production",
   maxAge: 60 * 60 * 24 * 30,
-  domain: COOKIE_DOMAIN,
 };
 
-function json(body: any, status = 200) {
-  return new NextResponse(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store, no-cache, must-revalidate, max-age=0",
-    },
-  });
+type CartRow = {
+  id: string;
+  sid: string;
+  status: string | null;
+  currency: string | null;
+  selectedShipping: any | null;
+  userId?: string | null;
+};
+
+async function findOpenCartBySid(sid: string): Promise<CartRow | null> {
+  const [row] =
+    (await db
+      .select({
+        id: carts.id,
+        sid: carts.sid,
+        status: carts.status,
+        currency: carts.currency,
+        selectedShipping: carts.selectedShipping,
+        userId: carts.userId as any,
+      })
+      .from(carts)
+      .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
+      .limit(1)) ?? [];
+  return (row as CartRow) ?? null;
 }
 
-async function readSid(): Promise<string | undefined> {
-  const jar = await cookies();
-  return jar.get("sid")?.value ?? jar.get("adap_sid")?.value;
-}
-function setSid(res: NextResponse, sid: string) {
-  res.cookies.set("sid", sid, COOKIE_OPTS);
-  res.cookies.set("adap_sid", sid, COOKIE_OPTS);
-}
+/**
+ * Create a brand-new cart with a **new SID**.
+ * Retries if extremely unlucky SID collision occurs (unique sid constraint).
+ */
+async function createCartWithNewSid(opts: { currency?: "USD" | "CAD"; userId?: string | null }) {
+  const currency = opts.currency ?? "USD";
+  const userId = opts.userId ?? null;
 
-export async function GET(req: NextRequest) {
-  const debug = /^(1|true)$/i.test(new URL(req.url).searchParams.get("debug") || "");
-
-  try {
-    // 1) Ensure session + open cart
-    let sid = await readSid();
-    if (!sid) sid = crypto.randomUUID();
-
-    let cart = await db.query.carts.findFirst({
-      where: and(eq(carts.sid, sid), eq(carts.status, "open")),
-      columns: { id: true, sid: true, status: true, currency: true, selectedShipping: true },
-    });
-
-    if (!cart) {
-      const [created] = await db
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const newSid = randomUUID();
+    try {
+      const [inserted] = await db
         .insert(carts)
-        .values({ sid, status: "open" })
+        .values({
+          sid: newSid,
+          status: "open" as any,
+          currency,
+          userId: userId as any,
+        })
         .returning({
           id: carts.id,
           sid: carts.sid,
           status: carts.status,
           currency: carts.currency,
           selectedShipping: carts.selectedShipping,
+          userId: carts.userId as any,
         });
-      cart = created;
+
+      return inserted as CartRow;
+    } catch (e: any) {
+      // If we ever hit a sid collision (extremely rare), try again.
+      if (String(e?.code) === "23505") continue;
+      throw e;
     }
+  }
+  throw new Error("could_not_create_cart_after_retries");
+}
 
-    // 2) Lines (include optionIds so shipping estimator has the option chain)
-    const lineRows = await db
-      .select({
-        id: cartLines.id,
-        productId: cartLines.productId,
-        quantity: cartLines.quantity as any,
-        unitPriceCents: (cartLines as any).unitPriceCents,   // may be null/undefined depending on schema
-        lineTotalCents: (cartLines as any).lineTotalCents,   // "
-        optionIds: (cartLines as any).optionIds,             // jsonb []
-        currency: (cartLines as any).currency,               // optional column
-      })
-      .from(cartLines)
-      .where(eq(cartLines.cartId, cart.id));
+/**
+ * Ensures an **open** cart exists for the current visitor.
+ * - If there’s an open cart for the current SID -> return it.
+ * - If SID exists but cart is closed (or not found) -> **rotate SID**, create a new cart, set cookie.
+ */
+async function getOrCreateOpenCart() {
+  const jar = await cookies();
+  const { userId } = await auth(); // may be null for guests
+  const currSid = jar.get("sid")?.value ?? jar.get("adap_sid")?.value ?? null;
 
-    const lines = (lineRows || []).map((r) => ({
-      id: String(r.id),
-      productId: Number(r.productId) || 0,
-      quantity: Number(r.quantity ?? 1),
-      unitPriceCents: typeof r.unitPriceCents === "number" ? r.unitPriceCents : null,
-      lineTotalCents: typeof r.lineTotalCents === "number" ? r.lineTotalCents : null,
-      optionIds: Array.isArray(r.optionIds)
-        ? r.optionIds.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
-        : [],
-      currency: (r.currency as "USD" | "CAD") ?? "USD",
-    }));
+  // 1) If we have a SID and an open cart, return it.
+  if (currSid) {
+    const open = await findOpenCartBySid(currSid);
+    if (open) return { cart: open, sidChanged: false, newSid: currSid };
+  }
 
-    // 3) Attachments grouped by lineId
-    const lineIds = lines.map((l) => l.id);
-    const attachments: Record<
-      string,
-      Array<{
-        id: string;
-        fileName: string;
-        key: string;
-        url: string;
-        thumbKey: string | null;
-        thumbUrl: string | null;
-        cfImageId: string | null;
-      }>
-    > = {};
-    for (const lid of lineIds) attachments[lid] = [];
+  // 2) Otherwise create a **new** cart with a fresh SID and set cookie
+  const newCart = await createCartWithNewSid({ currency: "USD", userId: userId ?? null });
+  return { cart: newCart, sidChanged: true, newSid: newCart.sid };
+}
 
-    if (lineIds.length > 0) {
-      const attRows = await db
-        .select({
-          id: cartAttachments.id,
-          lineId: cartAttachments.lineId,
-          fileName: cartAttachments.fileName,
-          key: cartAttachments.key,
-          url: cartAttachments.url,
-          thumbKey: cartAttachments.thumbKey,
-          thumbUrl: cartAttachments.thumbUrl,
-          cfImageId: cartAttachments.cfImageId,
-        })
-        .from(cartAttachments)
-        .where(inArray(cartAttachments.lineId, lineIds));
+function noStore(res: NextResponse) {
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  return res;
+}
 
-      for (const a of attRows) {
-        const lid = String(a.lineId);
-        if (!attachments[lid]) attachments[lid] = [];
-        attachments[lid].push({
-          id: String(a.id),
-          fileName: a.fileName,
-          key: a.key,
-          url: a.thumbUrl || a.url,
-          thumbKey: a.thumbKey ?? null,
-          thumbUrl: a.thumbUrl ?? null,
-          cfImageId: a.cfImageId ?? null,
-        });
-      }
-    }
+export async function GET() {
+  try {
+    const { cart, sidChanged, newSid } = await getOrCreateOpenCart();
 
-    const payload = {
+    const res = NextResponse.json({
       ok: true,
       cart: {
         id: cart.id,
         sid: cart.sid,
         status: cart.status,
-        currency: (cart as any).currency ?? "USD",
+        currency: cart.currency,
+        selectedShipping: cart.selectedShipping,
       },
-      lines,
-      attachments,
-      selectedShipping: (cart as any).selectedShipping ?? null,
-    };
+    });
 
-    const res = debug
-      ? new NextResponse(JSON.stringify(payload, null, 2), {
-          status: 200,
-          headers: { "content-type": "application/json; charset=utf-8" },
-        })
-      : json(payload);
+    // If we created a new cart, write the **new SID** cookie
+    if (sidChanged) {
+      res.cookies.set("sid", newSid, COOKIE_OPTS);
+      // legacy alias if you still read it anywhere:
+      res.cookies.set("adap_sid", newSid, COOKIE_OPTS);
+    }
 
-    setSid(res, sid);
-    return res;
+    return noStore(res);
   } catch (e: any) {
-    console.error("[/api/cart/current] failed:", e?.message, e?.stack);
-    const err = {
-      ok: false,
-      cart: null,
-      lines: [],
-      attachments: {},
-      selectedShipping: null,
-      error: e?.message || String(e),
-    };
-    return debug
-      ? new NextResponse(JSON.stringify(err, null, 2), {
-          status: 500,
-          headers: { "content-type": "application/json; charset=utf-8" },
-        })
-      : json(err, 500);
+    console.error("/api/cart/current GET failed:", e);
+    return noStore(
+      NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 }),
+    );
   }
 }
+
+/** Optionally support POST doing the exact same thing as GET (idempotent) */
+export const POST = GET;

@@ -1,20 +1,34 @@
-// src/app/checkout/complete/page.tsx
-import { Suspense } from "react";
-import CheckoutCompleteClient from "@/app/checkout/complete/CompleteClient";
+// src/app/checkout/success/ClearCartCookie.tsx
+"use client";
 
-export const viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
-  ],
-};
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+export default function ClearCartCookie() {
+  const router = useRouter();
 
-export default function CheckoutCompletePage() {
-  return (
-    <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading…</div>}>
-      <CheckoutCompleteClient />
-    </Suspense>
-  );
+  useEffect(() => {
+    let gone = false;
+
+    async function run() {
+      try {
+        await fetch("/api/cart/clear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        });
+      } catch {
+        // ignore; we still go to /account
+      } finally {
+        if (!gone) router.replace("/account");
+      }
+    }
+
+    run();
+    return () => {
+      gone = true;
+    };
+  }, [router]);
+
+  return null;
 }

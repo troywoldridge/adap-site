@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema";
 import { computePrice } from "@/lib/price/compute";
@@ -25,22 +25,41 @@ function noStore(res: NextResponse) {
   return res;
 }
 
-// Next 14 (sync) + Next 15 (async)
-async function getJar() {
-  const maybe = cookies() as any;
-  return typeof maybe?.then === "function" ? await maybe : maybe;
-}
-
 function sameArray(a: number[] = [], b: number[] = []) {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 }
 
+async function getOpenCartBySid(sid: string) {
+  const [row] =
+    (await db
+      .select({
+        id: carts.id,
+        sid: carts.sid,
+        status: carts.status,
+        currency: carts.currency,
+        selectedShipping: carts.selectedShipping,
+      })
+      .from(carts)
+      .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
+      .limit(1)) ?? [];
+  return row ?? null;
+}
+
+async function getAnyCartBySid(sid: string) {
+  const [row] =
+    (await db
+      .select({ id: carts.id, sid: carts.sid, status: carts.status })
+      .from(carts)
+      .where(eq(carts.sid, sid))
+      .limit(1)) ?? [];
+  return row ?? null;
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
 
-  // Accept both `quantity` and `qty`
   const productId = Number(body?.productId);
   const quantity = Math.max(1, Number(body?.quantity ?? body?.qty ?? 1) || 1);
   const store: "US" | "CA" = body?.store === "CA" ? "CA" : "US";
@@ -55,40 +74,77 @@ export async function POST(req: Request) {
     return noStore(NextResponse.json({ ok: false, error: "missing_optionIds" }, { status: 400 }));
   }
 
-  // ✅ Compute server-authoritative pricing (SinaLite cost ➜ tiered markup)
+  // ✅ Server-authoritative pricing per SinaLite API documentation
   const priced = await computePrice({ productId, store, quantity, optionIds });
 
-  // Get/choose SID
-  const jar = await getJar();
-  const cookieA = (jar.get?.("adap_sid")?.value ?? undefined) as string | undefined;
-  const cookieB = (jar.get?.("sid")?.value ?? undefined) as string | undefined;
-  const candidates: string[] = [cookieA, cookieB].filter(
-    (v): v is string => typeof v === "string" && v.length > 0,
-  );
+  // Read cookies
+  const jar = await cookies();
+  const cookieSid = jar.get("sid")?.value ?? jar.get("adap_sid")?.value ?? undefined;
 
-  // Prefer existing open cart for a candidate SID
-  let openCartSid: string | undefined;
-  for (const candidate of candidates) {
-    const c = await db.query.carts.findFirst({
-      where: and(eq(carts.sid, candidate), eq(carts.status, "open")),
-    });
-    if (c) { openCartSid = candidate; break; }
-  }
+  // Try to use the existing open cart for the cookie SID
+  let cart =
+    (cookieSid && (await getOpenCartBySid(cookieSid))) ||
+    null;
 
-  // ALWAYS end up with a plain string
-  const sid: string = openCartSid ?? cookieA ?? cookieB ?? crypto.randomUUID();
+  let sid = cart?.sid ?? cookieSid;
+  let sidChanged = false;
 
-  // Find or create cart (persist currency)
-  let cart = await db.query.carts.findFirst({
-    where: and(eq(carts.sid, sid), eq(carts.status, "open")),
-  });
   if (!cart) {
-    [cart] = await db.insert(carts).values({ sid, status: "open", currency: priced.currency }).returning();
+    // No open cart found. Prefer creating a cart with the SAME cookie SID (so we don't change cookies).
+    // If DB says that SID already exists (23505), fetch it; if it's closed, create with a new SID.
+    const trySid = sid ?? crypto.randomUUID();
+    try {
+      const [inserted] = await db
+        .insert(carts)
+        .values({ sid: trySid, status: "open" as any, currency: priced.currency })
+        .returning({
+          id: carts.id,
+          sid: carts.sid,
+          status: carts.status,
+          currency: carts.currency,
+          selectedShipping: carts.selectedShipping,
+        });
+      cart = inserted;
+      sid = inserted.sid;
+    } catch (e: any) {
+      if (String(e?.code) === "23505") {
+        // SID exists: if there's an OPEN cart, use it; if it's CLOSED, rotate to a new SID and create again
+        const open = await getOpenCartBySid(trySid);
+        if (open) {
+          cart = open;
+          sid = open.sid;
+        } else {
+          const any = await getAnyCartBySid(trySid);
+          if (any && any.status === "closed") {
+            // rotate
+            const newSid = crypto.randomUUID();
+            const [inserted2] = await db
+              .insert(carts)
+              .values({ sid: newSid, status: "open" as any, currency: priced.currency })
+              .returning({
+                id: carts.id,
+                sid: carts.sid,
+                status: carts.status,
+                currency: carts.currency,
+                selectedShipping: carts.selectedShipping,
+              });
+            cart = inserted2;
+            sid = inserted2.sid;
+            sidChanged = true;
+          } else {
+            throw e;
+          }
+        }
+      } else {
+        throw e;
+      }
+    }
   } else if (!cart.currency) {
     await db.update(carts).set({ currency: priced.currency }).where(eq(carts.id, cart.id));
+    cart.currency = priced.currency;
   }
 
-  // Merge behavior (same productId + optionIds → bump quantity)
+  // Merge: same product + same optionIds => bump quantity
   const existing = await db
     .select()
     .from(cartLines)
@@ -107,8 +163,8 @@ export async function POST(req: Request) {
       .set({
         quantity: newQty,
         currency: priced.currency,
-        unitPriceCents: priced.unitSellCents,                 // SELL (per-each)
-        lineTotalCents: priced.unitSellCents * newQty,        // keep subtotal in sync
+        unitPriceCents: priced.unitSellCents,
+        lineTotalCents: priced.unitSellCents * newQty,
         updatedAt: new Date(),
       })
       .where(eq(cartLines.id, match.id))
@@ -120,24 +176,29 @@ export async function POST(req: Request) {
         cartId: cart.id,
         productId: Number(productId),
         quantity,
-        optionIds: optionIds as any,                          // json/int[] per your schema
+        optionIds: optionIds as any, // json/int[] per your schema
         currency: priced.currency,
-        unitPriceCents: priced.unitSellCents,                 // SELL (per-each)
-        lineTotalCents: priced.unitSellCents * quantity,      // subtotal snapshot
+        unitPriceCents: priced.unitSellCents,
+        lineTotalCents: priced.unitSellCents * quantity,
         artwork: {},
       })
       .returning();
   }
 
-  // ✅ Build the FINAL response first, THEN set cookies
+  // Response
   const res = NextResponse.json({
     ok: true,
     merged,
     cartId: cart.id,
-    lineId: line.id, // for the upload page
+    lineId: line.id,
     line,
   });
-  res.cookies.set("adap_sid", sid, COOKIE_OPTS);
-  res.cookies.set("sid", sid, COOKIE_OPTS);
+
+  // If we created a cart or rotated SID, ensure the browser has the correct SID.
+  if (!cookieSid || sidChanged || cookieSid !== sid) {
+    res.cookies.set("sid", sid!, COOKIE_OPTS);
+    res.cookies.set("adap_sid", sid!, COOKIE_OPTS);
+  }
+
   return noStore(res);
 }

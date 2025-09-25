@@ -1,65 +1,62 @@
 // src/app/api/loyalty/wallet/route.ts
 import "server-only";
-import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
-
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { customers } from "@/db/schema/customer";
-// If your loyaltyWallets live in a different file, change this import accordingly:
-import { loyaltyWallets } from "@/db/schema/loyalty";
+import { eq } from "drizzle-orm";
+import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty"; // adjust if needed
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(_req: NextRequest) {
-  // ✅ must await
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  // Clerk email (needed because customers.email is required in your schema)
-  const user = await currentUser().catch(() => null);
-  const email =
-    user?.primaryEmailAddress?.emailAddress ||
-    user?.emailAddresses?.[0]?.emailAddress ||
-    null;
-
-  // Find or create the customer row by Clerk user id
-  let cust =
-    (await db.query.customers.findFirst({
-      where: eq(customers.clerkUserId, userId),
-    })) || null;
-
-  if (!cust) {
-    if (!email) {
-      // If email is required by your schema, fail loudly when we don’t have one
-      return NextResponse.json({ ok: false, error: "no_email" }, { status: 400 });
+export async function GET() {
+  try {
+    const { userId } = await auth(); // ✅ fix: await
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }
-    [cust] = await db
-      .insert(customers)
-      .values({ clerkUserId: userId, email })
-      .returning();
-  } else if (!cust.email && email) {
-    // Backfill email if it was missing
-    await db.update(customers).set({ email }).where(eq(customers.id, cust.id));
-    cust.email = email;
-  }
 
-  // Find or create the loyalty wallet for this customer
-  let wallet =
-    (await db.query.loyaltyWallets.findFirst({
-      where: eq(loyaltyWallets.customerId, cust.id),
-    })) || null;
-
-  if (!wallet) {
-    [wallet] = await db
+    await db
       .insert(loyaltyWallets)
-      .values({ customerId: cust.id, pointsBalance: 0 })
-      .returning();
-  }
+      .values({
+        customerId: userId as any,
+        pointsBalance: 0,
+        lifetimeEarned: 0,
+        lifetimeRedeemed: 0,
+      })
+      .onConflictDoNothing();
 
-  return NextResponse.json({ ok: true, balance: wallet.pointsBalance ?? 0 });
+    const [wallet] =
+      (await db
+        .select({
+          id: loyaltyWallets.id,
+          customerId: loyaltyWallets.customerId,
+          pointsBalance: loyaltyWallets.pointsBalance,
+          lifetimeEarned: loyaltyWallets.lifetimeEarned,
+          lifetimeRedeemed: loyaltyWallets.lifetimeRedeemed,
+          createdAt: loyaltyWallets.createdAt,
+          updatedAt: loyaltyWallets.updatedAt,
+        })
+        .from(loyaltyWallets)
+        .where(eq(loyaltyWallets.customerId, userId as any))
+        .limit(1)) ?? [];
+
+    const points = Number(wallet?.pointsBalance ?? 0);
+    const tier =
+      points >= 5000 ? "Diamond" : points >= 2500 ? "Gold" : points >= 1000 ? "Silver" : "Bronze";
+
+    const history =
+      (await db
+        .select()
+        .from(loyaltyTransactions)
+        .where(eq(loyaltyTransactions.customerId, userId as any))
+        .orderBy(loyaltyTransactions.createdAt)
+        .limit(50)) ?? [];
+
+    return NextResponse.json({ ok: true, wallet: wallet ?? null, tier, history });
+  } catch (e: any) {
+    console.error("/api/loyalty/wallet GET failed:", e);
+    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
+  }
 }

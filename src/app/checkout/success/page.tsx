@@ -1,33 +1,42 @@
-// src/app/checkout/success/page.tsx
-import "server-only";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { stripe } from "@/lib/stripe";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default async function SuccessPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ session_id?: string }>;
-}) {
-  const { session_id } = await searchParams;
+export default function SuccessPage() {
+  const sp = useSearchParams();
+  const router = useRouter();
+  const [msg, setMsg] = useState("Finalizing your order…");
 
-  // If no session, just land them on Account
-  if (!session_id) {
-    redirect("/account?paid=1");
-  }
+  useEffect(() => {
+    const session_id = sp.get("session_id") || "";
+    if (!session_id) {
+      setMsg("Missing session — sending you to your account…");
+      const t = setTimeout(() => router.replace("/account"), 1200);
+      return () => clearTimeout(t);
+    }
 
-  // Best-effort verify the Checkout Session is paid
-  const session = await stripe.checkout.sessions.retrieve(session_id, {
-    expand: ["payment_intent"],
-  });
+    (async () => {
+      try {
+        const r = await fetch(`/api/checkout/finalize?session_id=${encodeURIComponent(session_id)}`, { cache: "no-store" });
+        const j = await r.json();
+        if (j.ok) {
+          setMsg("Done! Redirecting to your account…");
+          router.replace(j.redirect || "/account");
+        } else {
+          setMsg("Order finalized, opening your account…");
+          router.replace("/account");
+        }
+      } catch {
+        router.replace("/account");
+      }
+    })();
+  }, [sp, router]);
 
-  if (session.payment_status !== "paid") {
-    // If user reloaded or something odd, send them back safely
-    redirect("/cart/review?canceled=1");
-  }
-  
-  // Head to My Account (your account page will show the latest order)
-  redirect("/account?paid=1");
+  return (
+    <main style={{ maxWidth: 680, margin: "40px auto", padding: "0 16px" }}>
+      <h1>Thanks for your order! 🎉</h1>
+      <p>{msg}</p>
+    </main>
+  );
 }

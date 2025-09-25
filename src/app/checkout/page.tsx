@@ -1,18 +1,24 @@
+// src/app/checkout/page.tsx
 import "server-only";
+import type { Metadata } from "next";
 import { headers, cookies } from "next/headers";
-import Link from "next/link";
 import CheckoutPaymentElement from "@/components/CheckoutPaymentElement"; // client component
 
 import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
-
-// ✅ NEW: get applied loyalty credits (in cents) for this cart
 import { getCartCreditsCents } from "@/lib/cartCredits";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "Secure Checkout • American Design And Printing",
+  description:
+    "Complete your purchase securely. Totals are computed server-side (subtotal + shipping + tax − loyalty credits) per Sinalite API documentation.",
+  robots: { index: false, follow: false },
+};
 
 /* -------------------------- Helpers -------------------------- */
 
@@ -70,13 +76,13 @@ async function loadCartSummary() {
   const subtotal = subtotalCents / 100;
 
   const shipping = Number(cartRow.selectedShipping?.cost ?? 0);
-  const tax = 0; // Insert your tax calc here when ready
+  const tax = 0; // Hook up tax calc here when ready
 
-  // ✅ Loyalty credits (in cents -> dollars)
+  // Loyalty credits (in cents -> dollars)
   const creditsCents = await getCartCreditsCents(cartRow.id);
   const credits = Math.max(0, creditsCents / 100);
 
-  // ✅ Final total never below zero
+  // Final total never below zero
   const total = Math.max(0, subtotal + shipping + tax - credits);
 
   return {
@@ -101,30 +107,8 @@ export default async function CheckoutPage() {
   const jar = await cookies();
   const cookieHeader = jar.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
 
-  // 🔢 Load cart summary for UI (and to sanity-check)
+  // Load cart summary for UI (and to sanity-check)
   const summary = await loadCartSummary();
-
-  // ask your API to create a PaymentIntent and return client_secret
-  // IMPORTANT: your /api/create-payment-intent route should compute the chargeable amount
-  // FROM THE SERVER using the same cart math (subtotal - credits + shipping + tax),
-  // not from the client, to avoid tampering.
-  const res = await fetch(`${origin}/api/create-payment-intent`, {
-    method: "POST",
-    headers: { cookie: cookieHeader, accept: "application/json" },
-    cache: "no-store",
-  });
-
-  let clientSecret = "";
-  if (res.ok) {
-    try {
-      const data = await res.json();
-      clientSecret = data?.clientSecret || "";
-    } catch {
-      // fall through
-    }
-  }
-
-  const hasPk = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
   // Graceful empty-cart UI
   if (!summary) {
@@ -145,6 +129,27 @@ export default async function CheckoutPage() {
   }
 
   const { subtotal, shipping, tax, creditsCents, credits, total, currency, shippingMeta } = summary;
+
+  // Ask your API to create a PaymentIntent and return client_secret.
+  // IMPORTANT: /api/create-payment-intent must compute:
+  // subtotal + shipping + tax − loyalty credits, on the SERVER, per Sinalite API documentation.
+  const res = await fetch(`${origin}/api/create-payment-intent`, {
+    method: "POST",
+    headers: { cookie: cookieHeader, accept: "application/json" },
+    cache: "no-store",
+  });
+
+  let clientSecret = "";
+  if (res.ok) {
+    try {
+      const data = await res.json();
+      clientSecret = data?.clientSecret || "";
+    } catch {
+      // fall through
+    }
+  }
+
+  const hasPk = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
   return (
     <main className="mx-auto grid min-h-[70vh] max-w-5xl grid-cols-1 gap-8 px-4 py-10 md:grid-cols-[1.2fr_0.8fr]">
@@ -186,7 +191,6 @@ export default async function CheckoutPage() {
             Shipping
             {shippingMeta?.method ? ` — ${shippingMeta.method}` : " (estimated)"}
           </span>
-        {/* cost already in dollars */}
           <span>{moneyFmt(shipping, currency)}</span>
         </div>
 
@@ -195,7 +199,7 @@ export default async function CheckoutPage() {
           <span>{moneyFmt(tax, currency)}</span>
         </div>
 
-        {/* ✅ Loyalty credit shown as negative amount */}
+        {/* Loyalty credit shown as negative amount */}
         {creditsCents > 0 && (
           <div className="flex items-center justify-between py-2 text-sm">
             <span className="text-gray-700">Loyalty credit</span>
@@ -211,10 +215,10 @@ export default async function CheckoutPage() {
         </div>
 
         <p className="mt-2 text-xs text-gray-500">
-          Your payment intent amount should match this total. Ensure your
-          <code className="mx-1 rounded bg-white px-1 py-0.5">/api/create-payment-intent</code>
-          uses server-side math: <em>subtotal + shipping + tax − loyalty credits</em>.
-          (Keep your earning/redeeming rules aligned with the <strong>SinaLite API documentation</strong>.)
+          Your PaymentIntent amount should match this total. Ensure{" "}
+          <code className="mx-1 rounded bg-white px-1 py-0.5">/api/create-payment-intent</code>{" "}
+          uses server-side math: <em>subtotal + shipping + tax − loyalty credits</em> (aligned with the{" "}
+          <strong>SinaLite API documentation</strong>).
         </p>
       </aside>
     </main>

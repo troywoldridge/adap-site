@@ -1,10 +1,24 @@
+// src/lib/stripe.ts
 import Stripe from "stripe";
 
-const secret = process.env.STRIPE_SECRET_KEY!;
-if (!secret) throw new Error("Missing STRIPE_SECRET_KEY");
+/** Required secret (fail fast if missing) */
+const secret =
+  process.env.STRIPE_SECRET_KEY ??
+  (() => {
+    throw new Error("Missing STRIPE_SECRET_KEY");
+  })();
 
-const envVersion = process.env.STRIPE_API_VERSION; // e.g. 2025-08-27.basil
-const cfg: Stripe.StripeConfig = {};
-if (envVersion) (cfg as any).apiVersion = envVersion as any; // allow codename
+/**
+ * We allow the full dashboard version (e.g. "2025-08-27.basil").
+ * Stripe’s types are conservative; cast once here so app code stays clean.
+ */
+const API_VERSION = (process.env.STRIPE_API_VERSION || "2025-08-27.basil").trim();
+
+const cfg: Stripe.StripeConfig = {
+  // @ts-expect-error Accept dashboard qualifier like ".basil"
+  apiVersion: API_VERSION,
+};
 
 export const stripe = new Stripe(secret, cfg);
+/** Re-export types for convenience */
+export type { Stripe };
