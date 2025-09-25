@@ -64,6 +64,7 @@ type ApiCurrent = {
     unitPriceCents?: number | null;    // cents, optional
     lineTotalCents?: number | null;    // cents, optional
     optionChain?: string | null;
+    optionIds?: number[] | null;       // <-- NEW: carry option ids from server
   }>;
   // attachments keyed by lineId
   attachments: Record<string, Array<{ id: string; fileName: string; url?: string | null; key?: string | null; cfImageId?: string | null }>>;
@@ -163,15 +164,16 @@ export default function CartPageClient({ initialItems, currency, store, initialS
   );
 
   // Minimal lines to feed shipping estimator
-  const miniLines = useMemo(
+const miniLines = useMemo(
   () =>
     (items || []).map((it) => ({
       productId: it.productId,
-      optionIds: it.optionIds || [],
-      qty: it.quantity || 1,           // ← changed from `quantity` to `qty`
+      optionIds: Array.isArray(it.optionIds) ? it.optionIds : [],
+      qty: it.quantity || 1,           // ← use `qty` (what CartSummary expects)
     })),
   [items],
 );
+
 
   /** Try to load enriched cart from /api/cart/current first:
    *  Expecting fields:
@@ -193,10 +195,10 @@ export default function CartPageClient({ initialItems, currency, store, initialS
           return {
             id: String(ln.id),
             productId: Number(ln.productId),
-            name: ln.productName ?? null,                         // ✅ product name from server
-            optionIds: [],                                        // (if you want, parse ln.optionChain into ids array)
+            name: ln.productName ?? null,
+            optionIds: Array.isArray(ln.optionIds) ? ln.optionIds : [], // <-- FIXED: keep server optionIds
             quantity: Number(ln.quantity || 1),
-            cloudflareImageId: ln.productCfImageId ?? null,       // product image
+            cloudflareImageId: ln.productCfImageId ?? null,
             serverUnitPrice: unitDollars,
           };
         });

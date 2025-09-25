@@ -2,6 +2,7 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { stripe } from "@/lib/stripe"; // ✅ use centralized client
 
 import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
@@ -15,20 +16,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /* ------------------------- Strict envs ------------------------- */
-const STRIPE_KEY: string =
-  process.env.STRIPE_SECRET_KEY ??
-  (() => {
-    throw new Error("Missing STRIPE_SECRET_KEY");
-  })();
-
 const STRIPE_WEBHOOK_SECRET: string =
   process.env.STRIPE_WEBHOOK_SECRET ??
   (() => {
     throw new Error("Missing STRIPE_WEBHOOK_SECRET");
   })();
 
-/** Keep your chosen version (unchanged) */
-const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-07-30.basil" });
+/* --------------------- Helpers: cart & totals ------------------- */
+// ... (no changes to your helper fns)
 
 /* --------------------- Helpers: cart & totals ------------------- */
 async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | null }) {

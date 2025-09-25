@@ -1,7 +1,6 @@
 // src/app/api/webhooks/stripe/route.ts
 import { NextResponse } from "next/server";
-import stripe from "@/lib/stripe";
-import type Stripe from "stripe";
+import { Stripe } from "stripe"
 import { db } from "@/lib/db";
 
 // If your `orders` table is exported from a different module, adjust this import:
@@ -17,7 +16,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = Stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
     return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
