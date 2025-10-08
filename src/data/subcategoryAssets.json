@@ -8,13 +8,14 @@
     "qa_has_image": true
   },
   {
-    "id": 2,
-    "category_id": null,
-    "name": "Specialty_Business_cards",
-    "cf_image_id": "2e1a8c28-be09-49f9-1fbc-4b4866bffa00",
-    "category_slug": null,
-    "qa_has_image": true
-  },
+  "id": 2,
+  "category_id": null,
+  "name": "Specialty Business Cards",
+  "cf_image_id": "2e1a8c28-be09-49f9-1fbc-4b4866bffa00",
+  "category_slug": null,
+  "qa_has_image": true
+},
+
   {
     "id": 3,
     "category_id": null,
