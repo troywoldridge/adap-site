@@ -12,7 +12,7 @@
     "dev": "node scripts/checkEnv.mjs && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next start -p 3000 -H 127.0.0.1",
     "seed:subcategories": "pnpm exec ts-node --esm scripts/seed-subcategories.ts",
     "generate:migrations": "pnpm drizzle-kit generate",
     "push:schema": "pnpm drizzle-kit push",
