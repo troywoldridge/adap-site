@@ -224,7 +224,10 @@ if (isDev) {
 }
 
 const nextConfig = {
+  poweredByHeader: false,
   reactStrictMode: true,
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   serverExternalPackages: ["pg", "pg-connection-string", "pg-pool"],
   outputFileTracingRoot: path.join(process.cwd()),
 

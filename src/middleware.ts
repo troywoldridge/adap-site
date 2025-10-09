@@ -2,7 +2,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Public pages & APIs
+// Public pages & APIs (everything here bypasses auth)
 const isPublic = createRouteMatcher([
   "/",
   "/products(.*)",
@@ -29,18 +29,18 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.redirect(to, 301);
   }
 
-  // Never intercept Stripe webhooks
+  // ✅ Never intercept Stripe webhooks
   if (url.pathname.startsWith("/api/webhooks/stripe")) {
     return NextResponse.next();
   }
 
-  // Pretty product URLs: /product/123-some-slug → internally render /product/123
+  // ✅ Pretty product URLs:
   const m = url.pathname.match(/^\/product\/(\d+)-/);
-  if (m) {
-    const to = url.clone();
-    to.pathname = `/product/${m[1]}`;
-    return NextResponse.rewrite(to);
-  }
+if (m) {
+  // ✅ pass a RELATIVE path; this guarantees same-origin and avoids any localhost leaks
+  const relative = `/product/${m[1]}${url.search || ""}`;
+  return NextResponse.rewrite(relative);
+}
 
   // Public routes go straight through; everything else requires auth
   if (isPublic(req)) {

@@ -131,10 +131,7 @@ export async function POST(req: NextRequest) {
         ];
       }
 
-      const base =
-        process.env.NEXT_PUBLIC_BASE_URL ||
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        "http://localhost:3000";
+      const base = (process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://adapnow.com").replace(/\/+$/, "");
 
       const checkout = await stripe.checkout.sessions.create({
         mode: "payment",

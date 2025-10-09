@@ -2,7 +2,8 @@
 import type { Metadata } from "next";
 import { cfUrl } from "@/lib/data";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "http://localhost:3000";
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "https://adapnow.com").replace(/\/+$/, "");
+export default SITE;
 const STORE = process.env.NEXT_PUBLIC_STORE_CODE || "en_us";
 const CURRENCY = STORE.toLowerCase().includes("us") ? "USD" : "CAD";
 

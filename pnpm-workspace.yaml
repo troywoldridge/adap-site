@@ -1,3 +1,5 @@
+ignoreScripts: true
+
 onlyBuiltDependencies:
   - '@clerk/shared'
   - esbuild
