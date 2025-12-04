@@ -48,3 +48,8 @@ table_data/sinalite_categorized_export/**/*.json filter=lfs diff=lfs merge=lfs -
 tools/stripe/*
 !tools/stripe/.keep
 
+# Local dev env
+.dev.vars
+
+# OpenNext build artifacts
+.open-next/
