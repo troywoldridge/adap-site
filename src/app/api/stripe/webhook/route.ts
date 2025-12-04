@@ -10,6 +10,7 @@ import { cartLines } from "@/db/schema/cartLines";
 import { cartCredits } from "@/db/schema/cartCredits";
 import { orders } from "@/db/schema/orders";
 import { getCartCreditsCents } from "@/lib/cartCredits";
+import { calculateTaxCents } from "./tax";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,11 +73,14 @@ async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | n
 }
 
 /** Compute cents from cart rows on the server (authoritative). */
-async function computeCartTotalsCents(cartRow: {
-  id: string;
-  currency: "USD" | "CAD" | string | null;
-  selectedShipping: { cost?: number | string | null } | null;
-}) {
+async function computeCartTotalsCents(
+  cartRow: {
+    id: string;
+    currency: "USD" | "CAD" | string | null;
+    selectedShipping: { cost?: number | string | null } | null;
+  },
+  opts: { stripeTotalCents?: number | null } = {},
+) {
   const rows = await db
     .select({
       quantity: cartLines.quantity,
@@ -94,8 +98,15 @@ async function computeCartTotalsCents(cartRow: {
   }, 0);
 
   const shipCents = Math.round(Number(cartRow?.selectedShipping?.cost ?? 0) * 100) || 0;
-  const taxCents = 0; // TODO: hook up tax when ready
   const creditsCents = await getCartCreditsCents(cartRow.id);
+
+  const { taxCents } = calculateTaxCents({
+    subtotalCents,
+    shippingCents: shipCents,
+    creditsCents,
+    location: (cartRow as any)?.selectedShipping ?? null,
+    stripeTotalCents: opts.stripeTotalCents ?? null,
+  });
 
   const totalCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
 
@@ -115,6 +126,7 @@ async function finalizePaidOrderFromCartRef(args: {
   sessionId?: string | null;
   sid?: string | null;
   cartId?: string | null;
+  stripeTotalCents?: number | null;
 }) {
   const { piId, cartId, sid } = args;
 
@@ -147,7 +159,7 @@ async function finalizePaidOrderFromCartRef(args: {
 
   // 4) Recompute totals (authoritative)
   const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
-    await computeCartTotalsCents(cart);
+    await computeCartTotalsCents(cart, { stripeTotalCents: args.stripeTotalCents ?? null });
 
   // 5) Insert order & close cart + clear credits (transaction)
   const result = await db.transaction(async (tx) => {
@@ -209,7 +221,19 @@ export async function POST(req: NextRequest) {
         const pi = event.data.object as Stripe.PaymentIntent;
         const sid = pi.metadata?.sid ?? null;
         const cartId = pi.metadata?.cartId ?? null;
-        await finalizePaidOrderFromCartRef({ piId: pi.id, sid, cartId });
+        const amountReceivedCents =
+          typeof pi.amount_received === "number" && pi.amount_received > 0
+            ? pi.amount_received
+            : typeof pi.amount === "number"
+              ? pi.amount
+              : null;
+
+        await finalizePaidOrderFromCartRef({
+          piId: pi.id,
+          sid,
+          cartId,
+          stripeTotalCents: amountReceivedCents,
+        });
         return NextResponse.json({ ok: true });
       }
 
@@ -224,11 +248,17 @@ export async function POST(req: NextRequest) {
             ? session.payment_intent
             : (session.payment_intent as any)?.id ?? null;
 
+        const amountTotalCents =
+          typeof (session as any)?.amount_total === "number"
+            ? (session as any).amount_total
+            : null;
+
         await finalizePaidOrderFromCartRef({
           piId: piId ?? null,
           sessionId: session.id,
           sid,
           cartId,
+          stripeTotalCents: amountTotalCents,
         });
 
         return NextResponse.json({ ok: true });
