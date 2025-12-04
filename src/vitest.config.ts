@@ -7,9 +7,9 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    setupFiles: "./vitest.setup.ts",
+    setupFiles: "src/vitest.setup.ts",
     // 🔒 limit discovery to our tests only
-    include: ["src/lib/price/**/*.test.ts"],
+    include: ["src/**/*.test.ts"],
     // 🧹 over-explicit excludes so nothing leaks in
     exclude: [
       "**/node_modules/**",

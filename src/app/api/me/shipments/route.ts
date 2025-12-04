@@ -19,6 +19,20 @@ type Shipment = {
   events?: { time: string; description: string; location?: string }[];
 };
 
+const mapShipment = (s: any): Shipment => ({
+  carrier: s?.carrier ?? s?.provider ?? "Unknown",
+  trackingNumber: s?.trackingNumber ?? s?.tracking_number ?? s?.tracking ?? "",
+  status: s?.status ?? s?.currentStatus ?? "",
+  eta: s?.eta ?? s?.estimatedDelivery ?? s?.estimated_arrival ?? null,
+  events: Array.isArray(s?.events)
+    ? s.events.map((e: any) => ({
+        time: e?.time ?? e?.timestamp ?? e?.date ?? "",
+        description: e?.description ?? e?.status ?? "",
+        ...(e?.location ? { location: e.location } : {}),
+      }))
+    : undefined,
+});
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -43,27 +57,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
 
-    // 🔗 TODO: Wire to your SinaLite proxy per the SinaLite API documentation.
-    // Example shape:
-    // const res = await fetch(`${process.env.INTERNAL_API_BASE}/sinalite/orders/${o.providerId}/shipments`, { headers: {...} });
-    // const data = await res.json();
-    // Transform to Shipment[] and return.
+    const shipments: Shipment[] = [];
 
-    // For now, return a friendly fake if none available:
-    const shipments: Shipment[] = o.provider === "sinalite"
-      ? [
-          {
-            carrier: "UPS",
-            trackingNumber: "1Z999AA10123456784",
-            status: "In transit",
-            eta: new Date(Date.now() + 3 * 86400e3).toLocaleDateString(),
-            events: [
-              { time: new Date(Date.now() - 86400e3).toISOString(), description: "Departed facility", location: "Mississauga, ON" },
-              { time: new Date(Date.now() - 2 * 86400e3).toISOString(), description: "Label created", location: "Toronto, ON" },
-            ],
+    if (o.provider === "sinalite" && o.providerId) {
+      if (!process.env.INTERNAL_API_BASE) {
+        throw new Error("Missing env: INTERNAL_API_BASE");
+      }
+
+      const upstream = await fetch(
+        `${process.env.INTERNAL_API_BASE}/sinalite/orders/${encodeURIComponent(o.providerId)}/shipments`,
+        {
+          cache: "no-store",
+          headers: {
+            ...(req.headers.get("authorization")
+              ? { Authorization: req.headers.get("authorization") as string }
+              : {}),
+            ...(req.headers.get("cookie") ? { Cookie: req.headers.get("cookie") as string } : {}),
           },
-        ]
-      : [];
+        },
+      );
+
+      if (!upstream.ok) {
+        throw new Error(`failed_to_fetch_shipments:${upstream.status}`);
+      }
+
+      const payload = await upstream.json();
+      const rawShipments = Array.isArray((payload as any)?.shipments)
+        ? (payload as any).shipments
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      shipments.push(...rawShipments.map(mapShipment));
+    }
 
     return NextResponse.json({ ok: true, shipments });
   } catch (e: any) {
