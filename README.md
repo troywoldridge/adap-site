@@ -2,103 +2,33 @@
 
 This repository contains the ADAP storefront built on Next.js with a Postgres backend managed through Drizzle. It integrates Clerk for authentication and Stripe for payments so contributors can finish the site without digging through the codebase.
 
-# ADAP-SITE Documentation & Engineering Guide
+## ADAP-SITE Documentation & Engineering Guide
 
-This repository is optimized for both **human developers** and **AI engineering agents**.  
-It includes end-to-end testing tools, agent instructions, refactor rules, and architecture conventions.
+This repository is optimized for both **human developers** and **AI engineering agents**. It includes end-to-end testing tools, agent instructions, refactor rules, and architecture conventions.
 
 Below are essential links and instructions for working inside this codebase.
 
 ---
 
-# 🚀 AI Agent Documentation
+## 🚀 AI Agent Documentation
 
 This repo includes three agent control files:
 
-### ▸ [`agent.md`](./agent.md)
-
-Master specification for the ADAP Engineering Agent  
-Includes:
-
-- Allowed scope  
-- Boundaries  
-- Full architecture overview  
-- Cloudflare / Stripe / Sinalite rules  
-- Testing rules  
-- Deployment rules  
-- Behavior expectations  
-
-### ▸ [`agent-instructions.md`](./agent-instructions.md)
-
-AI refactor and code-modification guidelines.  
-Includes:
-
-- How to safely refactor  
-- How to extract modules  
-- How to restructure files  
-- Safe-file replacement template  
-- Decision matrix for refactor depth  
-
-### ▸ [`workspace/agent-profile.json`](./workspace/agent-profile.json)
-
-Machine-readable profile for GitHub Copilot Agents & other workspace-aware tools.
-
-### ▸ [`/.github/AGENT_GUIDE.md`](./.github/AGENT_GUIDE.md)
-
-High-level agent guide for all GitHub-based automation.
+- [`agent.md`](./agent.md): Master specification for the ADAP Engineering Agent, including scope, architecture overview, integrations, testing rules, deployment rules, and behavior expectations.
+- [`agent-instructions.md`](./agent-instructions.md): Refactor and code-modification guidelines, including safe refactor patterns and a behavior-preserving template.
+- [`workspace/agent-profile.json`](./workspace/agent-profile.json): Machine-readable profile for GitHub Copilot Agents and other workspace-aware tools.
+- [`.github/AGENT_GUIDE.md`](./.github/AGENT_GUIDE.md): High-level agent guide for GitHub-based automation.
 
 ---
 
 ## 🧰 Development Commands
 
-These commands are used during normal development.
-   -pnpm install
+Common commands used during normal development:
 
-## Install dependencies
+- Install dependencies: `pnpm install`
+- Start the app: `pnpm dev` (after environment variables are configured)
 
-```bash
-pnpm install
-
-## AI Agents & Automation
-
-This repository is AI-agent–friendly and includes configuration for autonomous or semi-autonomous coding assistants.
-
-- [`agent.md`](./agent.md) – Master spec for the **ADAP Engineering Agent**.  
-  - Defines permissions, boundaries, architecture overview, and expectations for any agent working on this codebase.
-  - Covers Next.js, Drizzle ORM, PostgreSQL, Cloudflare (Images/R2), Stripe, Clerk, and Sinalite integration (per the official Sinalite API documentation).
-- [`agent-instructions.md`](./agent-instructions.md) – Focused guidelines for **AI-powered refactors**.  
-  - How agents should clean up code, extract services, add tests, and restructure modules **without changing behavior** unless explicitly requested.
-- [`workspace/agent-profile.json`](./workspace/agent-profile.json) – Profile for tools like GitHub Copilot Agents or other workspace-aware assistants.  
-  - Declares stack, conventions, and what the agent is allowed to do (code editing, test generation, refactoring, documentation, DB design, DevOps suggestions).
-
-If you’re using an AI assistant:
-
-1. Point it at `agent.md` and `agent-instructions.md` first so it understands the project rules.
-2. Let it read `workspace/agent-profile.json` for stack and capability hints.
-3. Ask it to always:
-   - Follow existing patterns and conventions.
-   - Respect security and production data.
-   - Add or update tests when changing core behavior.
-
--
-
-## Tests & Commands
-
-This project includes a fully automated test suite covering:
-
-- Unit tests (Vitest)
-- Integration tests (Vitest)
-- End-to-end tests (Playwright)
-- Accessibility checks (Axe)
-- API route tests
-- Category/subcategory navigation (catalog)
-- Pricing and checkout correctness
-- Admin panel behavior
-
-### Install Dependencies
-
-```bash
-pnpm install
+---
 
 ## Project Purpose
 
@@ -129,9 +59,9 @@ Create `.env.local` (dev) or host-level variables (prod). Key values include:
 - **Search/Redis (optional)**: `NEXT_PUBLIC_ALGOLIA_APP_ID`, `NEXT_PUBLIC_ALGOLIA_SEARCH_KEY`, `NEXT_PUBLIC_ALGOLIA_INDEX_NAME`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
 - **Admin/PII**: `ADMIN_EMAILS`, `ALLOW_ALL_ADMINS`, `PII_KEY`, `PHONE_ENC_KEY`.
 
-Run `node _archive/scripts/checkEnv.mjs` to verify the essentials before starting the dev server.
+Run `node _archive/scripts/checkEnv.mjs` to verify essentials before starting the dev server.
 
-## Local Development
+## Local Development Workflow
 
 1. **Install dependencies**: `pnpm install` (Node 18–22 supported).
 2. **Set env vars**: create `.env.local` using the list above.
@@ -158,124 +88,3 @@ Run `node _archive/scripts/checkEnv.mjs` to verify the essentials before startin
 - **Catalog sync issues**: confirm SinaLite credentials and network access; rerun `pnpm sync:sinalite` or the batch script to rebuild tables.
 - **Asset/CDN problems**: verify Cloudflare R2 credentials and `R2_PUBLIC_BASE_URL`; rebuild placeholders with the deploy script if hero images look blank.
 - **Stripe webhooks**: run `pnpm stripe:listen` to see incoming events and confirm `STRIPE_SECRET_KEY` is set.
-
-## Key Paths
-
-- App routes: `src/app`
-- Database schema & migrations: `src/db/schema`, `src/db/migrations`
-- Core libraries: `src/lib`
-- Static data & tables: `data/`, `table_data/`
-- Deployment & data helpers: `_archive/scripts`.
-
-## Database
-
- pnpm db:push 
- pnpm db:generate
-
-## Seed / sync catalog data
-
-### Fetch SinaLite catalog/options/pricing into Postgres
-
- pnpm sync:sinalite
-
-### Cache pricing & shipping
-
-pnpm cache:price
-pnpm cache:ship
-
-### Build static JSON used by the app
-
-Build static JSON used by the app
-
-### Full end-to-end reload (truncate + reload everything)
-
-pnpm sync:batch
-# or
-pnpm sina:all
-
-### Sync assets
-
-Product/option asset helpers live under /scripts
-
-### Start the dev server
-
-pnpm dev 
-Visit: http://localhost:3002
-
-## Deployment
-
-### Automated deploy helper
-
-pnpm deploy:full
-
-Runs /scripts/deploy.sh:
-
-Verifies a clean git tree
-
-Installs deps
-
-Generates blur placeholders for hero slides
-
-Runs lint + build
-
-Commits any generated slide data
-
-Pushes to the target branch
-
-### Production build
-
-pnpm build
-pnpm start
-
-
-## Stripe webhooks (local)
-
-pnpm stripe:listen
-
-
-Forwards to: http://localhost:3000/api/stripe/webhook.
-
-## Troubleshooting
-
-### Missing env vars
-
-node /scripts/checkEnv.mjs
-
-
-### Database connection errors
-
-Check DATABASE_URL and drizzle.config.ts.
-
-Ensure migrations were pushed: pnpm db:push.
-
-### Catalog sync issues
-
-Confirm SinaLite credentials and network access.
-
-Rerun pnpm sync:sinalite or pnpm sina:all.
-
-### Asset/CDN problems
-
-Verify Cloudflare R2 credentials and R2_PUBLIC_BASE_URL.
-
-Rebuild placeholders via deploy script if hero images look blank.
-
-### Stripe webhooks
-
-Use pnpm stripe:listen and confirm STRIPE_SECRET_KEY is valid.
-
-## Key Paths
-
-App routes: src/app
-
-DB schema & migrations: src/db/schema, src/db/migrations
-
-Core libraries: src/lib
-
-Static data & tables: data/, table_data/
-
-Scripts: /scripts
-
-
-
-

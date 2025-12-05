@@ -2,7 +2,7 @@
 
 Welcome! This repository is configured to work well with AI coding agents (GitHub Copilot Agents, ChatGPT-based tools, and similar assistants).
 
-This guide explains **how agents should behave**, **what files define their rules**, and **how humans can use them safely**.
+This guide explains **how agents should behave**, **what files define their rules**, and **how humans can use them safely** when collaborating on this codebase.
 
 ---
 
@@ -180,4 +180,4 @@ This repository is intentionally structured to work well with **AI-powered engin
 - `agent-instructions.md` → how to safely refactor and enhance the codebase.
 - `workspace/agent-profile.json` → machine-readable profile for tools like Copilot Agents.
 
-If you keep agents pointed at these documents and run tests after changes, you’ll get a ton of leverage with minimal risk. 💪
+If you keep agents pointed at these documents, validate changes with the test suite, and review diffs carefully, you’ll get a ton of leverage with minimal risk. 💪

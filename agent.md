@@ -365,22 +365,18 @@ Add tests
 
 Follow repo conventions
 
-After any change (especially AI-generated)
+## 12. Validation Checklist
 
-pnpm test:run
-pnpm test:e2e
+Run these checks after any change (especially AI-generated):
 
+- `pnpm test:run`
+- `pnpm test:e2e`
 
-Before merging
+Before merging, verify:
 
-Review code
-
-Check security
-
-Validate auth paths
-
-Confirm Stripe totals are computed server-side
-
-Ensure no secrets leak
-
-Ensure Cloudflare URLs use correct variants
+- Code is reviewed and matches project conventions.
+- Security checks remain in place.
+- Auth paths are validated.
+- Stripe totals are computed server-side.
+- No secrets leak in code, logs, or tests.
+- Cloudflare URLs use the correct variants.

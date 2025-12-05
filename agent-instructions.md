@@ -1,16 +1,8 @@
-
----
-
-## 2️⃣ `agent-instructions.md` (refactor-focused)
-
-**Path:** `/agent-instructions.md`
-
-```md
 # agent-instructions.md – AI-Powered Refactor Guidelines
 
 This document provides **specific instructions for AI-powered code refactors** in the ADAP projects, especially `adap-site` and `legendary-collectibles`.
 
-It assumes the broader permissions and context defined in `agent.md`, and narrows behavior to **how refactors should be proposed and executed**.
+It assumes the broader permissions and context defined in `agent.md` and narrows behavior to **how refactors should be proposed and executed**.
 
 ---
 
@@ -47,19 +39,15 @@ When Troy requests a refactor (e.g. “clean up this route file” or “simplif
 1. **Summarize current behavior**
    - Briefly explain what the current code does.
    - Identify any obvious problems (duplication, tight coupling, fragile logic, poor naming).
-
 2. **State the refactor intent**
    - Example: “Separate data fetching from rendering”, “Split into smaller components”, “Extract option pricing logic to a shared utility”.
-
 3. **Describe the proposed changes**
    - Which files will be modified.
    - What new functions, components, or modules will be introduced.
    - Any new tests that will be added.
-
 4. **Apply the refactor**
    - Provide full updated file contents for the changed files when requested.
    - Keep changes within the described scope.
-
 5. **Verify behavior**
    - Mention how to run relevant tests:
      - `pnpm test` / `pnpm test:run`
