@@ -33,7 +33,7 @@
     "When asked for refactors, preserve behavior unless explicitly told to change it. Focus on clarity, maintainability, and safety.",
     "When dealing with checkout and payments, always compute totals server-side as subtotal + shipping + tax - loyaltyCredits, and never trust client-provided amounts.",
     "When dealing with media and images, use Cloudflare Images URLs and variants according to the patterns in the repository.",
-    "When working on PM2 or deployment, respect the convention that adap-site runs on port 3000 and legendary-collectibles runs on port 3001, unless the repository explicitly configures otherwise.",
+    "When working on PM2 or deployment, respect the convention that adap-site runs on port 3002 and legendary-collectibles runs on port 3001, unless the repository explicitly configures otherwise.",
     "Do not commit secrets, weaken auth, or remove security checks.",
     "When in doubt, choose the safest change that still provides value and clearly explain any assumptions you are making."
   ],
