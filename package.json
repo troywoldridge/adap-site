@@ -34,8 +34,15 @@
     "postinstall": "node scripts/install-stripe-cli.mjs",
     "stripe:login": "tools/stripe/stripe login",
     "stripe:listen": "tools/stripe/stripe listen --forward-to http://localhost:3000/api/stripe/webhook --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.succeeded,payment_intent.payment_failed",
-    "stripe:trigger:success": "tools/stripe/stripe trigger checkout.session.completed"
+    "stripe:trigger:success": "tools/stripe/stripe trigger checkout.session.completed",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:e2e": "playwright test",
+  "test:e2e:ui": "playwright test --ui",      
+  "test:e2e:headed": "playwright test --headed"
   },
+
   "dependencies": {
     "@algolia/autocomplete-theme-classic": "^1.19.2",
     "@aws-sdk/client-s3": "^3.864.0",
@@ -83,6 +90,9 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.12",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/archiver": "^6.0.3",
     "@types/node": "^20.19.9",
     "@types/nprogress": "^0.2.3",
@@ -90,10 +100,12 @@
     "@types/pg": "^8.15.4",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
+    "@vitest/ui": "^4.0.15",
     "autoprefixer": "^10.4.21",
     "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.2",
+    "jsdom": "^27.2.0",
     "pg": "^8.16.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.11",
