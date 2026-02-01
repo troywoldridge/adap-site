@@ -1,26 +1,14 @@
 // src/components/SignupPromoCard.tsx
 "use client";
 
-import { useAuth, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { useEffect, useMemo, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useAuth, SignInButton } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 
 export default function SignupPromoCard() {
   const { isSignedIn } = useAuth();
   const [hidden, setHidden] = useState(false);
 
-  const pathname = usePathname() || "/";
-  const search = useSearchParams();
-
-  // ✅ All hooks before any return
-  const returnTo = useMemo(() => {
-    const qs = search?.toString();
-    return qs ? `${pathname}?${qs}` : pathname;
-  }, [pathname, search]);
-
   const onboarding = "/account/onboarding";
-  const href = `/sign-up?redirect_url=${encodeURIComponent(returnTo)}`;
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("promo_dismissed") === "1") {
@@ -71,18 +59,6 @@ export default function SignupPromoCard() {
       </div>
 
       <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <SignUpButton
-          mode="modal"
-          forceRedirectUrl={onboarding}
-          fallbackRedirectUrl={onboarding}
-          signInForceRedirectUrl={onboarding}
-          signInFallbackRedirectUrl={onboarding}
-        >
-          <button className="btn btn-primary" type="button">
-            Create your free account
-          </button>
-        </SignUpButton>
-
         <SignInButton
           mode="modal"
           withSignUp
@@ -91,14 +67,10 @@ export default function SignupPromoCard() {
           signUpForceRedirectUrl={onboarding}
           signUpFallbackRedirectUrl={onboarding}
         >
-          <button className="btn btn-link" type="button">
-            I already have an account
+          <button className="btn btn-primary" type="button">
+            Sign in or create an account
           </button>
         </SignInButton>
-
-        <Link href={href} className="btn btn-secondary">
-          More options
-        </Link>
       </div>
     </aside>
   );
