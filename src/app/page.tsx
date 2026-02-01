@@ -1,23 +1,30 @@
 // src/app/page.tsx
+import "server-only";
+
 import { Suspense } from "react";
 
 import Hero from "@/components/Hero";
 import FeaturedCategories from "@/components/FeaturedCategories";
 import { getLocalCategories } from "@/lib/catalogLocal";
-import SignupPromoCard from "@/components/SignupPromoCard";
 import SalesCards, { type SaleCard } from "@/components/SalesCards";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // Minimal shape to satisfy TypeScript
 type LocalCategory = {
   slug: string;
   name: string;
-  image?: string | null;       // should already be a Cloudflare Images URL from your lib
+  image?: string | null; // should already be a Cloudflare Images URL from your lib
   description?: string | null;
 };
 
-export default function HomePage() {
-  // Local categories (mapped to your SinaLite catalog per your data layer)
-  const categories = getLocalCategories() as LocalCategory[];
+export default async function HomePage() {
+  // ✅ supports sync or async getLocalCategories()
+  const categories = (await Promise.resolve(
+    getLocalCategories()
+  )) as LocalCategory[];
 
   const featuredSlugs = ["business-cards", "large-format", "print-products"];
   const featured = featuredSlugs
@@ -26,7 +33,7 @@ export default function HomePage() {
     .map((c) => ({
       slug: c.slug,
       name: c.name,
-      imageUrl: c.image ?? "", // ✅ matches FeaturedCategoryCard (Cloudflare CDN URLs)
+      imageUrl: c.image ?? "",
       href: `/categories/${c.slug}`,
       description: c.description ?? undefined,
     }));
@@ -60,11 +67,6 @@ export default function HomePage() {
 
   return (
     <main>
-      {/* Floating “sign up & save” card for signed-out users */}
-      <Suspense fallback={<div className="sr-only">Loading promo…</div>}>
-        <SignupPromoCard />
-      </Suspense>
-
       {/* Hero */}
       <Suspense
         fallback={
@@ -85,7 +87,10 @@ export default function HomePage() {
           <div className="mx-auto max-w-7xl px-4 pt-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-40 rounded-xl bg-gray-100 animate-pulse" />
+                <div
+                  key={i}
+                  className="h-40 rounded-xl bg-gray-100 animate-pulse"
+                />
               ))}
             </div>
           </div>
@@ -105,7 +110,10 @@ export default function HomePage() {
             fallback={
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-56 rounded-xl bg-gray-100 animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-56 rounded-xl bg-gray-100 animate-pulse"
+                  />
                 ))}
               </div>
             }
@@ -121,6 +129,7 @@ export default function HomePage() {
           <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
             Why choose ADAP?
           </h2>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-slate-800">
             <div className="flex items-center">
               <span aria-hidden className="shrink-0 text-blue-700">
@@ -169,7 +178,11 @@ export default function HomePage() {
                     stroke="currentColor"
                     strokeWidth="1.6"
                   />
-                  <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.6" />
+                  <path
+                    d="M12 7v5l3 2"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
                 </svg>
               </span>
               <p className="ml-3">
@@ -186,17 +199,26 @@ export default function HomePage() {
           <h2 className="text-center text-xl font-semibold text-slate-900 mb-6">
             Our promise to you:
           </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
             <div className="flex items-center">
-              <span aria-hidden className="text-green-700 mr-2">✔</span>
+              <span aria-hidden className="text-green-700 mr-2">
+                ✔
+              </span>
               <p>On time delivery anywhere in USA</p>
             </div>
+
             <div className="flex items-center">
-              <span aria-hidden className="text-green-700 mr-2">✔</span>
+              <span aria-hidden className="text-green-700 mr-2">
+                ✔
+              </span>
               <p>No hidden costs, no delays, &amp; no paperwork</p>
             </div>
+
             <div className="flex items-center">
-              <span aria-hidden className="text-green-700 mr-2">✔</span>
+              <span aria-hidden className="text-green-700 mr-2">
+                ✔
+              </span>
               <p>24/7 live order tracking</p>
             </div>
           </div>
