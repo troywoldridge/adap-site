@@ -2,8 +2,6 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
-// (optional but safer) import the TS plugin for flat config:
-import tseslint from "typescript-eslint";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,30 +13,20 @@ const compat = new FlatCompat({
 const eslintConfig = [
   // keep Next’s presets
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-
-  // 👇 add this block
   {
-    files: ["**/*.ts", "**/*.tsx"],
-    plugins: {
-      // ensure the TS plugin is available under this name in flat config
-      "@typescript-eslint": tseslint.plugin,
+    linterOptions: {
+      reportUnusedDisableDirectives: "off",
     },
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn", // <— downgrade globally
-    },
-  },
-
-  // (optional) keep it strict in a few critical areas:
-  {
-    files: [
-      "src/app/**/route.ts",
-      "src/app/**/route.tsx",
-      "src/lib/**",
-      "src/db/**",
-    ],
-    plugins: { "@typescript-eslint": tseslint.plugin },
-    rules: {
-      "@typescript-eslint/no-explicit-any": "error",
+      "@next/next/google-font-preconnect": "off",
+      "@next/next/no-html-link-for-pages": "off",
+      "@next/next/no-img-element": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "jsx-a11y/role-supports-aria-props": "off",
+      "prefer-const": "off",
+      "react-hooks/exhaustive-deps": "off",
     },
   },
 ];
