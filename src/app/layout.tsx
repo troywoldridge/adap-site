@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import "./globals.css";
+import { Suspense } from "react";
 import NotificationBar from "@/components/NotificationBar";
 import Header from "@/components/Header";
 import SupportBanner from "@/components/SupportBanner";
@@ -274,9 +275,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Keep your subtle premium background; all images via Cloudflare CDN */}
         <body className="min-h-screen bg-amber-50 text-slate-900 antialiased [background:radial-gradient(1200px_600px_at_120%_-10%,rgba(0,71,171,.25),transparent),radial-gradient(1200px_600px_at_-10%_110%,rgba(0,71,171,.18),transparent)]">
-          <RouteProgress />
+          <Suspense fallback={null}>
+            <RouteProgress />
+          </Suspense>
+
           <NotificationBar />
-          <Header />
+
+          <Suspense fallback={null}>
+            <Header />
+          </Suspense>
+
           {/* <Navigation items={NAV_ITEMS} /> */}
           <SupportBanner />
           <main>{children}</main>

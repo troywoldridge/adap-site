@@ -9,7 +9,7 @@
   "scripts": {
     "db:introspect": "drizzle-kit introspect",
     "build:data": "node scripts/buildSiteData.cjs",
-    "dev": "node scripts/checkEnv.mjs && next dev",
+     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -67,7 +67,7 @@
     "instantsearch.css": "^8.5.1",
     "json2csv": "6.0.0-alpha.2",
     "lucide-react": "^0.536.0",
-    "next": "15.5.0",
+    "next": "15.5.7",
     "node-fetch": "^3.3.2",
     "nprogress": "^0.2.0",
     "p-limit": "^7.1.0",

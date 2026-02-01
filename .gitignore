@@ -53,3 +53,6 @@ tools/stripe/*
 
 # OpenNext build artifacts
 .open-next/
+
+# clerk configuration (can include secrets)
+/.clerk/
