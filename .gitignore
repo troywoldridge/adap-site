@@ -53,3 +53,7 @@ tools/stripe/*
 
 # OpenNext build artifacts
 .open-next/
+
+# core dumps
+core
+core.*
