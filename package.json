@@ -41,7 +41,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "deploy": "wrangler deploy"
+
+    "pages:build": "next build && npx @opennextjs/cloudflare build"
   },
   "dependencies": {
     "@algolia/autocomplete-theme-classic": "^1.19.2",
