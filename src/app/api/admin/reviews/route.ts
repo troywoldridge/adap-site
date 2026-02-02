@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
 
   if (productIdParam !== null && productIdParam !== "") {
     const pid = toNum(productIdParam);
-    if (pid !== null) conditions.push(eq(productReviews.productId, pid));
+    if (pid !== null) conditions.push(eq(productReviews.productId, String(pid)));
+
   }
   if (ratingParam !== null && ratingParam !== "") {
     const r = toNum(ratingParam);
@@ -101,7 +102,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.action === "delete") {
-    await db.delete(productReviews).where(inArray(productReviews.id, idStrs));
+    const ids = idStrs
+  .map((v) => Number(v))
+  .filter((n) => Number.isFinite(n)) as number[];
+
+if (ids.length) {
+  await db.delete(productReviews).where(inArray(productReviews.id, ids));
+}
+
     return NextResponse.json({ success: true });
   }
 

@@ -3,53 +3,77 @@ import "server-only";
 
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-// ✅ Important: this must be the schema barrel that exports your tables/enums
 import * as schema from "@/lib/db/schema";
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __adapPool: Pool | undefined;
+type Db = NodePgDatabase<typeof schema> & { $client: Pool };
+
+let _pool: Pool | null = null;
+let _db: Db | null = null;
+
+function readDatabaseUrl(): string | null {
+  const raw =
+    process.env.DATABASE_URL ||
+    process.env.NEON_URL ||
+    process.env.POSTGRES_URL ||
+    null;
+
+  const v = String(raw ?? "").trim();
+  return v ? v : null;
 }
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  process.env.NEON_URL ||
-  process.env.POSTGRES_URL ||
-  process.env.POSTGRES_URL_NON_POOLING ||
-  "";
+export function getPool(): Pool {
+  if (_pool) return _pool;
 
-if (!connectionString) {
-  throw new Error(
-    "DATABASE_URL is not set. Provide DATABASE_URL (or NEON_URL/POSTGRES_URL) in the environment."
-  );
-}
+  const url = readDatabaseUrl();
+  if (!url) {
+    // Important: throw only when actually used (not at import time)
+    throw new Error(
+      "DATABASE_URL is not set. Provide DATABASE_URL (or NEON_URL/POSTGRES_URL) in the environment."
+    );
+  }
 
-// ✅ Pool singleton (prevents dev hot-reload connection explosions)
-export const pool =
-  global.__adapPool ??
-  new Pool({
-    connectionString,
-    max: Number(process.env.PG_POOL_MAX || 10),
-    idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
-    connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
+  _pool = new Pool({
+    connectionString: url,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  global.__adapPool = pool;
+  return _pool;
 }
 
-// ✅ Typed Drizzle instance (this is what restores db.query.<tables>)
-export const db = drizzle(pool, { schema });
+export function getDb(): Db {
+  if (_db) return _db;
 
-// ---------------------------------------------------------------------------
-// Back-compat exports (optional but helps you avoid 100-file edit explosions)
-// ---------------------------------------------------------------------------
+  const p = getPool();
+  _db = drizzle(p, { schema }) as unknown as Db;
+  return _db;
+}
 
-/** @deprecated Use `import { db } from "@/lib/db"` */
+/**
+ * Proxy lets us export a stable `db` object *without* initializing at import time.
+ * This prevents Next build / page-data collection from exploding if env injection is misconfigured.
+ */
+export const db: Db = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const real = getDb() as unknown as Record<PropertyKey, unknown>;
+      return real[prop];
+    },
+  }
+) as unknown as Db;
+
+// Back-compat exports (your codebase expects these in many places)
 export const dbClient = db;
-
-/** @deprecated Use `import { db } from "@/lib/db"` (db is NOT callable) */
-export const getDb = () => db;
-
-export type Db = typeof db;
+export const pool: Pool = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const real = getPool() as unknown as Record<PropertyKey, unknown>;
+      return real[prop];
+    },
+  }
+) as unknown as Pool;

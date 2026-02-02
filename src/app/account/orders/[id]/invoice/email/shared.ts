@@ -31,17 +31,16 @@ export async function loadOrderForInvoiceEmail(orderId: string): Promise<{
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
-  const { select, update } = db;
-
   const order =
-    ((await select().from(orders).where(eq(orders.id, orderId)).limit(1))?.[0] as OrderRow | undefined) ??
-    null;
+    ((await db.select().from(orders).where(eq(orders.id, orderId)).limit(1))?.[0] as
+      | OrderRow
+      | undefined) ?? null;
 
   if (!order) return null;
 
   // Guest → user claim
   if (userId && String((order as any).userId) === String(sid)) {
-    await update(orders).set({ userId }).where(eq(orders.id, orderId));
+    await db.update(orders).set({ userId }).where(eq(orders.id, orderId));
     (order as any).userId = userId;
   }
 
@@ -52,14 +51,15 @@ export async function loadOrderForInvoiceEmail(orderId: string): Promise<{
   const cartId = ((order as any).cartId as string | null) ?? null;
 
   const lines: InvoiceEmailLine[] = cartId
-    ? ((await select({
-        id: cartLines.id,
-        productId: cartLines.productId,
-        quantity: cartLines.quantity,
-        unitPriceCents: cartLines.unitPriceCents,
-        lineTotalCents: cartLines.lineTotalCents,
-        optionIds: cartLines.optionIds,
-      })
+    ? ((await db
+        .select({
+          id: cartLines.id,
+          productId: cartLines.productId,
+          quantity: cartLines.quantity,
+          unitPriceCents: cartLines.unitPriceCents,
+          lineTotalCents: cartLines.lineTotalCents,
+          optionIds: cartLines.optionIds,
+        })
         .from(cartLines)
         .where(eq(cartLines.cartId, cartId))) as unknown as InvoiceEmailLine[])
     : [];
