@@ -1,14 +1,15 @@
+import { Suspense } from "react";
 // src/app/layout.tsx
 import "./globals.css";
-import { Suspense } from "react";
 import NotificationBar from "@/components/NotificationBar";
-import Header from "@/components/Header";
+
 import SupportBanner from "@/components/SupportBanner";
 import Footer from "@/components/Footer";
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cfUrl } from "@/lib/data";
-import RouteProgress from "@/components/RouteProgress";
+import HeaderSlot from "@/components/slots/HeaderSlot";
+import RouteProgressSlot from "@/components/slots/RouteProgressSlot";
 
 // const NAV_ITEMS if you enable client nav later
 // import Navigation, { type NavItem } from "@/client/components/navigation";
@@ -275,16 +276,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Keep your subtle premium background; all images via Cloudflare CDN */}
         <body className="min-h-screen bg-amber-50 text-slate-900 antialiased [background:radial-gradient(1200px_600px_at_120%_-10%,rgba(0,71,171,.25),transparent),radial-gradient(1200px_600px_at_-10%_110%,rgba(0,71,171,.18),transparent)]">
-          <Suspense fallback={null}>
-            <RouteProgress />
-          </Suspense>
-
+          <Suspense fallback={null}><RouteProgressSlot /></Suspense>
           <NotificationBar />
-
-          <Suspense fallback={null}>
-            <Header />
-          </Suspense>
-
+          <Suspense fallback={null}><HeaderSlot /></Suspense>
           {/* <Navigation items={NAV_ITEMS} /> */}
           <SupportBanner />
           <main>{children}</main>

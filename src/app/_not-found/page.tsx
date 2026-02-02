@@ -2,36 +2,42 @@ import "server-only";
 
 import Link from "next/link";
 import { Suspense } from "react";
-import ConfirmationClient from "./ConfirmationClient";
+import NotFoundClient from "./NotFoundClient";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
-export default function OrderConfirmationPage() {
+// ✅ If you currently have themeColor in metadata, Next 15 wants it in viewport.
+export const viewport = {
+  themeColor: "#0f172a",
+};
+
+export default function NotFoundPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-3xl font-semibold text-slate-900">Order confirmed</h1>
+      <h1 className="text-3xl font-semibold text-slate-900">Page not found</h1>
       <p className="mt-3 text-slate-700">
-        Thanks! If your payment was successful, you’ll receive an email receipt shortly.
+        That page doesn’t exist or may have moved.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
-          href="/orders"
+          href="/"
           className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white"
         >
-          View orders
+          Go home
         </Link>
+
         <Link
-          href="/"
+          href="/categories"
           className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900"
         >
-          Continue shopping
+          Browse categories
         </Link>
       </div>
 
-      {/* ✅ Any useSearchParams must be in a client component wrapped in Suspense */}
+      {/* ✅ This is the key: any useSearchParams MUST be under Suspense */}
       <Suspense fallback={null}>
-        <Suspense fallback={null}><ConfirmationClient /></Suspense>
+        <Suspense fallback={null}><NotFoundClient /></Suspense>
       </Suspense>
     </main>
   );

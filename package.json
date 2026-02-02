@@ -31,7 +31,7 @@
     "cache:ship": "tsx ./scripts/cache-ship.ts",
     "sync:batch": "tsx scripts/sync-batch.ts",
     "sina:all": "bash scripts/sina_all.sh",
-    "postinstall": "node scripts/install-stripe-cli.mjs",
+    "postinstall": "node -e \"try{require('fs').accessSync('scripts/install-stripe-cli.mjs'); require('child_process').execSync('node scripts/install-stripe-cli.mjs',{stdio:'inherit'});}catch(e){console.log('postinstall: stripe cli step skipped');}\"",
     "stripe:login": "tools/stripe/stripe login",
     "stripe:listen": "tools/stripe/stripe listen --forward-to http://localhost:3000/api/stripe/webhook --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.succeeded,payment_intent.payment_failed",
     "stripe:trigger:success": "tools/stripe/stripe trigger checkout.session.completed",
