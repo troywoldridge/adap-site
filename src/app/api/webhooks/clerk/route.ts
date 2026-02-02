@@ -1,8 +1,8 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { customerAddresses } from "@/db/schema/customerAddresses";
+import { db } from "@/lib/db";
+import { customerAddresses } from "@/lib/db/schema/customerAddresses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

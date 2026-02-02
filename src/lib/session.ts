@@ -1,8 +1,8 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { orderSessions } from "@/db/schema";
+import { db } from "@/lib/db";
+import { orderSessions } from "@/lib/db/schema";
 
 type ShippingTuple = [carrier: string, service: string, price: number, available: number];
 

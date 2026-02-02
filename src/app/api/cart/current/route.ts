@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts, cartLines, cartAttachments } from "@/db/schema";
+import { db } from "@/lib/db";
+import { carts, cartLines, cartAttachments } from "@/lib/db/schema";
 
 // 🔹 We don't have a products table; load product info from JSON assets
 import productAssets from "@/data/productAssets.json";

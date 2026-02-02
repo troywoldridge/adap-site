@@ -3,10 +3,10 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartAttachments } from "@/db/schema/cartAttachments";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartAttachments } from "@/lib/db/schema/cartAttachments";
 import { cfUrl } from "@/lib/cdn"; // <- make sure this returns a Cloudflare Images URL for a given key/id
 
 export const runtime = "nodejs";

@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
-import { db as getDb } from "@/lib/db";
-import { customers } from "@/db/schema/customer";
-import { loyaltyWallets } from "@/db/schema/loyalty";
+import { db } from "@/lib/db";
+import { customers } from "@/lib/db/schema/customer";
+import { loyaltyWallets } from "@/lib/db/schema/loyalty";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +33,6 @@ export async function GET(_req: NextRequest) {
       cleanEmail(user?.emailAddresses?.[0]?.emailAddress) ||
       null;
 
-    const db = getDb();
     const { select, insert, update } = db;
 
     // Find customer by clerk id

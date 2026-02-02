@@ -2,10 +2,10 @@ import "server-only";
 import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartArtwork } from "@/db/schema/cartArtwork";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartArtwork } from "@/lib/db/schema/cartArtwork";
 import { r2PublicUrl } from "@/lib/r2Public";
 
 async function getSid(): Promise<string | null> {

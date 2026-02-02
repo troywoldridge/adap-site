@@ -3,9 +3,9 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
 import { getOrEnsureSid } from "@/lib/getOrSetSid";
 
 // ✅ fix this path to wherever your pricing helper actually lives:

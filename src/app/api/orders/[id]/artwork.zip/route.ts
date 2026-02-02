@@ -7,10 +7,10 @@ import { eq, inArray } from "drizzle-orm";
 import archiver from "archiver";
 import { Readable } from "node:stream";
 
-import { dbClient as db } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartArtwork } from "@/db/schema/cartArtwork";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartArtwork } from "@/lib/db/schema/cartArtwork";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

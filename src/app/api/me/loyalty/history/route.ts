@@ -2,8 +2,8 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { dbClient as db } from "@/lib/db";
-import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
+import { db } from "@/lib/db";
+import { loyaltyTransactions, loyaltyWallets } from "@/lib/db/schema/loyalty";
 import { desc, eq } from "drizzle-orm";
 
 type UiTxn = {

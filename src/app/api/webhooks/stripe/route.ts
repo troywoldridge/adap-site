@@ -5,8 +5,8 @@ import stripe from "@/lib/stripe";
 import type Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { orders } from "@/db/schema/customer";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/customer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -1,7 +1,7 @@
 // app/products/[productId]/reviews/helpful/route.ts
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
 export const runtime = "nodejs";

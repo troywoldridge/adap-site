@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, ne, sum } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartCredits } from "@/db/schema/cartCredits";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartCredits } from "@/lib/db/schema/cartCredits";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

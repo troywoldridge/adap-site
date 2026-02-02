@@ -7,11 +7,11 @@ import { auth } from "@clerk/nextjs/server";
 import { randomUUID } from "crypto";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
-import { db as getDb } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartArtwork } from "@/db/schema/cartArtwork";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartArtwork } from "@/lib/db/schema/cartArtwork";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,7 +48,6 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const { userId } = await auth();
     const sid = await ensureSid();
 
-    const db = getDb();
     const { select, insert, update, transaction } = db;
 
     const o =

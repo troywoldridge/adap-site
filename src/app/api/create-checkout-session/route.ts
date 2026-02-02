@@ -3,9 +3,9 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies, headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
 import { and, eq, ne } from "drizzle-orm";
 
 // Cloudflare Images helper + local product assets (served via Cloudflare CDN)

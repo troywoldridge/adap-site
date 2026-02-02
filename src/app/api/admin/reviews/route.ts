@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 // If your table isn't re-exported by "@/db/schema", import from its concrete file:
 // import { productReviews } from "@/db/schema/productReviews";
-import { productReviews } from "@/db/schema";
+import { productReviews } from "@/lib/db/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

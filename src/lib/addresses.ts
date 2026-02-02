@@ -1,12 +1,12 @@
 import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 import {
   addresses,
   type AddressRow,
   type AddressInsert,
-} from "@/db/schema/addresses";
+} from "@/lib/db/schema/addresses";
 
 /**
  * List addresses for a user. Default addresses come first.

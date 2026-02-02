@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { dbClient as db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema";
+import { db } from "@/lib/db";
+import { carts, cartLines } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 

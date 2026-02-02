@@ -5,6 +5,8 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { promises as fsp } from "node:fs";
 import path from "node:path";
+import { db } from "@/lib/db";
+
 
 /**
  * Guide Download Analytics (CDN-friendly, Sinalite-aligned)
@@ -54,11 +56,10 @@ async function tryInsertDb(payload: {
     const getDb = dbMod?.db || null; // in this repo db is a function
     if (typeof getDb !== "function") return;
 
-    const schemaMod: any = await import("@/db/schema/guideDownloads").catch(() => null);
+    const schemaMod: any = await import("@/lib/db/schema/guideDownloads").catch(() => null);
     const guideDownloads = schemaMod?.guideDownloads || null;
     if (!guideDownloads) return;
 
-    const db = getDb();
     const { insert } = db;
 
     await insert(guideDownloads).values({

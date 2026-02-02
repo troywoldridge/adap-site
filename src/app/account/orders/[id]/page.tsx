@@ -9,10 +9,10 @@ import { eq, inArray } from "drizzle-orm";
 
 import Image from "@/components/ImageSafe";
 
-import { db as getDb } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartArtwork } from "@/db/schema/cartArtwork";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartArtwork } from "@/lib/db/schema/cartArtwork";
 
 // Cloudflare Images URL builder
 import { cfImage } from "@/lib/cfImages";
@@ -112,7 +112,6 @@ async function loadOrder(orderId: string) {
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
-  const db = getDb();
   const { select, update } = db;
 
   const o =

@@ -38,5 +38,5 @@
     "_archive/scripts/**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next", "drizzle", "src/db/schema/__introspect.ts", "dist", "_archive"]
+  "exclude": ["node_modules", ".next", "drizzle", "src/lib/db/schema/__introspect.ts", "dist", "_archive"]
 }

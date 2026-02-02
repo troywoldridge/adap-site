@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
+import { db } from "@/lib/db";
+import { loyaltyTransactions, loyaltyWallets } from "@/lib/db/schema/loyalty";
 import { computeLoyalty } from "@/lib/loyalty";
 import { requireAdmin } from "@/lib/authz";
 

@@ -2,9 +2,9 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 // If your export lives elsewhere, adjust this import path:
-import { productReviews } from "@/db/schema/productReviews";
+import { productReviews } from "@/lib/db/schema/productReviews";
 import { desc } from "drizzle-orm";
 import { parse as toCSV } from "json2csv"; // we'll add a .d.ts so TS is happy
 

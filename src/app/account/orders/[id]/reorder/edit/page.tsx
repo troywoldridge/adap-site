@@ -6,9 +6,9 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 
-import { db as getDb } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
-import { cartLines } from "@/db/schema/cartLines";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
+import { cartLines } from "@/lib/db/schema/cartLines";
 
 import ReorderEditor from "./ReorderEditor";
 
@@ -24,7 +24,6 @@ async function load(orderId: string) {
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
-  const db = getDb();
   const { select, update } = db;
 
   const o =

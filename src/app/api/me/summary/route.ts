@@ -5,10 +5,10 @@ import { NextResponse } from "next/server";
 import { getAuth, currentUser } from "@clerk/nextjs/server";
 import { desc, eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { customers } from "@/db/schema/customer";     // <- customers table that includes `clerkUserId`
-import { loyaltyWallets } from "@/db/schema/loyalty"; // <- loyalty schema
-import { orders } from "@/db/schema/orders";          // <- orders schema (has `userId`)
+import { db } from "@/lib/db";
+import { customers } from "@/lib/db/schema/customer";     // <- customers table that includes `clerkUserId`
+import { loyaltyWallets } from "@/lib/db/schema/loyalty"; // <- loyalty schema
+import { orders } from "@/lib/db/schema/orders";          // <- orders schema (has `userId`)
 
 export async function GET(req: NextRequest) {
   // getAuth is synchronous (do NOT await)

@@ -5,9 +5,9 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 
-import { db as getDb } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
-import { cartLines } from "@/db/schema/cartLines";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
+import { cartLines } from "@/lib/db/schema/cartLines";
 
 type OrderRow = typeof orders.$inferSelect;
 
@@ -31,7 +31,6 @@ export async function loadOrderForInvoiceEmail(orderId: string): Promise<{
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
-  const db = getDb();
   const { select, update } = db;
 
   const order =
@@ -65,7 +64,6 @@ export async function loadOrderForInvoiceEmail(orderId: string): Promise<{
         .where(eq(cartLines.cartId, cartId))) as unknown as InvoiceEmailLine[])
     : [];
 
-  // ✅ TS2869 fix: no nullish coalescing needed here
   const currency: "USD" | "CAD" = (order as any).currency === "CAD" ? "CAD" : "USD";
 
   return { order, lines, currency };

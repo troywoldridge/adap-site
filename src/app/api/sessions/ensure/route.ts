@@ -6,8 +6,8 @@ import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { and, eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -2,9 +2,9 @@
 import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
 import { priceSinaliteProduct } from "@/lib/sinalite.pricing";
 
 export const runtime = "nodejs";

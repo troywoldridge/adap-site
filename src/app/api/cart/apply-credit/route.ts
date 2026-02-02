@@ -1,9 +1,9 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartCredits } from "@/db/schema/cartCredits";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartCredits } from "@/lib/db/schema/cartCredits";
 import { and, eq } from "drizzle-orm";
 
 const SID_COOKIE = "sid";

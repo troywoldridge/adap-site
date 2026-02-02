@@ -2,8 +2,8 @@ import "server-only";
 
 import Stripe from "stripe";
 import { and, eq, ne } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { carts, cartLines, orders, orderItems } from "@/db/schema";
+import { db } from "@/lib/db";
+import { carts, cartLines, orders, orderItems } from "@/lib/db/schema";
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;

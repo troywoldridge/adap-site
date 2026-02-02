@@ -2,8 +2,8 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { dbClient as db } from "@/lib/db";
-import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
+import { db } from "@/lib/db";
+import { loyaltyWallets, loyaltyTransactions } from "@/lib/db/schema/loyalty";
 import { eq, sql } from "drizzle-orm";
 
 type Reason = "purchase" | "refund" | "adjustment" | "signup" | "promotion";

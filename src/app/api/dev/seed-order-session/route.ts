@@ -6,8 +6,8 @@ import { randomUUID } from "crypto";
 import type Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
-import { db as getDb } from "@/lib/db";
-import { orderSessions } from "@/db/schema"; // or "@/db/schema/orderSessions" if that’s where it lives
+import { db } from "@/lib/db";
+import { orderSessions } from "@/lib/db/schema"; // or "@/db/schema/orderSessions" if that’s where it lives
 import { stripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
-    const db = getDb();
     const { select, insert, update } = db;
 
     const existing =

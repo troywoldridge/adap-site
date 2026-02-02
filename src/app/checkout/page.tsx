@@ -3,10 +3,10 @@ import { headers, cookies } from "next/headers";
 import Link from "next/link";
 import CheckoutPaymentElement from "@/components/CheckoutPaymentElement"; // client component
 
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
 
 // ✅ NEW: get applied loyalty credits (in cents) for this cart
 import { getCartCreditsCents } from "@/lib/cartCredits";

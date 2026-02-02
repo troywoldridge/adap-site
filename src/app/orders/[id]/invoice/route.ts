@@ -2,7 +2,7 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
 /* -------------------------------------------------------------------------- */

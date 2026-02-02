@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

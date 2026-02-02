@@ -3,8 +3,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
 import { getOrSetSid } from "@/lib/sid";
 
 export type CartRow = typeof carts.$inferSelect;

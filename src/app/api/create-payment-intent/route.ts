@@ -6,10 +6,10 @@ import Stripe from "stripe";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq, ne } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartCredits } from "@/db/schema/cartCredits";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartCredits } from "@/lib/db/schema/cartCredits";
 import { getCartCreditsCents } from "@/lib/cartCredits";
 import { calculateTaxCents } from "@/app/api/stripe/webhook/tax";
 import { finalizeFreeOrderBySid } from "@/lib/checkout";

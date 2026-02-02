@@ -4,10 +4,10 @@ import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
-import { cartLines } from "@/db/schema/cartLines";
-import { carts } from "@/db/schema/cart";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { carts } from "@/lib/db/schema/cart";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

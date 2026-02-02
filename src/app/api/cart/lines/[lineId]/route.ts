@@ -3,8 +3,8 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts, cartLines } from "@/db/schema";
+import { db } from "@/lib/db";
+import { carts, cartLines } from "@/lib/db/schema";
 
 // Keep Node runtime + force-dynamic so cookies/headers/params can be awaited safely
 export const runtime = "nodejs";

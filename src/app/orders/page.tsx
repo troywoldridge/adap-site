@@ -2,9 +2,9 @@
 import "server-only";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 // If your orders table is exported from a different file, adjust this import:
-import { orders } from "@/db/schema/orders";
+import { orders } from "@/lib/db/schema/orders";
 import { desc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";

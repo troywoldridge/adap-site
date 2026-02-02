@@ -2,11 +2,11 @@ import "server-only";
 
 import { and, eq, ne } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartCredits } from "@/db/schema/cartCredits";
-import { orders } from "@/db/schema/orders";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartCredits } from "@/lib/db/schema/cartCredits";
+import { orders } from "@/lib/db/schema/orders";
 import { getCartCreditsCents } from "@/lib/cartCredits";
 
 type Db = typeof db;

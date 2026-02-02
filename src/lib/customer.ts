@@ -1,7 +1,7 @@
 // src/lib/customer.ts
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { dbClient as db } from "@/lib/db";
-import { customers } from "@/db/schema/customer"; // <- matches your path
+import { db } from "@/lib/db";
+import { customers } from "@/lib/db/schema/customer"; // <- matches your path
 import { eq } from "drizzle-orm";
 
 /**

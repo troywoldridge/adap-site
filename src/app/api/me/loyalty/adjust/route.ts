@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
+import { loyaltyTransactions, loyaltyWallets } from "@/lib/db/schema/loyalty";
 import { computeLoyalty } from "@/lib/loyalty";
 
 export async function POST(req: Request) {

@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { orderSessions } from "@/db/schema";
+import { db } from "@/lib/db";
+import { orderSessions } from "@/lib/db/schema";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { auth } from "@clerk/nextjs/server";
 

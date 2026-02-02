@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 
-import { dbClient as db } from "@/lib/db";
-import { carts, cartLines, cartArtwork, orders } from "@/db/schema";
+import { db } from "@/lib/db";
+import { carts, cartLines, cartArtwork, orders } from "@/lib/db/schema";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
 
 export const runtime = "nodejs";

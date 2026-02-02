@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { customerAddresses } from "@/db/schema/customer";
+import { db } from "@/lib/db";
+import { customerAddresses } from "@/lib/db/schema/customer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

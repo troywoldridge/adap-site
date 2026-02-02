@@ -1,10 +1,10 @@
 import "server-only";
 
 import { and, eq } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
+import { db } from "@/lib/db";
 
-import { customers } from "@/db/schema/customer";
-import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
+import { customers } from "@/lib/db/schema/customer";
+import { loyaltyWallets, loyaltyTransactions } from "@/lib/db/schema/loyalty";
 
 type Db = typeof db;
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

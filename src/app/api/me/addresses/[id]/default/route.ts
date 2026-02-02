@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { addresses } from "@/db/schema/addresses"; // adjust path/name to yours
+import { db } from "@/lib/db";
+import { addresses } from "@/lib/db/schema/addresses"; // adjust path/name to yours
 
 export const dynamic = "force-dynamic";
 

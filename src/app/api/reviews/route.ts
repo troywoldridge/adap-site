@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
-import { dbClient as db } from "@/lib/db";
-import { productReviews } from "@/db/schema/productReviews";
+import { db } from "@/lib/db";
+import { productReviews } from "@/lib/db/schema/productReviews";
 import { desc, eq, sql } from "drizzle-orm";
 
 export const runtime = "nodejs";

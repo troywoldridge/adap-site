@@ -3,8 +3,8 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, ne } from "drizzle-orm";
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

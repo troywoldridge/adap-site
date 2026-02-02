@@ -4,12 +4,12 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-import { db as getDb } from "@/lib/db";
+import { db } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartCredits } from "@/db/schema/cartCredits";
-import { orders } from "@/db/schema/orders";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartCredits } from "@/lib/db/schema/cartCredits";
+import { orders } from "@/lib/db/schema/orders";
 import { getCartCreditsCents } from "@/lib/cartCredits";
 import { calculateTaxCents } from "./tax";
 
@@ -36,7 +36,6 @@ const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-07-30.basil" });
 async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | null }) {
   const { cartId, sid } = ref;
 
-  const db = getDb();
   const { select } = db;
 
   if (cartId) {
@@ -82,7 +81,6 @@ async function computeCartTotalsCents(
   },
   opts: { stripeTotalCents?: number | null } = {},
 ) {
-  const db = getDb();
   const { select } = db;
 
   const rows = await select({
@@ -131,7 +129,6 @@ async function finalizePaidOrderFromCartRef(args: {
 }) {
   const { piId, cartId, sid } = args;
 
-  const db = getDb();
   const { select, transaction } = db;
 
   if (piId) {

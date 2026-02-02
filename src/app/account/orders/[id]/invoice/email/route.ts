@@ -3,8 +3,8 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { orders } from "@/db/schema/orders";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema/orders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

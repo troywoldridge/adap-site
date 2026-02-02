@@ -6,10 +6,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
-import { dbClient as db } from "@/lib/db";
-import { carts } from "@/db/schema/cart";
-import { cartLines } from "@/db/schema/cartLines";
-import { cartAttachments } from "@/db/schema/cartAttachments";
+import { db } from "@/lib/db";
+import { carts } from "@/lib/db/schema/cart";
+import { cartLines } from "@/lib/db/schema/cartLines";
+import { cartAttachments } from "@/lib/db/schema/cartAttachments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
