@@ -1,11 +1,12 @@
-// app/api/dev/seed-order-session/route.ts
+// src/app/api/dev/seed-order-session/route.ts
 import "server-only";
+
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import type Stripe from "stripe";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { db as getDb } from "@/lib/db";
 import { orderSessions } from "@/db/schema"; // or "@/db/schema/orderSessions" if that’s where it lives
 import { stripe } from "@/lib/stripe";
 
@@ -21,8 +22,8 @@ type SeedBody = {
   id?: string;
   userId?: string;
   productId?: string;
-  currency?: string; // "USD"|"CAD"|...
-  total?: number; // dollars
+  currency?: string;
+  total?: number;
   options?: (number | string)[] | Record<string, unknown>;
   files?: { type: string; url: string }[];
   shippingInfo?: Record<string, unknown> | null;
@@ -50,7 +51,6 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const totalNumber = typeof body.total === "number" ? body.total : 20.0;
 
-    // shape kept loose to fit your existing schema
     const row = {
       id,
       userId: body.userId || "dev-user",
@@ -74,16 +74,17 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
-    // ✅ No implicit-any: use eq(orderSessions.id, id)
+    const db = getDb();
+    const { select, insert, update } = db;
+
     const existing =
-      (await db
-        .select()
+      (await select()
         .from(orderSessions)
         .where(eq(orderSessions.id, id))
-        .limit(1))?.[0] || null;
+        .limit(1))?.[0] ?? null;
 
     if (!existing) {
-      await db.insert(orderSessions).values(row);
+      await insert(orderSessions).values(row);
     }
 
     const createCheckout =
@@ -155,8 +156,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      await db
-        .update(orderSessions)
+      await update(orderSessions)
         .set({ stripeCheckoutSessionId: checkout.id })
         .where(eq(orderSessions.id, row.id));
 
@@ -172,9 +172,6 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: any) {
     console.error("[dev/seed-order-session] error:", err?.message || err);
-    return NextResponse.json(
-      { error: err?.message || "Failed to seed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || "Failed to seed" }, { status: 500 });
   }
 }

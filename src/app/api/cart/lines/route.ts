@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts, cartLines } from "@/db/schema";
 import { computePrice } from "@/lib/price/compute";
 

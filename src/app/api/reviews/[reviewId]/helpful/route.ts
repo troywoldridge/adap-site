@@ -2,7 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { productReviews, reviewHelpfulVotes } from "@/db/schema/reviews";
 import { and, eq, sql } from "drizzle-orm";
 

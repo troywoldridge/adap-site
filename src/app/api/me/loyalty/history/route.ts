@@ -2,7 +2,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
 import { desc, eq } from "drizzle-orm";
 

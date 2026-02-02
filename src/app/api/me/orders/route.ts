@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { orders } from "@/db/schema/orders";
 import { cartLines } from "@/db/schema/cartLines";
 import { carts } from "@/db/schema/cart";

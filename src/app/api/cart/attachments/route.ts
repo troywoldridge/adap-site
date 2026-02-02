@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { cartAttachments } from "@/db/schema/cartAttachments";

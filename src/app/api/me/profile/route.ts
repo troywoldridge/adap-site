@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { customers } from "@/db/schema/customer";
 import { enc } from "@/lib/pii";
 

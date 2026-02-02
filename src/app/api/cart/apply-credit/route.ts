@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartCredits } from "@/db/schema/cartCredits";
 import { and, eq } from "drizzle-orm";

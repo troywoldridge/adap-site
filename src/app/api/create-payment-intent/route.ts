@@ -1,45 +1,80 @@
 // src/app/api/create-payment-intent/route.ts
 import "server-only";
-import { NextResponse, type NextRequest } from "next/server";
-import { cookies } from "next/headers";
-import { and, eq, ne } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
 
-import { stripe } from "@/lib/stripe";
-import { db } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { auth } from "@clerk/nextjs/server";
+import { and, eq, ne } from "drizzle-orm";
+
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
+import { cartCredits } from "@/db/schema/cartCredits";
 import { getCartCreditsCents } from "@/lib/cartCredits";
+import { calculateTaxCents } from "@/app/api/stripe/webhook/tax";
 import { finalizeFreeOrderBySid } from "@/lib/checkout";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function POST(_req: NextRequest) {
+const STRIPE_KEY: string =
+  process.env.STRIPE_SECRET_KEY ??
+  (() => {
+    throw new Error("Missing STRIPE_SECRET_KEY");
+  })();
+
+const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-07-30.basil" });
+
+function toInt(v: unknown, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
+}
+
+function shipCentsFromSelectedShipping(selectedShipping: unknown): number {
+  const s = selectedShipping as any;
+  const cost = s?.cost ?? s?.rate?.cost ?? s?.price ?? 0;
+  const dollars = Number(cost);
+  if (!Number.isFinite(dollars) || dollars <= 0) return 0;
+  return Math.round(dollars * 100);
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const jar = await cookies();
-    const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
+    const { userId } = await auth();
+
+    // Identify session (guest SID) from cookies or header.
+    // This route likely already has your SID logic elsewhere; keep it simple here.
+    const sid =
+      req.cookies.get("adap_sid")?.value ??
+      req.cookies.get("sid")?.value ??
+      req.headers.get("x-sid") ??
+      "";
+
     if (!sid) {
       return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
     }
 
-    const [cart] =
-      (await db
-        .select({
-          id: carts.id,
-          status: carts.status,
-          currency: carts.currency,
-          selectedShipping: carts.selectedShipping,
-        })
-        .from(carts)
-        .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
-        .limit(1)) ?? [];
+    // Load open cart
+    const [cart] = await db
+      .select({
+        id: carts.id,
+        sid: carts.sid,
+        userId: carts.userId,
+        status: carts.status,
+        currency: carts.currency,
+        selectedShipping: carts.selectedShipping,
+      })
+      .from(carts)
+      .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
+      .limit(1);
 
     if (!cart) {
-      return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "no_open_cart" }, { status: 404 });
     }
 
-    const rows = await db
+    // Load lines for subtotal
+    const lineRows = await db
       .select({
         quantity: cartLines.quantity,
         unitPriceCents: cartLines.unitPriceCents,
@@ -48,47 +83,52 @@ export async function POST(_req: NextRequest) {
       .from(cartLines)
       .where(eq(cartLines.cartId, cart.id));
 
-    const subtotalCents = rows.reduce((sum, r) => {
-      const qty = Number(r.quantity ?? 0);
-      const unit = Number(r.unitPriceCents ?? 0);
-      const line = Number.isFinite(Number(r.lineTotalCents)) ? Number(r.lineTotalCents) : qty * unit;
+    const subtotalCents = lineRows.reduce((sum: number, r) => {
+      const qty = toInt(r.quantity, 0);
+      const unit = toInt(r.unitPriceCents, 0);
+      const line = Number.isFinite(Number(r.lineTotalCents))
+        ? toInt(r.lineTotalCents, qty * unit)
+        : qty * unit;
       return sum + (Number.isFinite(line) ? line : 0);
     }, 0);
 
-    const shipCents = Math.round(Number(cart?.selectedShipping?.cost ?? 0) * 100) || 0;
-    const taxCents = 0;
+    const shippingCents = shipCentsFromSelectedShipping(cart.selectedShipping);
     const creditsCents = await getCartCreditsCents(cart.id);
-    const totalCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
-    const currency = (cart.currency === "CAD" ? "cad" : "usd") as "usd" | "cad";
 
-    // ✅ FREE CHECKOUT PATH
-    if (totalCents <= 0) {
-      // optional: associate Clerk userId with the cart before finalizing (if your schema has carts.userId)
-      const { userId } = await auth();
-      if (userId) {
-        try {
-          // Best-effort; safe to ignore if your carts table doesn't have userId
-          await db.update(carts as any).set({ userId }).where(eq(carts.id, cart.id));
-        } catch {
-          // ignore if column doesn't exist
-        }
-      }
+    const { taxCents } = calculateTaxCents({
+      subtotalCents,
+      shippingCents,
+      creditsCents,
+      location: (cart as any)?.selectedShipping ?? null,
+      stripeTotalCents: null,
+    });
 
-      const result = await finalizeFreeOrderBySid(sid); // <- pass just the SID (string)
-      if (!result) {
-        return NextResponse.json({ ok: false, error: "finalize_failed" }, { status: 500 });
+    const totalCents = Math.max(0, subtotalCents + shippingCents + taxCents - creditsCents);
+
+    // ✅ Free order path (credits cover total)
+    if (totalCents === 0) {
+      const orderId = await finalizeFreeOrderBySid({
+        sid,
+        expectedTotalCents: 0,
+        userId: userId ?? null,
+      });
+
+      if (!orderId) {
+        return NextResponse.json({ ok: false, error: "free_finalize_failed" }, { status: 500 });
       }
 
       return NextResponse.json({
         ok: true,
-        free: true,
-        orderId: result.orderId,
-        amountCents: 0,
-        currency,
+        mode: "free",
+        orderId,
+        totalCents,
+        currency: String(cart.currency || "USD").toUpperCase(),
       });
     }
 
-    // 🔔 Stripe PaymentIntent path
+    // Stripe PaymentIntent path
+    const currency = (String(cart.currency || "USD").toUpperCase() === "CAD" ? "cad" : "usd") as "usd" | "cad";
+
     const intent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency,
@@ -96,22 +136,19 @@ export async function POST(_req: NextRequest) {
       metadata: {
         sid,
         cartId: String(cart.id),
-        subtotalCents: String(subtotalCents),
-        shipCents: String(shipCents),
-        taxCents: String(taxCents),
-        creditsCents: String(creditsCents),
       },
     });
 
     return NextResponse.json({
       ok: true,
+      mode: "stripe",
       clientSecret: intent.client_secret,
-      amountCents: totalCents,
+      amount: totalCents,
       currency,
     });
   } catch (e: unknown) {
-    console.error("create-payment-intent failed", e);
     const msg = e instanceof Error ? e.message : String(e);
+    console.error("[create-payment-intent] error:", msg);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }

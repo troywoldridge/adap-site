@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { and, eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 
 export const runtime = "nodejs";

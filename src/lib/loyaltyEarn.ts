@@ -1,84 +1,127 @@
-// src/lib/loyaltyEarn.ts
-import { db } from "@/lib/db";
-import * as schema from "@/db/schema";
+import "server-only";
+
 import { and, eq } from "drizzle-orm";
-import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
-import { LOYALTY, computeLoyalty } from "./loyalty";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { PgTransaction } from "drizzle-orm/pg-core";
+import { dbClient as db } from "@/lib/db";
 
-/** Accept either a real DB or a transaction */
-type AnyDb = NodePgDatabase<typeof schema> | PgTransaction<any, any, any>;
+import { customers } from "@/db/schema/customer";
+import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
 
-/** Ensure a wallet exists for a customer; works with db or transaction */
-async function ensureWallet(customerId: string, tx?: AnyDb) {
-  const t = (tx ?? (db as AnyDb));
-  const [existing] = await t
-    .select()
-    .from(loyaltyWallets)
-    .where(eq(loyaltyWallets.customerId, customerId))
-    .limit(1);
-  if (existing) return existing;
+type Db = typeof db;
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-  const [created] = await t
-    .insert(loyaltyWallets)
-    .values({ customerId })
-    .returning();
-  return created;
+export type LoyaltySnapshot = {
+  customerId: string;
+  pointsBalance: number;
+};
+
+function toInt(v: unknown, fallback = 0) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.trunc(n);
+}
+
+async function ensureCustomerAndWallet(tx: Tx, args: { clerkUserId: string; email?: string | null }) {
+  const clerkUserId = String(args.clerkUserId || "").trim();
+  if (!clerkUserId) throw new Error("missing clerkUserId");
+
+  // customer
+  let cust =
+    (await tx.query.customers.findFirst({
+      where: eq(customers.clerkUserId, clerkUserId),
+    })) ?? null;
+
+  if (!cust) {
+    const email = args.email ? String(args.email).trim().toLowerCase() : null;
+    if (!email) throw new Error("missing email");
+
+    const inserted = await tx.insert(customers).values({ clerkUserId, email }).returning();
+    cust = inserted?.[0] ?? null;
+    if (!cust) throw new Error("customer insert failed");
+  }
+
+  // wallet
+  let wallet =
+    (await tx.query.loyaltyWallets.findFirst({
+      where: eq(loyaltyWallets.customerId, cust.id),
+    })) ?? null;
+
+  if (!wallet) {
+    const inserted = await tx.insert(loyaltyWallets).values({ customerId: cust.id, pointsBalance: 0 }).returning();
+    wallet = inserted?.[0] ?? null;
+    if (!wallet) throw new Error("wallet insert failed");
+  }
+
+  return { cust, wallet };
 }
 
 /**
- * Earn points for a completed order (idempotent per (customerId, orderId)).
- * Call this once the order is truly billable (Paid/Completed) per SinaLite docs.
+ * Award points (earn) to a customer.
+ * Returns snapshot after the change.
  */
-export async function earnPointsFromOrder(params: {
-  customerId: string;
-  orderId: string;
-  currency: "USD" | "CAD";
-  eligibleAmount: number; // merchandise subtotal you want to award on
-  note?: string;
-}) {
-  const { customerId, orderId, currency, eligibleAmount, note } = params;
-  const rate = LOYALTY.EARN_POINTS_PER_DOLLAR[currency] ?? 0;
-  const points = Math.max(0, Math.floor(eligibleAmount * rate));
-  if (points <= 0) {
-    const wallet = await ensureWallet(customerId);
-    return { changed: false, snapshot: computeLoyalty(wallet.pointsBalance) };
+export async function awardLoyaltyPoints(args: {
+  clerkUserId: string;
+  email?: string | null;
+  points: number;
+  reason?: string | null;
+  orderId?: string | null;
+}): Promise<{ changed: boolean; snapshot: LoyaltySnapshot }> {
+  const points = toInt(args.points, 0);
+  if (points === 0) {
+    // still return current snapshot if possible
+    const snap = await getLoyaltySnapshotByClerkUserId(args.clerkUserId).catch(() => null);
+    if (snap) return { changed: false, snapshot: snap };
+    return { changed: false, snapshot: { customerId: "", pointsBalance: 0 } };
   }
 
   return await db.transaction(async (tx) => {
-    const wallet = await ensureWallet(customerId, tx);
+    const { cust, wallet } = await ensureCustomerAndWallet(tx, {
+      clerkUserId: args.clerkUserId,
+      email: args.email ?? null,
+    });
 
-    // Try to insert the 'earn' txn; if unique index says it's already there, bail gracefully
-    try {
-      await tx.insert(loyaltyTransactions).values({
-        customerId,
-        walletId: wallet.id,
-        type: "earn",
-        points, // positive
-        source: "order",
-        orderId,
-        note: note ?? null,
-      } as any);
-    } catch {
-      // Already earned for this order
-      const [fresh] = await tx
-        .select()
-        .from(loyaltyWallets)
-        .where(eq(loyaltyWallets.id, wallet.id))
-        .limit(1);
-      return { changed: false, snapshot: computeLoyalty(fresh?.pointsBalance ?? 0) };
-    }
+    const before = toInt(wallet.pointsBalance, 0);
+    const after = Math.max(0, before + points);
 
-    const [updated] = await tx
-      .update(loyaltyWallets)
-      .set({
-        pointsBalance: wallet.pointsBalance + points,
-        lifetimeEarned: wallet.lifetimeEarned + points,
-      })
-      .where(eq(loyaltyWallets.id, wallet.id))
-      .returning();
+    // record transaction
+    await tx.insert(loyaltyTransactions).values({
+      customerId: cust.id,
+      deltaPoints: points,
+      reason: args.reason ?? "earn",
+      orderId: args.orderId ?? null,
+      createdAt: new Date(),
+    } as any);
 
-    return { changed: true, snapshot: computeLoyalty(updated.pointsBalance) };
+    // update wallet
+    await tx.update(loyaltyWallets).set({ pointsBalance: after }).where(eq(loyaltyWallets.id, wallet.id));
+
+    return {
+      changed: true,
+      snapshot: { customerId: cust.id, pointsBalance: after },
+    };
   });
+}
+
+/**
+ * Read snapshot by Clerk user id.
+ */
+export async function getLoyaltySnapshotByClerkUserId(clerkUserId: string): Promise<LoyaltySnapshot | null> {
+  const id = String(clerkUserId || "").trim();
+  if (!id) return null;
+
+  const cust =
+    (await db.query.customers.findFirst({
+      where: eq(customers.clerkUserId, id),
+    })) ?? null;
+
+  if (!cust) return null;
+
+  const wallet =
+    (await db.query.loyaltyWallets.findFirst({
+      where: eq(loyaltyWallets.customerId, cust.id),
+    })) ?? null;
+
+  return {
+    customerId: cust.id,
+    pointsBalance: toInt(wallet?.pointsBalance, 0),
+  };
 }

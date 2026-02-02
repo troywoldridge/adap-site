@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { cartCredits } from "@/db/schema/cartCredits";
 import { eq } from "drizzle-orm";
 

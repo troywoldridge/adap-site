@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { and, eq, gte } from "drizzle-orm";
 import { loyaltyTransactions, loyaltyWallets } from "@/db/schema/loyalty";
 import { LOYALTY, computeLoyalty, pointsToCreditDollars } from "@/lib/loyalty";

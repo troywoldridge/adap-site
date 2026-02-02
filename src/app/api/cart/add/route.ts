@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { getOrEnsureSid } from "@/lib/getOrSetSid";

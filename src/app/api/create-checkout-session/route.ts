@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies, headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { and, eq, ne } from "drizzle-orm";

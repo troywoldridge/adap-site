@@ -1,30 +1,40 @@
-// src/lib/db.ts
+import "server-only";
+
+import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import * as schema from "@/db/schema"; // ⬅️ import your barrel (must export carts, cartLines, etc.)
+import { requireEnv } from "@/lib/env/server";
+import * as schema from "@/db/schema";
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __adap_pg_pool: Pool | undefined;
-  // eslint-disable-next-line no-var
-  var __adap_drizzle: ReturnType<typeof drizzle<typeof schema>> | undefined;
+let _pool: pg.Pool | null = null;
+let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+
+function getPool(): pg.Pool {
+  if (_pool) return _pool;
+
+  const connectionString = requireEnv("DATABASE_URL");
+  _pool = new pg.Pool({
+    connectionString,
+    max: 5,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 10_000,
+  });
+
+  return _pool;
 }
 
-const connectionString = process.env.DATABASE_URL!;
-if (!connectionString) {
-  throw new Error("Missing env: DATABASE_URL");
+export function db() {
+  if (_db) return _db;
+  _db = drizzle(getPool(), { schema });
+  return _db;
 }
 
-export const pool = global.__adap_pg_pool ?? new Pool({ connectionString });
+/**
+ * Compatibility export:
+ * Most files expect `db.select()`, `db.insert()`, `db.query.<table>`, `db.transaction()`, etc.
+ */
+export const dbClient = db();
 
-// ⬅️ pass { schema } so db.query.* is generated
-export const db =
-  global.__adap_drizzle ?? drizzle(pool, { schema });
-
-// cache in dev (HMR)
-if (!global.__adap_pg_pool) {
-  global.__adap_pg_pool = pool;
-}
-if (!global.__adap_drizzle) {
-  global.__adap_drizzle = db;
-}
+/**
+ * Optional: used by dev tooling and health checks.
+ */
+export const pool = getPool();

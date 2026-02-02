@@ -1,7 +1,7 @@
 // app/products/[productId]/reviews/route.ts
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { productReviews } from "@/db/schema/productReviews"; // adjust path if different
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 

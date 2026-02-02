@@ -1,5 +1,5 @@
 // src/app/api/analytics/guide-download/route.ts
-export const runtime = "nodejs";
+import "server-only";
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
@@ -19,9 +19,13 @@ import path from "node:path";
  * PDFs are served fast via Cloudflare CDN; this endpoint just records click events.
  */
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const FILE_TMP = "/tmp/guide-downloads.jsonl";
-const FILE_ENV = process.env.GUIDE_ANALYTICS_FILE;    // e.g. /var/data/guide-downloads.jsonl
-const WEBHOOK = process.env.GUIDE_ANALYTICS_WEBHOOK;  // e.g. https://hooks.example.com/ingest
+const FILE_ENV = process.env.GUIDE_ANALYTICS_FILE; // e.g. /var/data/guide-downloads.jsonl
+const WEBHOOK = process.env.GUIDE_ANALYTICS_WEBHOOK; // e.g. https://hooks.example.com/ingest
 const USE_DB = process.env.GUIDE_ANALYTICS_USE_DB === "1";
 
 async function appendJSONL(filePath: string, obj: unknown) {
@@ -33,13 +37,6 @@ async function appendJSONL(filePath: string, obj: unknown) {
   }
 }
 
-/**
- * Optionally insert into your DB via Drizzle.
- * - We **only** try this if GUIDE_ANALYTICS_USE_DB=1
- * - We assume a named export `db` from "@/lib/db"
- * - We assume a named export `guideDownloads` from "@/lib/db/schema/guideDownloads"
- * - All errors are swallowed (analytics must never block UX)
- */
 async function tryInsertDb(payload: {
   href: string;
   label: string;
@@ -53,16 +50,18 @@ async function tryInsertDb(payload: {
   if (!USE_DB) return;
 
   try {
-    // Use `any` to avoid TS complaints if your module shape differs in some envs.
     const dbMod: any = await import("@/lib/db").catch(() => null);
-    const db = dbMod?.db || null; // named export is typical in your repo
-    if (!db) return;
+    const getDb = dbMod?.db || null; // in this repo db is a function
+    if (typeof getDb !== "function") return;
 
     const schemaMod: any = await import("@/db/schema/guideDownloads").catch(() => null);
     const guideDownloads = schemaMod?.guideDownloads || null;
     if (!guideDownloads) return;
 
-    await db.insert(guideDownloads).values({
+    const db = getDb();
+    const { insert } = db;
+
+    await insert(guideDownloads).values({
       href: payload.href,
       label: payload.label,
       categoryPath: payload.categoryPath,
@@ -71,7 +70,6 @@ async function tryInsertDb(payload: {
       referer: payload.referer || null,
       ua: payload.ua || null,
       ip: payload.ip || null,
-      // created_at defaults to now() in schema
     });
   } catch {
     // swallow DB errors; keep request fast and resilient
@@ -80,7 +78,6 @@ async function tryInsertDb(payload: {
 
 export async function POST(req: Request) {
   try {
-    // In Next 15+ route handlers, headers() may be async — await it
     const h = await headers();
 
     const ua = h.get("user-agent") || "";
@@ -111,16 +108,13 @@ export async function POST(req: Request) {
       ip,
     };
 
-    // 1) Console log (observable in server logs)
     console.log("[guide-download]", payload);
 
-    // 2) File sinks
     await appendJSONL(FILE_TMP, payload);
     if (FILE_ENV && FILE_ENV.startsWith("/")) {
       await appendJSONL(FILE_ENV, payload);
     }
 
-    // 3) Optional webhook
     if (WEBHOOK) {
       fetch(WEBHOOK, {
         method: "POST",
@@ -130,7 +124,6 @@ export async function POST(req: Request) {
       }).catch(() => {});
     }
 
-    // 4) Optional DB insert
     await tryInsertDb(payload);
 
     return NextResponse.json({ ok: true });

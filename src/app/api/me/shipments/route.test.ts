@@ -34,7 +34,7 @@ vi.mock("@/lib/db", () => {
   return { db };
 });
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { GET } from "./route";
 
 describe("/api/me/shipments", () => {

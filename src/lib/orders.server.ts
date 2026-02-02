@@ -1,19 +1,16 @@
-// src/lib/orders.server.ts
 import "server-only";
-import Stripe from "stripe";
-import { db } from "@/lib/db";
-import { and, eq, ne } from "drizzle-orm";
 
-// Use your barrel re-exports (adjust if your paths differ)
+import Stripe from "stripe";
+import { and, eq, ne } from "drizzle-orm";
+import { dbClient as db } from "@/lib/db";
 import { carts, cartLines, orders, orderItems } from "@/db/schema";
 
-const STRIPE_KEY =
-  process.env.STRIPE_SECRET_KEY ??
-  (() => {
-    throw new Error("Missing STRIPE_SECRET_KEY");
-  })();
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
 
-const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-07-30.basil" });
+  return new Stripe(key, { apiVersion: "2025-07-30.basil" });
+}
 
 type ShippingSelection = {
   country?: "US" | "CA";
@@ -21,43 +18,31 @@ type ShippingSelection = {
   zip?: string;
   carrier?: string;
   method?: string;
-  cost?: number; // dollars
+  cost?: number;
   days?: number | null;
   currency?: "USD" | "CAD";
 };
 
-/**
- * Idempotently create (or fetch existing) order from a cart.
- * - De-duplicates by Stripe PaymentIntent id (stored in orders.providerId).
- * - Inserts order header + order items.
- * - Closes the cart on success.
- *
- * NOTE: Your `orders` table has no `cartId`/`sourceCartId` column,
- * so we do NOT write any cart reference into the order record.
- */
 export async function ensureOrderFromCart(opts: {
   cartId: string;
-  /** Stripe PaymentIntent id (stored as orders.providerId) */
   stripePaymentIntentId?: string | null;
-  /** Desired order payment status; default "paid" */
   status?: "paid" | "processing" | "pending";
 }): Promise<string> {
+  const database = db;
   const { cartId, stripePaymentIntentId, status = "paid" } = opts;
 
-  // 0) If we already created an order for this PaymentIntent, return it
   if (stripePaymentIntentId) {
-    const [existingByPi] =
-      (await db
+    const [existing] =
+      (await database
         .select({ id: orders.id })
         .from(orders)
         .where(eq(orders.providerId, stripePaymentIntentId))
         .limit(1)) ?? [];
-    if (existingByPi) return String(existingByPi.id);
+    if (existing) return String(existing.id);
   }
 
-  // 1) Load cart (must be open)
   const [cartRow] =
-    (await db
+    (await database
       .select({
         id: carts.id,
         status: carts.status,
@@ -70,9 +55,8 @@ export async function ensureOrderFromCart(opts: {
       .limit(1)) ?? [];
   if (!cartRow) throw new Error("cart_not_found_or_closed");
 
-  // 2) Load lines
   const lineRows =
-    (await db
+    (await database
       .select({
         id: cartLines.id,
         productId: cartLines.productId,
@@ -85,48 +69,39 @@ export async function ensureOrderFromCart(opts: {
       .where(eq(cartLines.cartId, cartRow.id))) ?? [];
   if (lineRows.length === 0) throw new Error("empty_cart");
 
-  // 3) Totals (authoritative cents already on lines)
   const subtotalCents = lineRows.reduce((sum, r) => {
-    const qty = Number(r.quantity ?? 0);
-    const unit = Number(r.unitPriceCents ?? 0);
-    const line = Number.isFinite(Number(r.lineTotalCents))
-      ? Number(r.lineTotalCents)
-      : qty * unit;
+    const line =
+      Number.isFinite(Number(r.lineTotalCents))
+        ? Number(r.lineTotalCents)
+        : Number(r.quantity || 0) * Number(r.unitPriceCents || 0);
     return sum + (Number.isFinite(line) ? line : 0);
   }, 0);
 
   const ship: ShippingSelection = (cartRow as any).selectedShipping ?? {};
-  const shippingCents = Math.round((Number(ship?.cost) || 0) * 100);
-  const taxCents = 0;
-  const discountCents = 0;
-  const totalCents = Math.max(0, subtotalCents + shippingCents + taxCents - discountCents);
+  const shippingCents = Math.round((Number(ship.cost) || 0) * 100);
 
-  // 4) Insert order header (NO cartId field — your schema doesn’t have one)
-  const [ins] = await db
+  const [ins] = await database
     .insert(orders)
     .values({
-      userId: cartRow.sid,                              // or your real user id if you store it
+      userId: cartRow.sid,
       status: "placed",
       paymentStatus: status === "paid" ? "paid" : "pending",
       provider: "stripe",
-      providerId: stripePaymentIntentId ?? null,        // PI id → orders.providerId
-
+      providerId: stripePaymentIntentId ?? null,
       currency: (cartRow.currency as "USD" | "CAD") ?? "USD",
       subtotalCents,
       shippingCents,
-      taxCents,
-      discountCents,
-      totalCents,
-
+      taxCents: 0,
+      discountCents: 0,
+      totalCents: Math.max(0, subtotalCents + shippingCents),
       placedAt: new Date().toISOString(),
     } as any)
     .returning({ id: orders.id });
 
   const orderId = String(ins.id);
 
-  // 5) Insert order items (your schema exports orderItems, not orderLines)
   for (const r of lineRows) {
-    await db.insert(orderItems).values({
+    await database.insert(orderItems).values({
       orderId,
       productId: Number(r.productId),
       quantity: Math.max(1, Number(r.quantity || 1)),
@@ -136,20 +111,21 @@ export async function ensureOrderFromCart(opts: {
     } as any);
   }
 
-  // 6) Close the cart
-  await db.update(carts).set({ status: "closed" as any }).where(eq(carts.id, cartRow.id));
+  await database
+    .update(carts)
+    .set({ status: "closed" as any })
+    .where(eq(carts.id, cartRow.id));
 
   return orderId;
 }
 
-/**
- * Find (or create) an order by Stripe Checkout Session id.
- * - Gets session from Stripe, reads payment_intent + metadata.cartId
- * - If an order already exists for that PI, return it
- * - Else, if we have a cartId + PI id, create the order via ensureOrderFromCart
- */
-export async function findOrderIdByStripeSession(sessionId: string): Promise<string | null> {
+export async function findOrderIdByStripeSession(
+  sessionId: string,
+): Promise<string | null> {
   try {
+    const stripe = getStripe();
+    const database = db;
+
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     const cartId = (session.metadata?.cartId as string) || null;
@@ -159,9 +135,8 @@ export async function findOrderIdByStripeSession(sessionId: string): Promise<str
         : (session.payment_intent as any)?.id || null;
 
     if (piId) {
-      // Already created by webhook?
       const [byPi] =
-        (await db
+        (await database
           .select({ id: orders.id })
           .from(orders)
           .where(eq(orders.providerId, piId))
@@ -170,16 +145,15 @@ export async function findOrderIdByStripeSession(sessionId: string): Promise<str
     }
 
     if (piId && cartId) {
-      // Create now (idempotent against providerId)
-      const id = await ensureOrderFromCart({
+      return await ensureOrderFromCart({
         cartId,
         stripePaymentIntentId: piId,
         status: "paid",
       });
-      return id;
     }
   } catch {
-    // swallow and return null
+    /* swallow */
   }
+
   return null;
 }

@@ -1,247 +1,118 @@
-// src/lib/checkout.ts
-import { db } from "@/lib/db";
-import { and, eq, ne, sql } from "drizzle-orm";
+import "server-only";
+
+import { and, eq, ne } from "drizzle-orm";
+
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { cartCredits } from "@/db/schema/cartCredits";
 import { orders } from "@/db/schema/orders";
-import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
+import { getCartCreditsCents } from "@/lib/cartCredits";
 
-// ------------ helpers ------------
-async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | null }) {
-  if (ref.cartId) {
-    const [row] =
-      (await db
-        .select({
-          id: carts.id,
-          status: carts.status,
-          currency: carts.currency,
-          selectedShipping: carts.selectedShipping,
-          sid: carts.sid,
-          // if your schema has carts.userId, project it; otherwise this stays undefined
-          // @ts-ignore
-          userId: (carts as any).userId,
-        })
-        .from(carts)
-        .where(and(eq(carts.id, ref.cartId), ne(carts.status, "closed")))
-        .limit(1)) ?? [];
-    if (row) return row;
-  }
+type Db = typeof db;
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-  if (ref.sid) {
-    const [row] =
-      (await db
-        .select({
-          id: carts.id,
-          status: carts.status,
-          currency: carts.currency,
-          selectedShipping: carts.selectedShipping,
-          sid: carts.sid,
-          // @ts-ignore
-          userId: (carts as any).userId,
-        })
-        .from(carts)
-        .where(and(eq(carts.sid, ref.sid), ne(carts.status, "closed")))
-        .limit(1)) ?? [];
-    if (row) return row;
-  }
-
-  return null;
+function toInt(v: unknown, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
 }
 
-async function computeCartTotalsCents(cartRow: {
-  id: string;
-  currency: "USD" | "CAD" | string | null;
-  selectedShipping: { cost?: number | string | null } | null;
-}) {
-  const rows = await db
+function shipCentsFromSelectedShipping(selectedShipping: unknown): number {
+  // selectedShipping is usually JSON (cost in dollars)
+  const anyShip = selectedShipping as any;
+  const cost = anyShip?.cost ?? anyShip?.rate?.cost ?? anyShip?.price ?? 0;
+  const dollars = Number(cost);
+  if (!Number.isFinite(dollars) || dollars <= 0) return 0;
+  return Math.round(dollars * 100);
+}
+
+async function computeCartSubtotalCents(cartId: string, tx?: Tx): Promise<number> {
+  const database = tx ?? db;
+  const rows = await database
     .select({
       quantity: cartLines.quantity,
       unitPriceCents: cartLines.unitPriceCents,
       lineTotalCents: cartLines.lineTotalCents,
     })
     .from(cartLines)
-    .where(eq(cartLines.cartId, cartRow.id));
+    .where(eq(cartLines.cartId, cartId));
 
-  const subtotalCents = rows.reduce((sum, r) => {
-    const qty = Number(r.quantity ?? 0);
-    const unit = Number(r.unitPriceCents ?? 0);
-    const line = Number.isFinite(Number(r.lineTotalCents)) ? Number(r.lineTotalCents) : qty * unit;
+  return rows.reduce((sum: number, r) => {
+    const qty = toInt(r.quantity, 0);
+    const unit = toInt(r.unitPriceCents, 0);
+    const line = Number.isFinite(Number(r.lineTotalCents)) ? toInt(r.lineTotalCents, qty * unit) : qty * unit;
     return sum + (Number.isFinite(line) ? line : 0);
   }, 0);
-
-  const shipCents = Math.round(Number(cartRow?.selectedShipping?.cost ?? 0) * 100) || 0;
-  const taxCents = 0;
-
-  // applied loyalty credits (cents)
-  const { getCartCreditsCents } = await import("@/lib/cartCredits");
-  const creditsCents = await getCartCreditsCents(cartRow.id);
-
-  const totalCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
-  const ordersCurrency = (String(cartRow.currency || "USD").toUpperCase() as "USD" | "CAD");
-
-  return { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency };
-}
-
-// ------------ public API ------------
-/**
- * Create a PAID order for the given cart ref (Stripe success path).
- * Idempotent by providerId (PI id) and by cartId→order guard.
- */
-export async function finalizePaidOrderFromCartRef(ref: {
-  piId?: string;
-  sid?: string | null;
-  cartId?: string | null;
-}) {
-  // 1) Resolve cart (only if still open)
-  const cart = await loadOpenCartByRef({ cartId: ref.cartId ?? null, sid: ref.sid ?? null });
-  if (!cart) return null;
-
-  // 2) Authoritative totals (incl. credits)
-  const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
-    await computeCartTotalsCents(cart);
-
-  // 3) Idempotency guards
-  const existingByCart = await db
-    .select({ id: orders.id })
-    .from(orders)
-    .where(eq(orders.cartId, cart.id))
-    .limit(1);
-  if (existingByCart.length) {
-    return { orderId: existingByCart[0].id, already: true };
-  }
-
-  if (ref.piId) {
-    const existingByPi = await db
-      .select({ id: orders.id })
-      .from(orders)
-      .where(eq(orders.providerId, ref.piId))
-      .limit(1);
-    if (existingByPi.length) {
-      return { orderId: existingByPi[0].id, already: true };
-    }
-  }
-
-  // 4) Insert order, LOYALTY EARN, close cart, clear credits — all atomic
-  const result = await db.transaction(async (tx) => {
-    const safeUserId: string | null = (cart as any).userId || cart.sid || null;
-
-    const [order] = await tx
-      .insert(orders)
-      .values({
-        userId: safeUserId ?? "",
-        cartId: cart.id,
-        status: "placed",
-        paymentStatus: "paid",
-        provider: "stripe",
-        providerId: ref.piId ?? null,
-
-        currency: ordersCurrency,
-        subtotalCents,
-        shippingCents: shipCents,
-        taxCents,
-        discountCents: creditsCents,
-        creditsCents,
-        totalCents,
-
-        placedAt: new Date().toISOString(),
-      } as any)
-      .returning();
-
-    // 🎁 LOYALTY EARN — 100 pts = $1 → 1 pt per $1
-    const EARN_RATE_POINTS_PER_DOLLAR = 1;
-    const earnableCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
-    const earnPoints = Math.floor(earnableCents / 100) * EARN_RATE_POINTS_PER_DOLLAR;
-
-    if (earnPoints > 0 && safeUserId) {
-      await tx
-        .insert(loyaltyWallets)
-        .values({ customerId: safeUserId, pointsBalance: 0 })
-        .onConflictDoNothing({ target: loyaltyWallets.customerId });
-
-      const [{ id: walletId }] =
-        (await tx
-          .select({ id: loyaltyWallets.id })
-          .from(loyaltyWallets)
-          .where(eq(loyaltyWallets.customerId, safeUserId))
-          .limit(1)) ?? [];
-
-      await tx.insert(loyaltyTransactions).values({
-        walletId,
-        customerId: safeUserId,
-        type: "earn",
-        pointsDelta: earnPoints,
-        orderId: String(order.id),
-        note: "Order placed",
-      } as any);
-
-      await tx
-        .update(loyaltyWallets)
-        .set({
-          pointsBalance: sql`${loyaltyWallets.pointsBalance} + ${earnPoints}`,
-          lifetimeEarned: sql`${loyaltyWallets.lifetimeEarned} + ${earnPoints}`,
-          updatedAt: new Date(),
-        } as any)
-        .where(eq(loyaltyWallets.id, walletId));
-    }
-
-    await tx.update(carts).set({ status: "closed" }).where(eq(carts.id, cart.id));
-
-    try {
-      await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
-    } catch {
-      // ignore if you don’t maintain a cartCredits table
-    }
-
-    return { orderId: order.id, earned: earnPoints || 0 };
-  });
-
-  return result; // { orderId, earned, already? }
 }
 
 /**
- * Finalize a $0 cart by SID (no Stripe). Idempotent by cartId→order.
+ * Finalize a $0 checkout (credits cover entire total) by SID.
+ * This is used when you don't want to create a Stripe PaymentIntent.
+ *
+ * Returns orderId when finalized, otherwise null (not free or no open cart).
  */
-export async function finalizeFreeOrderBySid(sid: string) {
+export async function finalizeFreeOrderBySid(args: {
+  sid: string;
+  // Optional: if you already computed totals upstream, pass it for safety checks
+  expectedTotalCents?: number | null;
+  // Optional: set userId if you want to claim the cart/order to a logged-in user
+  userId?: string | null;
+}): Promise<string | null> {
+  const sid = String(args.sid || "").trim();
   if (!sid) return null;
 
-  // 1) Resolve open cart by SID
-  const cart = await loadOpenCartByRef({ sid });
+  // Find open cart for sid
+  const [cart] = await db
+    .select({
+      id: carts.id,
+      sid: carts.sid,
+      userId: carts.userId,
+      status: carts.status,
+      currency: carts.currency,
+      selectedShipping: carts.selectedShipping,
+    })
+    .from(carts)
+    .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
+    .limit(1);
+
   if (!cart) return null;
 
-  // 2) Compute totals
-  const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
-    await computeCartTotalsCents(cart);
+  const shipCents = shipCentsFromSelectedShipping(cart.selectedShipping);
+  const subtotalCents = await computeCartSubtotalCents(cart.id);
+  const creditsCents = await getCartCreditsCents(cart.id);
 
-  if (totalCents > 0) {
-    throw new Error("Cart total is not zero. Use paid checkout.");
+  // Tax is handled elsewhere in your stack; for free orders we keep it conservative here.
+  const taxCents = 0;
+
+  const totalCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
+
+  if (typeof args.expectedTotalCents === "number" && args.expectedTotalCents >= 0) {
+    // If upstream thought it was free but we compute non-free, do not finalize.
+    if (totalCents !== args.expectedTotalCents && totalCents > 0) return null;
   }
 
-  // 3) If an order already exists for this cart, return it
-  const existing = await db
-    .select({ id: orders.id })
-    .from(orders)
-    .where(eq(orders.cartId, cart.id))
-    .limit(1);
-  if (existing.length) {
-    return { orderId: existing[0].id, already: true };
-  }
+  // Only finalize if truly free
+  if (totalCents > 0) return null;
 
-  // 4) Create order + loyalty earn + close cart + clear credits (atomic)
-  const result = await db.transaction(async (tx) => {
-    const safeUserId: string | null = (cart as any).userId || cart.sid || null;
+  const safeUserId = (args.userId ?? null) || cart.userId || cart.sid;
+  const currency = (String(cart.currency || "USD").toUpperCase() === "CAD" ? "CAD" : "USD") as "USD" | "CAD";
+
+  const res = await db.transaction(async (tx) => {
+    // Idempotency: if an order already exists for this cart, reuse it
+    const existing = await tx.select({ id: orders.id }).from(orders).where(eq(orders.cartId, cart.id)).limit(1);
+    if (existing.length > 0) return String(existing[0].id);
 
     const [order] = await tx
       .insert(orders)
       .values({
-        userId: safeUserId ?? "",
+        userId: safeUserId,
         cartId: cart.id,
         status: "placed",
         paymentStatus: "paid",
         provider: "free",
         providerId: null,
 
-        currency: ordersCurrency,
+        currency,
         subtotalCents,
         shippingCents: shipCents,
         taxCents,
@@ -251,55 +122,13 @@ export async function finalizeFreeOrderBySid(sid: string) {
 
         placedAt: new Date().toISOString(),
       } as any)
-      .returning();
+      .returning({ id: orders.id });
 
-    // Loyalty earn mirrors paid flow
-    const EARN_RATE_POINTS_PER_DOLLAR = 1;
-    const earnableCents = Math.max(0, subtotalCents + shipCents + taxCents - creditsCents);
-    const earnPoints = Math.floor(earnableCents / 100) * EARN_RATE_POINTS_PER_DOLLAR;
+    await tx.update(carts).set({ status: "closed" as any, userId: safeUserId as any }).where(eq(carts.id, cart.id));
+    await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
 
-    if (earnPoints > 0 && safeUserId) {
-      await tx
-        .insert(loyaltyWallets)
-        .values({ customerId: safeUserId, pointsBalance: 0 })
-        .onConflictDoNothing({ target: loyaltyWallets.customerId });
-
-      const [{ id: walletId }] =
-        (await tx
-          .select({ id: loyaltyWallets.id })
-          .from(loyaltyWallets)
-          .where(eq(loyaltyWallets.customerId, safeUserId))
-          .limit(1)) ?? [];
-
-      await tx.insert(loyaltyTransactions).values({
-        walletId,
-        customerId: safeUserId,
-        type: "earn",
-        pointsDelta: earnPoints,
-        orderId: String(order.id),
-        note: "Order placed (free)",
-      } as any);
-
-      await tx
-        .update(loyaltyWallets)
-        .set({
-          pointsBalance: sql`${loyaltyWallets.pointsBalance} + ${earnPoints}`,
-          lifetimeEarned: sql`${loyaltyWallets.lifetimeEarned} + ${earnPoints}`,
-          updatedAt: new Date(),
-        } as any)
-        .where(eq(loyaltyWallets.id, walletId));
-    }
-
-    await tx.update(carts).set({ status: "closed" }).where(eq(carts.id, cart.id));
-
-    try {
-      await tx.delete(cartCredits).where(eq(cartCredits.cartId, cart.id));
-    } catch {
-      // ignore if you don’t maintain a cartCredits table
-    }
-
-    return { orderId: order.id, earned: earnPoints || 0 };
+    return String(order.id);
   });
 
-  return result; // { orderId, earned, already? }
+  return res;
 }

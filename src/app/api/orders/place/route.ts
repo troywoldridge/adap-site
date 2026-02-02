@@ -1,10 +1,13 @@
+import "server-only";
+
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, eq, inArray } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { auth } from "@clerk/nextjs/server";
+
+import { dbClient as db } from "@/lib/db";
 import { carts, cartLines, cartArtwork, orders } from "@/db/schema";
 import { getSinaliteAccessToken } from "@/lib/getSinaliteAccessToken";
-import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 export const revalidate = 0;
@@ -15,7 +18,6 @@ function toStr(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : v == null ? fallback : String(v);
 }
 
-/** Group artwork rows by cartLineId */
 function groupArtByLine(
   rows: Array<{ cartLineId: string; url: string; side?: string | null }>
 ): Record<string, { type: string; url: string }[]> {
@@ -30,25 +32,23 @@ function groupArtByLine(
   return g;
 }
 
-/** Map our cart line to Sinalite item shape */
 function toSinaliteItem(
   ln: { id: string; productId: number; optionIds?: number[] | null },
   files: { type: string; url: string }[]
 ) {
-  const optionIds = Array.isArray(ln.optionIds) ? ln.optionIds : [];
   return {
     productId: ln.productId,
-    options: optionIds, // numbers are OK per docs
+    options: Array.isArray(ln.optionIds) ? ln.optionIds : [],
     files,
-    extra: ln.id, // reference back to our cart line
+    extra: ln.id,
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const database = db;
     const body = await req.json().catch(() => ({}));
 
-    // Next 15: cookies() must be awaited
     const jar = await cookies();
     const sid =
       (body?.sid as string) ||
@@ -59,8 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "missing_sid" }, { status: 400 });
     }
 
-    // Open cart for SID
-    const [cart] = await db
+    const [cart] = await database
       .select()
       .from(carts)
       .where(and(eq(carts.sid, sid), eq(carts.status, "open")))
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "cart_not_found" }, { status: 404 });
     }
 
-    const lines = await db
+    const lines = await database
       .select()
       .from(cartLines)
       .where(eq(cartLines.cartId, cart.id));
@@ -79,10 +78,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "no_lines" }, { status: 400 });
     }
 
-    // Selected shipping from body or cart.selectedShipping
-    const ship = (body?.shipping ?? (cart as any)?.selectedShipping) || null;
+    const ship = body?.shipping ?? (cart as any)?.selectedShipping ?? null;
 
-    // Shipping & billing per Sinalite docs (strings only)
     const shippingInfo = {
       ShipFName: toStr((cart as any)?.shipFirstName, "Customer"),
       ShipLName: toStr((cart as any)?.shipLastName, "Name"),
@@ -110,25 +107,21 @@ export async function POST(req: NextRequest) {
       BillPhone: toStr((cart as any)?.billPhone, shippingInfo.ShipPhone),
     };
 
-    // ---- Artwork: query by cartLineId only
     let artworkByLine: Record<string, { type: string; url: string }[]> = {};
-    try {
-      const lineIds = lines.map((l) => String(l.id)).filter(Boolean);
-      if (lineIds.length) {
-        const artRows = await db
-          .select()
-          .from(cartArtwork)
-          .where(inArray(cartArtwork.cartLineId, lineIds));
+    const lineIds = lines.map((l) => String(l.id));
+    if (lineIds.length) {
+      const artRows = await database
+        .select()
+        .from(cartArtwork)
+        .where(inArray(cartArtwork.cartLineId, lineIds));
 
-        const simplified = artRows.map((a: any) => ({
+      artworkByLine = groupArtByLine(
+        artRows.map((a: any) => ({
           cartLineId: String(a.cartLineId),
           url: String(a.url),
           side: a.side ? String(a.side) : null,
-        }));
-        artworkByLine = groupArtByLine(simplified);
-      }
-    } catch {
-      artworkByLine = {};
+        }))
+      );
     }
 
     const items = lines.map((ln: any) =>
@@ -136,75 +129,44 @@ export async function POST(req: NextRequest) {
         {
           id: String(ln.id),
           productId: Number(ln.productId),
-          optionIds: Array.isArray(ln.optionIds) ? (ln.optionIds as number[]) : [],
+          optionIds: ln.optionIds,
         },
         artworkByLine[String(ln.id)] || []
       )
     );
 
-    // === Sinalite API CALL (Auth + place order) ========================
-    const rawToken = await getSinaliteAccessToken(); // client_credentials → access_token
+    const rawToken = await getSinaliteAccessToken();
     const authHeader = /^Bearer\s/i.test(rawToken) ? rawToken : `Bearer ${rawToken}`;
-
-    const apiBase =
-      process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com"; // sandbox by default
-
-    const orderPayload = {
-      items,
-      shippingInfo,
-      billingInfo,
-      notes: `Stripe Session: ${toStr(body?.stripeSessionId)} | Cart: ${cart.id}`,
-    };
+    const apiBase = process.env.SINALITE_API_BASE || "https://api.sinaliteuppy.com";
 
     const placeRes = await fetch(`${apiBase}/order/new`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: authHeader,
-      },
-      body: JSON.stringify(orderPayload),
+      headers: { "content-type": "application/json", authorization: authHeader },
+      body: JSON.stringify({ items, shippingInfo, billingInfo }),
     });
 
     const reply = await placeRes.json().catch(() => null);
-    if (!placeRes.ok || (reply && reply?.status === "error")) {
-      console.error("Sinalite order failed", reply);
-      return NextResponse.json(
-        { ok: false, error: "sinalite_failed", detail: reply },
-        { status: 502 }
-      );
+    if (!placeRes.ok || reply?.status === "error") {
+      return NextResponse.json({ ok: false, error: "sinalite_failed", detail: reply }, { status: 502 });
     }
 
-    // Record an order row for “My Orders” (schema field names may differ)
-    try {
-      const { userId } = await auth();
-      await db.insert(orders as any).values({
-        userId: userId ?? null,                    // link to account if signed in
-        sid: (cart as any).sid ?? null,            // helpful for claiming later
-        cartId: String(cart.id),                   // if your table has this
-        externalId: reply?.orderId?.toString?.() ?? null, // Sinalite id
-        status: "submitted",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        shippingJson: JSON.stringify((cart as any)?.selectedShipping ?? null),
-        itemsJson: JSON.stringify(items),
-        notes: `Stripe Session: ${toStr(body?.stripeSessionId)} | Cart: ${cart.id}`,
-      });
-    } catch (e) {
-      console.warn("orders.place: failed to insert orders row (non-fatal)", e);
-    }
+    const { userId } = await auth();
+    await database.insert(orders as any).values({
+      userId: userId ?? null,
+      sid,
+      cartId: String(cart.id),
+      externalId: reply?.orderId?.toString?.() ?? null,
+      status: "submitted",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      itemsJson: JSON.stringify(items),
+    });
 
-    // Close the cart so it doesn’t reappear
-    await db
-      .update(carts)
-      .set({ status: "submitted" as any })
-      .where(eq(carts.id, cart.id));
+    await database.update(carts).set({ status: "submitted" as any }).where(eq(carts.id, cart.id));
 
     return NextResponse.json({ ok: true, order: reply });
   } catch (e: any) {
     console.error("orders/place failed", e);
-    return NextResponse.json(
-      { ok: false, error: String(e?.message || e) },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
   }
 }

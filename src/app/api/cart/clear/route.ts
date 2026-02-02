@@ -1,7 +1,7 @@
 // src/app/api/cart/clear/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 

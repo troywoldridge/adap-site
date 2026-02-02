@@ -1,9 +1,10 @@
 // src/app/api/stripe/webhook/route.ts
 import "server-only";
+
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-import { db } from "@/lib/db";
+import { db as getDb } from "@/lib/db";
 import { and, eq, ne } from "drizzle-orm";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
@@ -14,6 +15,7 @@ import { calculateTaxCents } from "./tax";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /* ------------------------- Strict envs ------------------------- */
 const STRIPE_KEY: string =
@@ -28,24 +30,25 @@ const STRIPE_WEBHOOK_SECRET: string =
     throw new Error("Missing STRIPE_WEBHOOK_SECRET");
   })();
 
-/** Keep your chosen version (unchanged) */
 const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-07-30.basil" });
 
 /* --------------------- Helpers: cart & totals ------------------- */
 async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | null }) {
   const { cartId, sid } = ref;
 
+  const db = getDb();
+  const { select } = db;
+
   if (cartId) {
     const [byId] =
-      (await db
-        .select({
-          id: carts.id,
-          status: carts.status,
-          currency: carts.currency,
-          selectedShipping: carts.selectedShipping,
-          sid: carts.sid,
-          userId: carts.userId, // ✅ include real user id if present
-        })
+      (await select({
+        id: carts.id,
+        status: carts.status,
+        currency: carts.currency,
+        selectedShipping: carts.selectedShipping,
+        sid: carts.sid,
+        userId: carts.userId,
+      })
         .from(carts)
         .where(and(eq(carts.id, cartId), ne(carts.status, "closed")))
         .limit(1)) ?? [];
@@ -54,15 +57,14 @@ async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | n
 
   if (sid) {
     const [bySid] =
-      (await db
-        .select({
-          id: carts.id,
-          status: carts.status,
-          currency: carts.currency,
-          selectedShipping: carts.selectedShipping,
-          sid: carts.sid,
-          userId: carts.userId, // ✅ include real user id if present
-        })
+      (await select({
+        id: carts.id,
+        status: carts.status,
+        currency: carts.currency,
+        selectedShipping: carts.selectedShipping,
+        sid: carts.sid,
+        userId: carts.userId,
+      })
         .from(carts)
         .where(and(eq(carts.sid, sid), ne(carts.status, "closed")))
         .limit(1)) ?? [];
@@ -72,7 +74,6 @@ async function loadOpenCartByRef(ref: { cartId?: string | null; sid?: string | n
   return null;
 }
 
-/** Compute cents from cart rows on the server (authoritative). */
 async function computeCartTotalsCents(
   cartRow: {
     id: string;
@@ -81,19 +82,23 @@ async function computeCartTotalsCents(
   },
   opts: { stripeTotalCents?: number | null } = {},
 ) {
-  const rows = await db
-    .select({
-      quantity: cartLines.quantity,
-      unitPriceCents: cartLines.unitPriceCents,
-      lineTotalCents: cartLines.lineTotalCents,
-    })
+  const db = getDb();
+  const { select } = db;
+
+  const rows = await select({
+    quantity: cartLines.quantity,
+    unitPriceCents: cartLines.unitPriceCents,
+    lineTotalCents: cartLines.lineTotalCents,
+  })
     .from(cartLines)
     .where(eq(cartLines.cartId, cartRow.id));
 
-  const subtotalCents = rows.reduce((sum, r) => {
+  const subtotalCents = rows.reduce((sum: number, r: any) => {
     const qty = Number(r.quantity ?? 0);
     const unit = Number(r.unitPriceCents ?? 0);
-    const line = Number.isFinite(Number(r.lineTotalCents)) ? Number(r.lineTotalCents) : qty * unit;
+    const line = Number.isFinite(Number(r.lineTotalCents))
+      ? Number(r.lineTotalCents)
+      : qty * unit;
     return sum + (Number.isFinite(line) ? line : 0);
   }, 0);
 
@@ -117,10 +122,6 @@ async function computeCartTotalsCents(
 }
 
 /* ----------------- Idempotent order finalizer ------------------- */
-/**
- * Create (or fetch existing) order for a paid Stripe event.
- * Idempotency keys: providerId (PI id) and cartId.
- */
 async function finalizePaidOrderFromCartRef(args: {
   piId?: string | null;
   sessionId?: string | null;
@@ -130,40 +131,32 @@ async function finalizePaidOrderFromCartRef(args: {
 }) {
   const { piId, cartId, sid } = args;
 
-  // 1) If an order already exists for this PI, return early
+  const db = getDb();
+  const { select, transaction } = db;
+
   if (piId) {
-    const existing = await db
-      .select({ id: orders.id })
+    const existing = await select({ id: orders.id })
       .from(orders)
       .where(eq(orders.providerId, piId))
       .limit(1);
     if (existing.length > 0) return String(existing[0].id);
   }
 
-  // 2) If we already created an order for this cart, return it
   if (cartId) {
-    const existingByCart = await db
-      .select({ id: orders.id })
+    const existingByCart = await select({ id: orders.id })
       .from(orders)
       .where(eq(orders.cartId, cartId))
       .limit(1);
     if (existingByCart.length > 0) return String(existingByCart[0].id);
   }
 
-  // 3) Load the open cart (by cartId or sid)
   const cart = await loadOpenCartByRef({ cartId: cartId ?? null, sid: sid ?? null });
-  if (!cart) {
-    // Nothing to do — either already closed or missing; treat as success
-    return null;
-  }
+  if (!cart) return null;
 
-  // 4) Recompute totals (authoritative)
   const { subtotalCents, shipCents, taxCents, creditsCents, totalCents, ordersCurrency } =
     await computeCartTotalsCents(cart, { stripeTotalCents: args.stripeTotalCents ?? null });
 
-  // 5) Insert order & close cart + clear credits (transaction)
-  const result = await db.transaction(async (tx) => {
-    // ✅ prefer real user if available, otherwise fall back to guest SID
+  const result = await transaction(async (tx: any) => {
     const safeUserId = (cart as any).userId ?? cart.sid;
 
     const [order] = await tx
@@ -175,7 +168,6 @@ async function finalizePaidOrderFromCartRef(args: {
         paymentStatus: "paid",
         provider: "stripe",
         providerId: piId ?? null,
-        // Optional: stripeSessionId: args.sessionId ?? null,
 
         currency: ordersCurrency,
         subtotalCents,
@@ -221,6 +213,7 @@ export async function POST(req: NextRequest) {
         const pi = event.data.object as Stripe.PaymentIntent;
         const sid = pi.metadata?.sid ?? null;
         const cartId = pi.metadata?.cartId ?? null;
+
         const amountReceivedCents =
           typeof pi.amount_received === "number" && pi.amount_received > 0
             ? pi.amount_received
@@ -234,6 +227,7 @@ export async function POST(req: NextRequest) {
           cartId,
           stripeTotalCents: amountReceivedCents,
         });
+
         return NextResponse.json({ ok: true });
       }
 
@@ -269,7 +263,6 @@ export async function POST(req: NextRequest) {
     }
   } catch (e: any) {
     console.error("webhook handler failed:", e);
-    // 200 so Stripe retries on its schedule (safer than 500 loops)
-    return NextResponse.json({ ok: false, error: String(e?.message || e) });
+    return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
   }
 }

@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { headers, cookies } from "next/headers";
 import Stripe from "stripe";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { and, eq, ne } from "drizzle-orm";

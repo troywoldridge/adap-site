@@ -1,13 +1,15 @@
 // src/app/account/orders/[id]/page.tsx
 import "server-only";
+
 import { notFound } from "next/navigation";
-import Image from "@/components/ImageSafe";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { eq, inArray } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import Image from "@/components/ImageSafe";
+
+import { db as getDb } from "@/lib/db";
 import { orders } from "@/db/schema/orders";
 import { cartLines } from "@/db/schema/cartLines";
 import { cartArtwork } from "@/db/schema/cartArtwork";
@@ -105,50 +107,70 @@ type LineRow = {
 /* ------------------------------ loader ------------------------------ */
 async function loadOrder(orderId: string) {
   const { userId } = await auth();
+
+  // Next can be sync or async depending on version — await is safe either way.
   const jar = await cookies();
   const sid = jar.get("adap_sid")?.value ?? jar.get("sid")?.value ?? null;
 
-  const [o] = (await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)) as OrderRow[]; // typed
+  const db = getDb();
+  const { select, update } = db;
+
+  const o =
+    (await select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1))?.[0] as OrderRow | undefined;
+
   if (!o) return null;
 
   // ownership (guest → user claim)
   const candidates = [userId, sid].filter(Boolean) as string[];
-  if (!candidates.includes(o.userId)) {
-    if (userId && o.userId === sid) {
-      await db.update(orders).set({ userId }).where(eq(orders.id, orderId));
-      o.userId = userId; // ok to update in-memory copy for this request
+  if (!candidates.includes(String(o.userId))) {
+    if (userId && String(o.userId) === String(sid)) {
+      await update(orders).set({ userId }).where(eq(orders.id, orderId));
+      (o as any).userId = userId;
     } else {
       return null;
     }
   }
 
   // lines
-  const cartId = o.cartId;
+  const cartId = (o as any).cartId as string | null | undefined;
+
   const lineRows: LineRow[] = cartId
-    ? await db
-        .select({
-          id: cartLines.id,
-          productId: cartLines.productId,
-          quantity: cartLines.quantity,
-          unitPriceCents: cartLines.unitPriceCents,
-          lineTotalCents: cartLines.lineTotalCents,
-          optionIds: cartLines.optionIds,
-        })
+    ? (await select({
+        id: cartLines.id,
+        productId: cartLines.productId,
+        quantity: cartLines.quantity,
+        unitPriceCents: cartLines.unitPriceCents,
+        lineTotalCents: cartLines.lineTotalCents,
+        optionIds: cartLines.optionIds,
+      })
         .from(cartLines)
-        .where(eq(cartLines.cartId, cartId))
+        .where(eq(cartLines.cartId, cartId))) as unknown as LineRow[]
     : [];
 
   // artwork by line
   const artMap = new Map<string, string[]>();
   if (lineRows.length) {
-    const ids = lineRows.map((l) => l.id);
-    const arts = await db
-      .select({ cartLineId: cartArtwork.cartLineId, url: cartArtwork.url })
-      .from(cartArtwork)
-      .where(inArray(cartArtwork.cartLineId, ids));
-    for (const a of arts) {
-      if (!artMap.has(a.cartLineId)) artMap.set(a.cartLineId, []);
-      artMap.get(a.cartLineId)!.push(a.url);
+    const ids = lineRows.map((l) => String(l.id)).filter(Boolean);
+
+    if (ids.length) {
+      const arts = (await select({
+        cartLineId: cartArtwork.cartLineId,
+        url: cartArtwork.url,
+      })
+        .from(cartArtwork)
+        .where(inArray(cartArtwork.cartLineId, ids as string[]))) as unknown as Array<{
+        cartLineId: string;
+        url: string;
+      }>;
+
+      for (const a of arts) {
+        const key = String(a.cartLineId);
+        if (!artMap.has(key)) artMap.set(key, []);
+        artMap.get(key)!.push(String(a.url));
+      }
     }
   }
 
@@ -161,14 +183,15 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   if (!data) notFound();
 
   const { o, lines, artMap } = data;
-  const currency = (o.currency === "CAD" ? "CAD" : "USD") as "USD" | "CAD";
-  const statusClass = STATUS_STYLES[o.status as string] || STATUS_STYLES.default;
 
-  const subtotal = Number(o.subtotalCents) || 0;
-  const ship = Number(o.shippingCents) || 0;
-  const tax = Number(o.taxCents) || 0;
-  const credits = Number(o.creditsCents ?? 0); // ✅ no 'any'
-  const total = Number(o.totalCents) || 0;
+  const currency = (o.currency === "CAD" ? "CAD" : "USD") as "USD" | "CAD";
+  const statusClass = STATUS_STYLES[String(o.status)] || STATUS_STYLES.default;
+
+  const subtotal = Number((o as any).subtotalCents) || 0;
+  const ship = Number((o as any).shippingCents) || 0;
+  const tax = Number((o as any).taxCents) || 0;
+  const credits = Number((o as any).creditsCents ?? 0);
+  const total = Number((o as any).totalCents) || 0;
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-8">
@@ -178,18 +201,21 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                {o.orderNumber ? `Order #${o.orderNumber}` : `Order ${o.id.slice(0, 8)}`}
+                {(o as any).orderNumber ? `Order #${(o as any).orderNumber}` : `Order ${String(o.id).slice(0, 8)}`}
               </h1>
               <p className="mt-1 text-sm text-gray-600">
-                Placed {niceDate(o.placedAt ?? o.createdAt)} •{" "}
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusClass}`}>
-                  {o.status}
+                Placed {niceDate(((o as any).placedAt ?? (o as any).createdAt) as any)} •{" "}
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusClass}`}
+                >
+                  {String((o as any).status)}
                 </span>
-                {o.paymentStatus ? (
+                {(o as any).paymentStatus ? (
                   <>
                     {" "}
-                    • <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
-                      {o.paymentStatus}
+                    •{" "}
+                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
+                      {String((o as any).paymentStatus)}
                     </span>
                   </>
                 ) : null}
@@ -199,14 +225,13 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             {/* ACTIONS */}
             <div className="mt-4 flex flex-wrap gap-2 sm:mt-0">
               <Link
-                href={`/account/orders/${o.id}/invoice`}
+                href={`/account/orders/${String(o.id)}/invoice`}
                 className="inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-50"
               >
                 View / Download PDF
               </Link>
 
-              {/* Email me this invoice (POST to API) */}
-              <form action={`/api/orders/${o.id}/invoice/email`} method="post" className="print:hidden">
+              <form action={`/api/orders/${String(o.id)}/invoice/email`} method="post" className="print:hidden">
                 <button
                   className="inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50"
                   formMethod="post"
@@ -215,16 +240,15 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                 </button>
               </form>
 
-              {/* Artwork bundle (.zip) */}
               <a
-                href={`/api/orders/${o.id}/artwork.zip`}
+                href={`/api/orders/${String(o.id)}/artwork.zip`}
                 className="inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-50"
               >
                 Download artwork (.zip)
               </a>
 
               <Link
-                href={`/account/orders/${o.id}/reorder`}
+                href={`/account/orders/${String(o.id)}/reorder`}
                 className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
               >
                 Reorder
@@ -241,15 +265,17 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           <h2 className="mb-3 text-base font-semibold text-gray-900">Items</h2>
           <ul className="space-y-4">
             {lines.map((l) => {
-              const qty = Number(l.quantity ?? 0);
-              const unit = Number(l.unitPriceCents ?? 0);
-              const lineTotal = Number.isFinite(Number(l.lineTotalCents)) ? Number(l.lineTotalCents) : unit * qty;
+              const qty = Number((l as any).quantity ?? 0);
+              const unit = Number((l as any).unitPriceCents ?? 0);
+              const lineTotal = Number.isFinite(Number((l as any).lineTotalCents))
+                ? Number((l as any).lineTotalCents)
+                : unit * qty;
 
-              const img = productImg(l.productId);
-              const arts = artMap.get(l.id) ?? [];
+              const img = productImg((l as any).productId);
+              const arts = artMap.get(String((l as any).id)) ?? [];
 
               return (
-                <li key={l.id} className="rounded-2xl border bg-white p-4 shadow-sm">
+                <li key={String((l as any).id)} className="rounded-2xl border bg-white p-4 shadow-sm">
                   <div className="flex gap-4">
                     <Image
                       src={img}
@@ -260,17 +286,16 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                       unoptimized
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-gray-900">Product {String(l.productId)}</div>
+                      <div className="font-medium text-gray-900">Product {String((l as any).productId)}</div>
                       <div className="text-sm text-gray-600">
                         Qty {qty} • {moneyFmt(unit, currency)} each
                       </div>
 
-                      {/* Artwork links */}
                       {arts.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {arts.map((u, i) => (
                             <a
-                              key={`${l.id}-art-${i}`}
+                              key={`${String((l as any).id)}-art-${i}`}
                               href={u}
                               target="_blank"
                               rel="noreferrer"
@@ -292,7 +317,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           {/* Tracking timeline */}
           <div className="mt-6 rounded-2xl border bg-white p-4 shadow-sm">
             <h3 className="mb-2 text-sm font-semibold text-gray-900">Tracking</h3>
-            <ShipmentTimeline orderId={o.id} />
+            <ShipmentTimeline orderId={String(o.id)} />
             <p className="mt-2 text-xs text-gray-500">
               Status is synced via your backend per the <b>SinaLite API</b> documentation.
             </p>
@@ -304,28 +329,42 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900">Summary</h3>
             <div className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between"><span>Subtotal</span><span>{moneyFmt(subtotal, currency)}</span></div>
-              <div className="flex justify-between"><span>Shipping</span><span>{moneyFmt(ship, currency)}</span></div>
-              <div className="flex justify-between"><span>Tax</span><span>{moneyFmt(tax, currency)}</span></div>
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{moneyFmt(subtotal, currency)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                <span>{moneyFmt(ship, currency)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>{moneyFmt(tax, currency)}</span>
+              </div>
               {credits > 0 && (
                 <div className="flex justify-between text-emerald-700">
-                  <span>Loyalty credit</span><span>−{moneyFmt(credits, currency)}</span>
+                  <span>Loyalty credit</span>
+                  <span>−{moneyFmt(credits, currency)}</span>
                 </div>
               )}
               <hr className="my-2" />
-              <div className="flex justify-between text-base font-bold"><span>Total</span><span>{moneyFmt(total, currency)}</span></div>
+              <div className="flex justify-between text-base font-bold">
+                <span>Total</span>
+                <span>{moneyFmt(total, currency)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Billing & Shipping with quick actions */}
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-gray-900">Billing & Shipping</h3>
             <div className="mt-3 grid grid-cols-1 gap-4 text-sm text-gray-700">
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Billing</div>
-                <div className="mt-1">{o.billingAddressId ? <span>On-file billing address</span> : <span>—</span>}</div>
-                {o.billingAddressId && (
-                  <form action={`/api/me/addresses/${o.billingAddressId}/default`} method="post" className="mt-2">
+                <div className="mt-1">
+                  {(o as any).billingAddressId ? <span>On-file billing address</span> : <span>—</span>}
+                </div>
+                {(o as any).billingAddressId && (
+                  <form action={`/api/me/addresses/${String((o as any).billingAddressId)}/default`} method="post" className="mt-2">
                     <button
                       className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50"
                       formMethod="post"
@@ -335,11 +374,14 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                   </form>
                 )}
               </div>
+
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Shipping</div>
-                <div className="mt-1">{o.shippingAddressId ? <span>On-file shipping address</span> : <span>—</span>}</div>
-                {o.shippingAddressId && (
-                  <form action={`/api/me/addresses/${o.shippingAddressId}/default`} method="post" className="mt-2">
+                <div className="mt-1">
+                  {(o as any).shippingAddressId ? <span>On-file shipping address</span> : <span>—</span>}
+                </div>
+                {(o as any).shippingAddressId && (
+                  <form action={`/api/me/addresses/${String((o as any).shippingAddressId)}/default`} method="post" className="mt-2">
                     <button
                       className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50"
                       formMethod="post"
@@ -356,7 +398,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             <h3 className="text-sm font-semibold text-gray-900">Need help?</h3>
             <p className="mt-2 text-sm text-gray-600">Questions about this order? We’re here to help.</p>
             <a
-              href={`/support/new?orderId=${o.id}`}
+              href={`/support/new?orderId=${String(o.id)}`}
               className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50"
             >
               Contact support
@@ -367,4 +409,3 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     </main>
   );
 }
-

@@ -1,8 +1,7 @@
-// lib/session.ts
 import "server-only";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { orderSessions } from "@/db/schema";
 
 type ShippingTuple = [carrier: string, service: string, price: number, available: number];
@@ -12,6 +11,7 @@ export type ShippingInfo = {
   ShipAddr: string; ShipAddr2?: string; ShipCity: string;
   ShipState: string; ShipZip: string; ShipCountry: string; ShipPhone: string;
 };
+
 export type BillingInfo = {
   BillFName: string; BillLName: string; BillEmail: string;
   BillAddr: string; BillAddr2?: string; BillCity: string;
@@ -52,8 +52,10 @@ const COOKIE_KEY = "orderSessionId";
 type Row = typeof orderSessions.$inferSelect;
 type Insert = typeof orderSessions.$inferInsert;
 
-/** Normalize Next.js cookies() across versions (sync vs async) without ts-ignore */
+/* ---------------- cookie helpers ---------------- */
+
 type CookieJar = Awaited<ReturnType<typeof cookies>>;
+
 async function getJar(): Promise<CookieJar> {
   const maybe = cookies() as unknown;
   if (typeof (maybe as any)?.then === "function") {
@@ -62,7 +64,8 @@ async function getJar(): Promise<CookieJar> {
   return maybe as CookieJar;
 }
 
-// DB → App model
+/* ---------------- mapping helpers ---------------- */
+
 function toModel(row: Row): OrderSession {
   const r: any = row;
   return {
@@ -89,13 +92,11 @@ function toModel(row: Row): OrderSession {
     sinaliteOrderId: r.sinaliteOrderId ?? null,
 
     notes: r.notes ?? null,
-
     createdAt: r.createdAt ?? null,
     updatedAt: r.updatedAt ?? null,
   };
 }
 
-// App model (partial) → DB insert
 function toInsert(initial: Partial<OrderSession>): Insert {
   const i = initial;
   const insert: any = {
@@ -115,11 +116,12 @@ function toInsert(initial: Partial<OrderSession>): Insert {
     sinaliteOrderId: null,
     notes: i.notes ?? null,
   };
-  if (i.userId !== undefined) {
-    insert.userId = i.userId ?? null;
-  }
+
+  if (i.userId !== undefined) insert.userId = i.userId ?? null;
   return insert as Insert;
 }
+
+/* ---------------- public API ---------------- */
 
 export async function getOrderSessionIdFromCookie(): Promise<string | null> {
   const jar = await getJar();
@@ -130,7 +132,7 @@ export async function setOrderSessionCookie(id: string) {
   const jar = await getJar();
   jar.set(COOKIE_KEY, id, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
@@ -138,50 +140,57 @@ export async function setOrderSessionCookie(id: string) {
 }
 
 export async function createOrderSession(initial: Partial<OrderSession>): Promise<OrderSession> {
-  const [row] = await db.insert(orderSessions).values(toInsert(initial)).returning();
+  const database = db;
+  const [row] = await database.insert(orderSessions).values(toInsert(initial)).returning();
   await setOrderSessionCookie(row.id);
   return toModel(row);
 }
 
 export async function getOrderSession(): Promise<OrderSession | null> {
+  const database = db;
   const id = await getOrderSessionIdFromCookie();
   if (!id) return null;
 
-  const rows = await db
+  const [row] = await database
     .select()
     .from(orderSessions)
     .where(eq(orderSessions.id, id))
     .limit(1);
 
-  return rows[0] ? toModel(rows[0]) : null;
+  return row ? toModel(row) : null;
 }
 
 export async function getOrderSessionById(id: string): Promise<OrderSession | null> {
-  const rows = await db
+  const database = db;
+
+  const [row] = await database
     .select()
     .from(orderSessions)
     .where(eq(orderSessions.id, id))
     .limit(1);
 
-  return rows[0] ? toModel(rows[0]) : null;
+  return row ? toModel(row) : null;
 }
 
 export async function markOrderPaid(orderSessionId: string, stripePaymentIntentId: string) {
-  await db
+  const database = db;
+  await database
     .update(orderSessions)
     .set({ stripePaymentIntentId })
     .where(eq(orderSessions.id, orderSessionId));
 }
 
 export async function setStripeCheckoutSessionId(orderSessionId: string, checkoutSessionId: string) {
-  await db
+  const database = db;
+  await database
     .update(orderSessions)
     .set({ stripeCheckoutSessionId: checkoutSessionId })
     .where(eq(orderSessions.id, orderSessionId));
 }
 
 export async function saveSinaliteOrderId(orderSessionId: string, sinaliteOrderId: number) {
-  await db
+  const database = db;
+  await database
     .update(orderSessions)
     .set({ sinaliteOrderId: String(sinaliteOrderId) })
     .where(eq(orderSessions.id, orderSessionId));
@@ -191,20 +200,22 @@ export async function getOrderSessionByStripeSession(
   sessionId: string,
   paymentIntentId?: string
 ): Promise<OrderSession | null> {
+  const database = db;
+
   if (paymentIntentId) {
-    const a = await db
+    const [a] = await database
       .select()
       .from(orderSessions)
       .where(eq(orderSessions.stripePaymentIntentId, paymentIntentId))
       .limit(1);
-    if (a[0]) return toModel(a[0]);
+    if (a) return toModel(a);
   }
 
-  const b = await db
+  const [b] = await database
     .select()
     .from(orderSessions)
     .where(eq(orderSessions.stripeCheckoutSessionId, sessionId))
     .limit(1);
 
-  return b[0] ? toModel(b[0]) : null;
+  return b ? toModel(b) : null;
 }

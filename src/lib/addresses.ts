@@ -1,14 +1,20 @@
-// src/lib/addresses.ts (or wherever this module lives)
 import "server-only";
+
 import { and, desc, eq, sql } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { addresses, type AddressRow, type AddressInsert } from "@/db/schema/addresses";
+import { dbClient as db } from "@/lib/db";
+import {
+  addresses,
+  type AddressRow,
+  type AddressInsert,
+} from "@/db/schema/addresses";
 
 /**
  * List addresses for a user. Default addresses come first.
  */
 export async function listAddresses(userId: string): Promise<AddressRow[]> {
-  return db
+  const database = db;
+
+  return database
     .select()
     .from(addresses)
     .where(eq(addresses.userId, userId))
@@ -18,8 +24,12 @@ export async function listAddresses(userId: string): Promise<AddressRow[]> {
 /**
  * Get a user's default address (if any).
  */
-export async function getDefaultAddress(userId: string): Promise<AddressRow | null> {
-  const rows = await db
+export async function getDefaultAddress(
+  userId: string,
+): Promise<AddressRow | null> {
+  const database = db;
+
+  const rows = await database
     .select()
     .from(addresses)
     .where(and(eq(addresses.userId, userId), eq(addresses.isDefault, true)))
@@ -36,11 +46,16 @@ export async function createAddress(
   userId: string,
   input: Omit<AddressInsert, "id" | "userId" | "createdAt" | "updatedAt">,
 ): Promise<AddressRow> {
+  const database = db;
+
   if (input.isDefault) {
-    await db.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
+    await database
+      .update(addresses)
+      .set({ isDefault: false })
+      .where(eq(addresses.userId, userId));
   }
 
-  const [row] = await db
+  const [row] = await database
     .insert(addresses)
     .values({ ...input, userId })
     .returning();
@@ -50,22 +65,24 @@ export async function createAddress(
 
 /**
  * Update an address. Only touches the current user's address.
- * If `patch.isDefault` is true, unset other defaults first.
- *
- * Note: updatedAt column is mode:"string" in schema, so use sql`now()` not Date.
  */
 export async function updateAddress(
   userId: string,
   id: string,
-  patch: Partial<Omit<AddressInsert, "id" | "userId" | "createdAt" | "updatedAt">> & {
-    isDefault?: boolean;
-  },
+  patch: Partial<
+    Omit<AddressInsert, "id" | "userId" | "createdAt" | "updatedAt">
+  > & { isDefault?: boolean },
 ): Promise<AddressRow | null> {
+  const database = db;
+
   if (patch.isDefault) {
-    await db.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
+    await database
+      .update(addresses)
+      .set({ isDefault: false })
+      .where(eq(addresses.userId, userId));
   }
 
-  const [row] = await db
+  const [row] = await database
     .update(addresses)
     .set({ ...patch, updatedAt: sql`now()` })
     .where(and(eq(addresses.id, id), eq(addresses.userId, userId)))
@@ -77,16 +94,32 @@ export async function updateAddress(
 /**
  * Delete an address belonging to a user.
  */
-export async function deleteAddress(userId: string, id: string): Promise<void> {
-  await db.delete(addresses).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
+export async function deleteAddress(
+  userId: string,
+  id: string,
+): Promise<void> {
+  const database = db;
+
+  await database
+    .delete(addresses)
+    .where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
 }
 
 /**
  * Atomically set an address as default for a user.
  */
-export async function setDefaultAddress(userId: string, id: string): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
+export async function setDefaultAddress(
+  userId: string,
+  id: string,
+): Promise<void> {
+  const database = db;
+
+  await database.transaction(async (tx) => {
+    await tx
+      .update(addresses)
+      .set({ isDefault: false })
+      .where(eq(addresses.userId, userId));
+
     await tx
       .update(addresses)
       .set({ isDefault: true, updatedAt: sql`now()` })

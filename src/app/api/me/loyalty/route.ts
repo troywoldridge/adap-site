@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { eq, desc } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { loyaltyWallets, loyaltyTransactions } from "@/db/schema/loyalty";
 
 export const dynamic = "force-dynamic";

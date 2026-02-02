@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 import { carts } from "@/db/schema/cart";
 import { cartLines } from "@/db/schema/cartLines";
 import { priceSinaliteProduct } from "@/lib/sinalite.pricing";

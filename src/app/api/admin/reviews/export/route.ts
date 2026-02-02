@@ -2,7 +2,7 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { dbClient as db } from "@/lib/db";
 // If your export lives elsewhere, adjust this import path:
 import { productReviews } from "@/db/schema/productReviews";
 import { desc } from "drizzle-orm";

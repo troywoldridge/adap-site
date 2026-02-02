@@ -1,19 +1,24 @@
+import "server-only";
+
 import { NextResponse } from "next/server";
-import { db, pool } from "@/lib/db";
+import { pool } from "@/lib/db";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
-  // Verify Pool
-  const client = await pool.connect();
-  const { rows } = await client.query("select 1 as ok");
-  client.release();
+  try {
+    const r = await pool.query<{ db: string }>("select current_database() as db");
+    const dbName = r?.rows?.[0]?.db ?? null;
 
-  // Verify Drizzle can run a raw query
-  // (No schema import needed, just prove the client works)
-  const result = await db.execute<any>("select current_database() as db");
-
-  return NextResponse.json({
-    ok: true,
-    pg: rows[0].ok === 1,
-    db: result.rows?.[0]?.db,
-  });
+    return NextResponse.json({
+      ok: true,
+      db: dbName,
+      pid: r?.rows ? (pool as any)?.options?.application_name ?? null : null,
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+  }
 }
