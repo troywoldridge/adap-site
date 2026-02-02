@@ -2,78 +2,121 @@
 import "server-only";
 
 import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 
 import * as schema from "@/lib/db/schema";
 
-type Db = NodePgDatabase<typeof schema> & { $client: Pool };
+// ---- Types ----
+export type AppDb = NodePgDatabase<typeof schema> & { $client: Pool };
 
+// ---- Internal singletons (lazy) ----
 let _pool: Pool | null = null;
-let _db: Db | null = null;
+let _db: AppDb | null = null;
 
-function readDatabaseUrl(): string | null {
-  const raw =
-    process.env.DATABASE_URL ||
-    process.env.NEON_URL ||
-    process.env.POSTGRES_URL ||
+// ---- Helpers ----
+function envUrl(): string | null {
+  const v =
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.NEON_URL ??
     null;
 
-  const v = String(raw ?? "").trim();
-  return v ? v : null;
+  if (!v) return null;
+
+  const s = String(v).trim();
+  return s ? s : null;
 }
 
-export function getPool(): Pool {
-  if (_pool) return _pool;
+function isBuildTime(): boolean {
+  // Next sets NEXT_PHASE during builds. We never want to hard-crash module eval in build.
+  const phase = String(process.env.NEXT_PHASE ?? "");
+  if (phase === "phase-production-build" || phase === "phase-export") return true;
 
-  const url = readDatabaseUrl();
-  if (!url) {
-    // Important: throw only when actually used (not at import time)
+  // Cloudflare Pages/Workers builds may set these; harmless if absent.
+  // (We only use them as hints; not required.)
+  if (process.env.CF_PAGES === "1" && process.env.NODE_ENV !== "production") return true;
+
+  return false;
+}
+
+function makeBuildStub(): AppDb {
+  const fail = () => {
     throw new Error(
-      "DATABASE_URL is not set. Provide DATABASE_URL (or NEON_URL/POSTGRES_URL) in the environment."
+      "DB was accessed during build, but DATABASE_URL is not available in the build environment. " +
+        "Move DB access inside request handlers or ensure the variable is available at build time."
     );
-  }
+  };
 
-  _pool = new Pool({
-    connectionString: url,
-    max: 10,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 10_000,
+  const fn = new Proxy(fail, {
+    get() {
+      return fn;
+    },
+    apply() {
+      return fail();
+    },
   });
 
-  return _pool;
+  // Anything you touch becomes a function/proxy that only throws if called.
+  const stub = new Proxy(
+    {},
+    {
+      get() {
+        return fn;
+      },
+    }
+  );
+
+  return stub as unknown as AppDb;
 }
 
-export function getDb(): Db {
+function initDb(): AppDb {
   if (_db) return _db;
 
-  const p = getPool();
-  _db = drizzle(p, { schema }) as unknown as Db;
+  const url = envUrl();
+
+  if (!url) {
+    // ✅ Critical: do NOT crash import-time during build.
+    if (isBuildTime()) return makeBuildStub();
+
+    // ✅ Runtime should fail loudly.
+    throw new Error("DATABASE_URL is not set. Provide DATABASE_URL (or NEON_URL/POSTGRES_URL) in the environment.");
+  }
+
+  if (!_pool) {
+    _pool = new Pool({
+      connectionString: url,
+      max: 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+    });
+  }
+
+  const base = drizzle(_pool, { schema }) as unknown as AppDb;
+  (base as any).$client = _pool;
+
+  _db = base;
   return _db;
 }
 
-/**
- * Proxy lets us export a stable `db` object *without* initializing at import time.
- * This prevents Next build / page-data collection from exploding if env injection is misconfigured.
- */
-export const db: Db = new Proxy(
-  {},
-  {
-    get(_target, prop) {
-      const real = getDb() as unknown as Record<PropertyKey, unknown>;
-      return real[prop];
-    },
-  }
-) as unknown as Db;
+// ---- Public API ----
+// Preferred: call inside handlers where you need it
+export function getDb(): AppDb {
+  return initDb();
+}
 
-// Back-compat exports (your codebase expects these in many places)
-export const dbClient = db;
-export const pool: Pool = new Proxy(
+// Back-compat: allow existing `import { db } from "@/lib/db"` to keep working
+export const db: AppDb = new Proxy(
   {},
   {
-    get(_target, prop) {
-      const real = getPool() as unknown as Record<PropertyKey, unknown>;
+    get(_t, prop) {
+      const real = initDb() as any;
       return real[prop];
     },
   }
-) as unknown as Pool;
+) as unknown as AppDb;
+
+// Only export pool if you truly need raw pg access elsewhere
+export function getPool(): Pool {
+  const db = initDb();
+  return db.$client;
+}
