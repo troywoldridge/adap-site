@@ -6,7 +6,7 @@ import NotFoundClient from "./NotFoundClient";
 
 export const dynamic = "force-static";
 
-// ✅ If you currently have themeColor in metadata, Next 15 wants it in viewport.
+
 export const viewport = {
   themeColor: "#0f172a",
 };

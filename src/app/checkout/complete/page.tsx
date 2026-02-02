@@ -1,11 +1,10 @@
-// src/app/checkout/complete/page.tsx
 import { Suspense } from "react";
-import CheckoutCompleteClient from "@/app/checkout/complete/CompleteClient";
+import CheckoutCompleteClient from "./CompleteClient";
 
 export const viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
   ],
 };
 

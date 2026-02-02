@@ -1,7 +1,6 @@
-// src/app/account/onboarding/page.tsx
 import { Suspense } from "react";
-import OnboardingClient from "./OnboardingClient";
 import type { Metadata, Viewport } from "next";
+import OnboardingClient from "./OnboardingClient";
 
 export const metadata: Metadata = {
   title: "Account Onboarding • ADAP",
@@ -11,7 +10,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
   ],
 };
 

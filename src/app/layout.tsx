@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   // themeColor: "#0047ab",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)",  color: "#0b1220" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
   ],
 };
 
@@ -84,11 +84,12 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#0047ab" }],
   },
-  // 🔧 removed the duplicate `manifest` here
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
-  ],
+
+  // ✅ IMPORTANT FIX:
+  // Next 15 warns if themeColor is in metadata export.
+  // themeColor belongs in `export const viewport`.
+  // (Removed here on purpose.)
+
   // ✅ Helpful keywords (kept concise)
   keywords: [
     "trade printing",
@@ -110,7 +111,14 @@ export const metadata: Metadata = {
     url: SITE,
     siteName: SITE_NAME,
     images: DEFAULT_OG
-      ? [{ url: DEFAULT_OG, width: 1200, height: 630, alt: "American Design And Printing" }]
+      ? [
+          {
+            url: DEFAULT_OG,
+            width: 1200,
+            height: 630,
+            alt: "American Design And Printing",
+          },
+        ]
       : undefined,
     locale: "en_US",
     type: "website",
@@ -276,9 +284,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Keep your subtle premium background; all images via Cloudflare CDN */}
         <body className="min-h-screen bg-amber-50 text-slate-900 antialiased [background:radial-gradient(1200px_600px_at_120%_-10%,rgba(0,71,171,.25),transparent),radial-gradient(1200px_600px_at_-10%_110%,rgba(0,71,171,.18),transparent)]">
-          <Suspense fallback={null}><RouteProgressSlot /></Suspense>
+          <Suspense fallback={null}>
+            <RouteProgressSlot />
+          </Suspense>
           <NotificationBar />
-          <Suspense fallback={null}><HeaderSlot /></Suspense>
+          <Suspense fallback={null}>
+            <HeaderSlot />
+          </Suspense>
           {/* <Navigation items={NAV_ITEMS} /> */}
           <SupportBanner />
           <main>{children}</main>
