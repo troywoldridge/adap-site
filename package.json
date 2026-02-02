@@ -10,7 +10,7 @@
     "db:introspect": "drizzle-kit introspect",
     "build:data": "node scripts/buildSiteData.cjs",
     "dev": "next dev",
-    "build": "opennext build",
+"build": "next build",
     "start": "next start",
     "lint": "next lint",
     "seed:subcategories": "pnpm exec ts-node --esm scripts/seed-subcategories.ts",
