@@ -1,69 +1,71 @@
 // src/lib/db.ts
 import "server-only";
 
-import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-// If you have a schema export, keep it. If not, remove these 2 lines.
-// Example: import * as schema from "@/db/schema";
+// IMPORTANT: your schema type in the build error points at: src/db/schema/index
+// So we import the schema barrel from "@/db/schema" (which should resolve to src/db/schema/index.ts)
 import * as schema from "@/db/schema";
+
+type Schema = typeof schema;
 
 declare global {
   // eslint-disable-next-line no-var
   var __adap_pg_pool: Pool | undefined;
   // eslint-disable-next-line no-var
-  var __adap_drizzle_db: ReturnType<typeof drizzle<typeof schema>> | undefined;
+  var __adap_drizzle_db:
+    | (NodePgDatabase<Schema> & { $client: Pool })
+    | undefined;
 }
 
-function norm(v: unknown) {
-  return String(v ?? "").trim();
-}
-
-function getDatabaseUrl(): string {
+function getDatabaseUrl() {
   const url =
-    norm(process.env.DATABASE_URL) ||
-    norm(process.env.POSTGRES_URL) ||
-    norm(process.env.NEON_DATABASE_URL);
+    process.env.DATABASE_URL ||
+    process.env.NEON_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    "";
 
   if (!url) {
-    // IMPORTANT: throw only when actually used at runtime,
-    // not during module import / build-time evaluation.
     throw new Error(
-      "DATABASE_URL is required at runtime. Set DATABASE_URL in your environment."
+      "Missing DATABASE_URL (or NEON_URL / POSTGRES_URL). Set it in your deployment environment."
     );
   }
 
   return url;
 }
 
-function getPool(): Pool {
-  if (!globalThis.__adap_pg_pool) {
-    globalThis.__adap_pg_pool = new Pool({
-      connectionString: getDatabaseUrl(),
-      max: 10,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 10_000,
-      // You can add ssl here if your provider requires it:
-      // ssl: { rejectUnauthorized: false },
-    });
-  }
+// Reuse singletons across hot reloads / multiple imports
+export const pool: Pool =
+  globalThis.__adap_pg_pool ??
+  new Pool({
+    connectionString: getDatabaseUrl(),
+    // Most hosted Postgres providers require SSL in production
+    ssl:
+      process.env.NODE_ENV === "production"
+        ? { rejectUnauthorized: false }
+        : undefined,
+    max: Number(process.env.PG_POOL_MAX || 10),
+    idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30000),
+    connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10000),
+  });
 
-  return globalThis.__adap_pg_pool;
+if (!globalThis.__adap_pg_pool) globalThis.__adap_pg_pool = pool;
+
+export const db:
+  | (NodePgDatabase<Schema> & { $client: Pool })
+  | (NodePgDatabase<Schema> & { $client: Pool }) =
+  globalThis.__adap_drizzle_db ??
+  (drizzle(pool, { schema }) as NodePgDatabase<Schema> & { $client: Pool });
+
+if (!globalThis.__adap_drizzle_db) globalThis.__adap_drizzle_db = db;
+
+/**
+ * Some parts of the app call getDb() (like invoice/email/shared.ts).
+ * This MUST be callable (a function), not an object alias.
+ */
+export function getDb() {
+  return db;
 }
-
-function getDb() {
-  if (!globalThis.__adap_drizzle_db) {
-    // typed schema drizzle instance
-    globalThis.__adap_drizzle_db = drizzle(getPool(), { schema });
-  }
-  return globalThis.__adap_drizzle_db;
-}
-
-// ✅ canonical export used across the app (recommended)
-export const db = getDb();
-
-// ✅ backwards-compatible alias for older imports
-export const dbClient = db;
-
-// Optional: sometimes you want raw pool access for COPY / transactions
-export const pgPool = getPool();
