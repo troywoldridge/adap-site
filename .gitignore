@@ -60,3 +60,6 @@ tools/stripe/*
 # core dumps
 core
 core.*
+
+# OpenNext / Cloudflare Workers build output
+.open-next/
