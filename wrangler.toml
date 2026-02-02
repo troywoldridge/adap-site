@@ -1,6 +1,8 @@
-name = "adap-site"
+name = "adapnow-site"
 account_id = "720ec85be65a483a3e34400d56dba5d8"
+
 main = ".open-next/worker.js"
+
 compatibility_date = "2026-02-01"
 compatibility_flags = ["nodejs_compat"]
 
