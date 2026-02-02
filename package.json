@@ -10,7 +10,7 @@
     "db:introspect": "drizzle-kit introspect",
     "build:data": "node scripts/buildSiteData.cjs",
     "dev": "next dev",
-"build": "next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "seed:subcategories": "pnpm exec ts-node --esm scripts/seed-subcategories.ts",
@@ -117,6 +117,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.5",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.61.1"
   }
 }
