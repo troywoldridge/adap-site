@@ -31,7 +31,7 @@
     "cache:ship": "tsx ./scripts/cache-ship.ts",
     "sync:batch": "tsx scripts/sync-batch.ts",
     "sina:all": "bash scripts/sina_all.sh",
-    "postinstall": "node scripts/install-stripe-cli.mjs",
+    "postinstall": "node -e \"import('node:fs').then(fs=>{const p='scripts/install-stripe-cli.mjs'; if(fs.existsSync(p)){import('node:child_process').then(cp=>cp.execSync('node '+p,{stdio:'inherit'}));} else {console.log('[postinstall] skipping '+p+' (missing)');}})\"",
     "stripe:login": "tools/stripe/stripe login",
     "stripe:listen": "tools/stripe/stripe listen --forward-to http://localhost:3000/api/stripe/webhook --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,payment_intent.succeeded,payment_intent.payment_failed",
     "stripe:trigger:success": "tools/stripe/stripe trigger checkout.session.completed",
